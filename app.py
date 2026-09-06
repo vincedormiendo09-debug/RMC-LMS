@@ -2,6 +2,7 @@ import os
 import json
 import urllib.request
 from datetime import datetime, timezone, timedelta
+import requests
 from flask import (
     Flask,
     render_template,
@@ -13,7 +14,6 @@ from flask import (
     make_response,
     jsonify
 )
-from flask_mail import Mail, Message
 from supabase import create_client, Client
 from pywebpush import webpush, WebPushException
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -44,16 +44,65 @@ SUPABASE_KEY = os.environ.get(
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # =========================================
-# 📧 MAIL & VAPID PUSH CONFIGURATION
+# 📧 BREVO HTTP API EMAIL HELPER (PORT 443)
 # =========================================
-app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
-app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'regismariecollege100@gmail.com')
-app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'regismarie123')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER', 'regismariecollege100@gmail.com')
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY")
+SENDER_EMAIL = os.environ.get("MAIL_USERNAME", "regismariecollege100@gmail.com")
+SENDER_NAME = "Regis Marie College LMS"
 
-mail = Mail(app)
+def send_email_api(to_recipients, subject, body_text):
+    """
+    Sends transactional emails over HTTPS (Port 443) via Brevo API.
+    Works reliably on Render without encountering SMTP port blocks.
+    `to_recipients` can be a single email string or a list of emails.
+    """
+    api_key = os.environ.get("BREVO_API_KEY")
+    if not api_key:
+        print("❌ BREVO_API_KEY is not set. Email dispatch skipped.")
+        return False
+
+    if isinstance(to_recipients, str):
+        to_recipients = [to_recipients]
+
+    to_list = [{"email": e.strip()} for e in to_recipients if e and e.strip()]
+    if not to_list:
+        return False
+
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
+    }
+
+    html_content = (
+        "<div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>"
+        + body_text.replace("\n", "<br>")
+        + "</div>"
+    )
+
+    payload = {
+        "sender": {
+            "name": SENDER_NAME,
+            "email": SENDER_EMAIL
+        },
+        "to": to_list,
+        "subject": subject,
+        "htmlContent": html_content,
+        "textContent": body_text
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        if response.status_code in [200, 201]:
+            print(f"✅ Email successfully dispatched to {len(to_list)} recipient(s).")
+            return True
+        else:
+            print(f"❌ Brevo API error ({response.status_code}): {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Network error while calling Brevo API: {e}")
+        return False
 
 VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "vapid_private.pem")
 VAPID_CLAIM_EMAIL = "mailto:regismariecollege100@gmail.com"
@@ -161,12 +210,8 @@ def register():
 
             supabase.table('users').insert(user_data).execute()
 
-            try:
-                msg = Message(
-                    subject="Regis Marie College - Account Registration Confirmation",
-                    recipients=[email]
-                )
-                msg.body = f"""Hello {full_name},
+            # Email notification via Brevo HTTP API
+            reg_body = f"""Hello {full_name},
 
 Welcome to Regis Marie College!
 
@@ -181,10 +226,15 @@ Best regards,
 Registrar Office
 Regis Marie College
 """
-                mail.send(msg)
+            sent = send_email_api(
+                to_recipients=email,
+                subject="Regis Marie College - Account Registration Confirmation",
+                body_text=reg_body
+            )
+
+            if sent:
                 flash("Registration successful! Confirmation email dispatched.", "success")
-            except Exception as e:
-                print(f"❌ Email error: {e}")
+            else:
                 flash("Account registered successfully!", "success")
 
             return redirect(url_for('login'))
@@ -242,7 +292,7 @@ def ai_moderate():
     image_url = (data.get('image_url') or '').strip()
     file_name = (data.get('file_name') or '').strip()
 
-    # 1. FILE EXTENSION SECURITY CHECK (MALWARE & VIRUS PREVENTION)
+    # 1. File extension validation
     if file_name:
         ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else ''
         if ext in BLOCKED_EXTENSIONS or (ALLOWED_EXTENSIONS and ext not in ALLOWED_EXTENSIONS):
@@ -251,7 +301,7 @@ def ai_moderate():
                 "reason": f"Security Notice: File extension (.{ext}) is prohibited to prevent malware and suspicious uploads."
             }), 200
 
-    # 2. IF NO TEXT OR IMAGE PROVIDED, PASS
+    # 2. Skip if no payload
     if not message_text and not image_url:
         return jsonify({"allowed": True}), 200
 
@@ -259,7 +309,7 @@ def ai_moderate():
     if not api_key:
         return jsonify({"allowed": True}), 200
 
-    # 3. BUILD MULTIMODAL MODERATION PAYLOAD (TEXT & IMAGE)
+    # 3. Payload build
     moderation_input = []
     if message_text:
         moderation_input.append({
@@ -664,7 +714,7 @@ def notify_users():
     data = request.json or {}
     class_title = data.get('class_title', 'Your Class')
     item_title = data.get('title', 'Course Material')
-    notif_type = data.get('type', 'new_activity')  # new_activity, updated_activity, new_lesson, updated_lesson
+    notif_type = data.get('type', 'new_activity')
     student_emails = data.get('student_emails', [])
     student_ids = data.get('student_ids', [])
     details = data.get('details', 'Check portal for updates.')
@@ -678,14 +728,9 @@ def notify_users():
     
     subject_prefix, body_action = type_messages.get(notif_type, ('Academic Update', 'An update has been made'))
 
-    # 1. Dispatch Email Notifications
+    # 1. Dispatch Email Notifications via Brevo API
     if student_emails:
-        try:
-            msg = Message(
-                subject=f"Regis Marie College - {subject_prefix}: {item_title}",
-                recipients=student_emails
-            )
-            msg.body = f"""Hello Regis Marie College Student,
+        email_body = f"""Hello Regis Marie College Student,
 
 {body_action} in your class: {class_title}.
 
@@ -698,10 +743,11 @@ Best regards,
 Academic Portal
 Regis Marie College
 """
-            mail.send(msg)
-            print(f"📧 Notification emails sent to {len(student_emails)} student(s).")
-        except Exception as e:
-            print(f"❌ Email error: {e}")
+        send_email_api(
+            to_recipients=student_emails,
+            subject=f"Regis Marie College - {subject_prefix}: {item_title}",
+            body_text=email_body
+        )
 
     # 2. Dispatch Mobile Push & Lock Screen Notifications
     if student_ids:
@@ -844,12 +890,7 @@ def check_activity_deadlines_and_reminders():
 
 def send_reminder_cluster(emails, user_ids, title, heading, details):
     if emails:
-        try:
-            msg = Message(
-                subject=f"Regis Marie College - Reminder: {heading} ({title})",
-                recipients=emails
-            )
-            msg.body = f"""Hello Regis Marie College Student,
+        reminder_body = f"""Hello Regis Marie College Student,
 
 Reminder Alert: {heading}
 Activity: {title}
@@ -862,9 +903,11 @@ Best regards,
 Academic Portal
 Regis Marie College
 """
-            mail.send(msg)
-        except Exception as e:
-            print(f"❌ Reminder email error: {e}")
+        send_email_api(
+            to_recipients=emails,
+            subject=f"Regis Marie College - Reminder: {heading} ({title})",
+            body_text=reminder_body
+        )
 
     if user_ids:
         try:
