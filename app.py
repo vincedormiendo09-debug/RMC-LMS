@@ -181,18 +181,26 @@ def login():
 @app.route('/register.html', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        full_name = (request.form.get('full_name') or '').strip()
-        email = (request.form.get('email') or '').strip().lower()
-        password = (request.form.get('password') or '123456').strip()
-        role = (request.form.get('role') or 'STUDENT').strip().upper()
+        # Accept either FormData or JSON payloads
+        data = request.get_json(silent=True) or request.form
+        is_ajax = request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+        full_name = (data.get('full_name') or '').strip()
+        email = (data.get('email') or '').strip().lower()
+        password = (data.get('password') or '123456').strip()
+        role = (data.get('role') or 'STUDENT').strip().upper()
 
         if not email or not full_name:
+            if is_ajax:
+                return jsonify({"success": False, "message": "Full name and email are required."}), 400
             flash("Full name and email address are required.", "warning")
             return redirect(url_for('register'))
 
         try:
             existing = supabase.table('users').select('id').eq('email', email).execute()
             if existing.data and len(existing.data) > 0:
+                if is_ajax:
+                    return jsonify({"success": False, "message": "An account with this email already exists."}), 409
                 flash("An account with this email address already exists.", "warning")
                 return redirect(url_for('register'))
 
@@ -204,13 +212,12 @@ def register():
             }
 
             for field in ['student_id', 'course', 'year_level', 'section', 'position']:
-                val = request.form.get(field)
+                val = data.get(field)
                 if val:
-                    user_data[field] = val.strip()
+                    user_data[field] = str(val).strip()
 
             supabase.table('users').insert(user_data).execute()
 
-            # Email notification via Brevo HTTP API
             reg_body = f"""Hello {full_name},
 
 Welcome to Regis Marie College!
@@ -226,21 +233,22 @@ Best regards,
 Registrar Office
 Regis Marie College
 """
-            sent = send_email_api(
+            send_email_api(
                 to_recipients=email,
                 subject="Regis Marie College - Account Registration Confirmation",
                 body_text=reg_body
             )
 
-            if sent:
-                flash("Registration successful! Confirmation email dispatched.", "success")
-            else:
-                flash("Account registered successfully!", "success")
+            if is_ajax:
+                return jsonify({"success": True, "message": "Account created and confirmation email dispatched."}), 201
 
+            flash("Registration successful! Confirmation email dispatched.", "success")
             return redirect(url_for('login'))
 
         except Exception as err:
             print(f"❌ Registration Error: {err}")
+            if is_ajax:
+                return jsonify({"success": False, "message": str(err)}), 500
             flash(f"Error registering user: {err}", "error")
             return redirect(url_for('register'))
 
