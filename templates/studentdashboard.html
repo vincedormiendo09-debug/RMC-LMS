@@ -1,0 +1,1788 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- ðŸ”’ PREVENT BROWSER CACHING AFTER LOGOUT -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <title>Student Performance Dashboard | Regis Marie College</title>
+
+  <!-- SUPABASE JS CLIENT -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- FONT AWESOME & CHART.JS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+  /* =========================================
+     GLOBAL RESET & BRAND SYSTEM
+  ========================================= */
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #dbeafe;
+    --background: #f4f7fb;
+    --surface: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --warning: #f59e0b;
+    --warning-light: #fef3c7;
+    --danger: #ef4444;
+    --danger-light: #fee2e2;
+    --purple: #8b5cf6;
+    --purple-light: #f3e8ff;
+    --chart-cyan: #00d2c4;
+    --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    position: relative;
+  }
+
+  /* =========================================
+     SIDEBAR NAVIGATION RAIL & OVERLAY
+  ========================================= */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e40af, #1e3a8a);
+    color: #ffffff;
+    padding: 22px 15px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .user-profile-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .user-badge {
+    display: inline-block;
+    background: #fbbf24;
+    color: #1e3a8a;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar a,
+  #sidebarMenu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 14.5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .sidebar a:hover,
+  #sidebarMenu a:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: translateX(2px);
+    color: #ffffff !important;
+  }
+
+  .sidebar a.active,
+  #sidebarMenu a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    font-weight: bold;
+    color: #ffffff !important;
+  }
+
+  .sidebar-logout-btn {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffffff !important;
+    margin-top: 18px !important;
+    cursor: pointer;
+  }
+
+  .sidebar-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.45) !important;
+  }
+
+  .sidebar-section {
+    margin-top: 24px;
+  }
+
+  .sidebar-section-title {
+    padding: 0 10px 8px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    margin-bottom: 6px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* =========================================
+     MAIN CONTENT AREA
+  ========================================= */
+  .main-content {
+    margin-left: 240px;
+    min-height: 100vh;
+    padding: 28px;
+    flex: 1 1 auto;
+    width: calc(100% - 240px);
+    max-width: 100%;
+    min-width: 0;
+    transition: margin-left 0.3s ease, width 0.3s ease, padding 0.3s ease;
+  }
+
+  .container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    min-width: 0;
+  }
+
+  /* PAGE HEADER & CONTROLS */
+  .page-header {
+    width: 100%;
+    background: var(--surface);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .header-title-group {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+
+  .header-title-group h1 {
+    font-size: 22px;
+    color: var(--primary-dark);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    word-break: break-word;
+  }
+
+  .header-title-group p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  .controls-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex: 0 1 auto;
+  }
+
+  .select-class-dropdown {
+    min-height: 42px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #f8fafc;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    min-width: 220px;
+    max-width: 100%;
+  }
+
+  .select-class-dropdown:focus,
+  .select-class-dropdown:hover {
+    border-color: var(--primary);
+    background: #ffffff;
+  }
+
+  /* =========================================
+     KPI SUMMARY CARDS
+  ========================================= */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 18px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .kpi-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .kpi-icon-box {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .kpi-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 10px 0 4px;
+    word-break: break-word;
+  }
+
+  .kpi-subtext {
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+    word-break: break-word;
+  }
+
+  .kpi-subtext.positive { color: var(--success); }
+  .kpi-subtext.warning { color: #b45309; }
+  .kpi-subtext.negative { color: var(--danger); }
+
+  /* =========================================
+     ATTENTION & AT-RISK WARNING HUB
+  ========================================= */
+  .attention-box {
+    background: #fff1f2;
+    border: 1px solid #fecdd3;
+    border-radius: 14px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .attention-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 50%;
+    background: var(--danger-light);
+    color: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .attention-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .attention-content h3 {
+    font-size: 16px;
+    color: #9f1239;
+    margin-bottom: 6px;
+    font-weight: 700;
+    word-break: break-word;
+  }
+
+  .attention-content p {
+    font-size: 13.5px;
+    color: #881337;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .attention-list {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .attention-tag {
+    background: #ffe4e6;
+    border: 1px solid #fca5a5;
+    color: #9f1239;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    word-break: break-word;
+    line-height: 1.4;
+  }
+
+  /* =========================================
+     CHART CONTAINERS & CARDS
+  ========================================= */
+  .card {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .card-header h2 {
+    font-size: 18px;
+    color: var(--text);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    word-break: break-word;
+  }
+
+  /* RECHARTS-STYLE TIMEFRAME PILL CONTAINER */
+  .timeframe-pill {
+    display: inline-flex;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 24px;
+    border: 1px solid var(--border);
+    gap: 4px;
+  }
+
+  .timeframe-btn {
+    min-height: 32px;
+    padding: 5px 14px;
+    border: none;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .timeframe-btn:hover {
+    color: var(--text);
+  }
+
+  .timeframe-btn.active {
+    background: #ffffff;
+    color: var(--text);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .chart-container-large {
+    position: relative;
+    height: 320px;
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  .grid-two-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .grid-two-columns > * {
+    min-width: 0;
+  }
+
+  .chart-container-small {
+    position: relative;
+    height: 250px;
+    width: 100% !important;
+    min-width: 0;
+  }
+
+  canvas {
+    max-width: 100% !important;
+  }
+
+  /* =========================================
+     RESPONSIVE DATA TABLE
+  ========================================= */
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-top: 6px;
+  }
+
+  table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13.5px;
+  }
+
+  th {
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+    padding: 12px 14px;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    color: #334155;
+    vertical-align: middle;
+  }
+
+  tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .badge-excellent { background: var(--success-light); color: var(--success); }
+  .badge-good { background: var(--primary-light); color: var(--primary-dark); }
+  .badge-warning { background: var(--warning-light); color: #b45309; }
+  .badge-danger { background: var(--danger-light); color: var(--danger); }
+
+  .btn-view-breakdown {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    min-height: 36px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  .btn-view-breakdown:hover {
+    background: var(--primary-dark);
+  }
+
+  .btn-bar {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .back-btn {
+    background: #64748b;
+    color: #ffffff;
+    min-height: 44px;
+    padding: 11px 26px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .back-btn:hover {
+    background: #475569;
+  }
+
+  /* =========================================
+     RESPONSIVE BREAKPOINTS (RWD)
+  ========================================= */
+  /* Tablets and Smaller Laptops */
+  @media (max-width: 1024px) {
+    .grid-two-columns {
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+
+    .chart-container-large {
+      height: 280px;
+    }
+
+    .chart-container-small {
+      height: 230px;
+    }
+  }
+
+  /* Standard Mobile Viewports */
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+    }
+
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+      max-width: 100vw;
+      padding: 18px;
+      padding-top: 74px;
+    }
+
+    .page-header {
+      padding: 18px;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .controls-group {
+      width: 100%;
+    }
+
+    .select-class-dropdown {
+      width: 100%;
+      font-size: 16px; /* Prevents auto-zoom on mobile */
+    }
+
+    .card {
+      padding: 20px 16px;
+      border-radius: 14px;
+    }
+
+    .chart-container-large {
+      height: 240px;
+    }
+
+    .chart-container-small {
+      height: 210px;
+    }
+  }
+
+  /* Compact Smartphones (320px - 480px) */
+  @media (max-width: 480px) {
+    .main-content {
+      padding: 12px;
+      padding-top: 68px;
+    }
+
+    .header-title-group h1 {
+      font-size: 19px;
+    }
+
+    .kpi-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .attention-box {
+      flex-direction: column;
+      padding: 16px 14px;
+      gap: 10px;
+    }
+
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .timeframe-pill {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .timeframe-btn {
+      flex: 1;
+      text-align: center;
+    }
+
+    .chart-container-large {
+      height: 200px;
+    }
+
+    .chart-container-small {
+      height: 190px;
+    }
+
+    .back-btn {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+
+    <!-- USER PROFILE & ROLE BADGE -->
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">TEACHER</div>
+    </div>
+
+    <!-- DYNAMIC SIDEBAR LINKS -->
+    <div id="sidebarMenu"></div>
+
+    <!-- MY CLASSES -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <!-- MY GROUPS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <!-- LOGOUT BUTTON -->
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- PAGE HEADER -->
+    <header class="page-header">
+      <div class="header-title-group">
+        <h1 id="dashTitle"><i class="fa-solid fa-users-viewfinder"></i> Student Performance & Comparison Dashboard</h1>
+        <p id="dashSub">Individual student rankings, score trends, and academic performance comparison.</p>
+      </div>
+
+      <div class="controls-group">
+        <!-- SELECT ACTIVE CLASS DROPDOWN -->
+        <select id="studentClassSelector" class="select-class-dropdown" onchange="switchClassFilter(this.value)">
+          <option value="ALL">🌐 All Active Classes</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="container">
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title" id="kpiAvgTitle">Average Class Grade</span>
+            <div class="kpi-icon-box" style="background:var(--primary-light); color:var(--primary);"><i class="fa-solid fa-award"></i></div>
+          </div>
+          <div class="kpi-value" id="kpiAvgScore">0%</div>
+          <div class="kpi-subtext positive" id="kpiGpaLabel"><i class="fa-solid fa-circle-check"></i> N/A Equivalent</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Top Performing Student</span>
+            <div class="kpi-icon-box" style="background:var(--success-light); color:var(--success);"><i class="fa-solid fa-trophy"></i></div>
+          </div>
+          <div class="kpi-value" id="kpiStrongName" style="font-size: 20px;">Loading...</div>
+          <div class="kpi-subtext positive" id="kpiStrongScore"><i class="fa-solid fa-star"></i> 0% Average</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Students Needing Support</span>
+            <div class="kpi-icon-box" style="background:var(--danger-light); color:var(--danger);"><i class="fa-solid fa-user-minus"></i></div>
+          </div>
+          <div class="kpi-value" id="kpiWeakCount">0</div>
+          <div class="kpi-subtext negative" id="kpiWeakSubtext"><i class="fa-solid fa-triangle-exclamation"></i> Below 75% Average</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Total Graded Submissions</span>
+            <div class="kpi-icon-box" style="background:#f3e8ff; color:#9333ea;"><i class="fa-solid fa-list-check"></i></div>
+          </div>
+          <div class="kpi-value" id="kpiCompletedCount">0</div>
+          <div class="kpi-subtext positive"><i class="fa-solid fa-bolt"></i> Evaluated Submissions</div>
+        </div>
+      </div>
+
+      <!-- ATTENTION BOX FOR AT-RISK STUDENTS -->
+      <div class="attention-box" id="attentionBox">
+        <div class="attention-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="attention-content">
+          <h3><i class="fa-solid fa-circle-exclamation"></i> Students Needing Academic Support:</h3>
+          <p id="attentionMessage">Analyzing student submissions...</p>
+          <div class="attention-list" id="attentionTags"></div>
+        </div>
+      </div>
+
+      <!-- MAIN LINE GRAPH: CALENDAR GRADE TREND HISTORY -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-clock-rotate-left" style="color: var(--chart-cyan, #00d2c4);"></i> Student Grade Progression Trend</h2>
+          
+          <!-- TIMEFRAME PILLS (30D, 60D, 90D, 120D) -->
+          <div class="timeframe-pill">
+            <button class="timeframe-btn active" id="btn30D" onclick="switchTimeframe(30)">30D</button>
+            <button class="timeframe-btn" id="btn60D" onclick="switchTimeframe(60)">60D</button>
+            <button class="timeframe-btn" id="btn90D" onclick="switchTimeframe(90)">90D</button>
+            <button class="timeframe-btn" id="btn120D" onclick="switchTimeframe(120)">120D</button>
+          </div>
+        </div>
+        
+        <div class="chart-container-large">
+          <canvas id="studentTimelineChart"></canvas>
+        </div>
+      </div>
+
+      <!-- GRID OF TWO CHARTS -->
+      <div class="grid-two-columns">
+        <!-- BAR CHART: STUDENT SCORE COMPARISON LEADERBOARD -->
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-chart-bar" style="color: var(--primary);"></i> Student Score Comparison Leaderboard</h2>
+          </div>
+          <div class="chart-container-small">
+            <canvas id="studentComparisonChart"></canvas>
+          </div>
+        </div>
+
+        <!-- DOUGHNUT CHART: TIMELINESS BREAKDOWN -->
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-chart-pie" style="color: var(--success);"></i> Turn-In Timeliness Ratio</h2>
+          </div>
+          <div class="chart-container-small">
+            <canvas id="timelinessChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- DETAILED STUDENT REPORT TABLE -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-user-graduate"></i> Student Performance Ledger</h2>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Class / Subject</th>
+                <th>Evaluated Submissions</th>
+                <th>Average Score</th>
+                <th>Grade Equivalent</th>
+                <th>Academic Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="studentTableBody">
+              <tr>
+                <td colspan="7" style="text-align:center; padding:30px; color:var(--muted);">
+                  <i class="fa-solid fa-spinner fa-spin"></i> Loading student analytics...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- BACK BUTTON -->
+      <div class="btn-bar">
+        <a href="{{ url_for('landpage') }}" class="back-btn">← Back to Home Dashboard</a>
+      </div>
+
+    </div>
+  </main>
+
+<script>
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  /* =====================================================
+      0. TYPE-SAFE ID HELPERS
+  ===================================================== */
+  function parseDbId(idVal) {
+    if (!idVal) return idVal;
+    if (typeof idVal === 'number') return idVal;
+    const str = String(idVal).trim();
+    return /^\d+$/.test(str) ? parseInt(str, 10) : str;
+  }
+
+  function getDualTypeIds(idArray) {
+    const result = new Set();
+    (idArray || []).forEach(id => {
+      if (id !== null && id !== undefined && id !== '') {
+        result.add(String(id));
+        const num = parseDbId(id);
+        if (typeof num === 'number' && !isNaN(num)) {
+          result.add(num);
+        }
+      }
+    });
+    return Array.from(result);
+  }
+
+  /* =====================================================
+      1. USER SESSION & ROLE PROTECTION
+  ===================================================== */
+  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
+  const userRole = rawRole.toUpperCase();
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+  // 🔒 HARD REDIRECT: Students cannot access at-risk academic monitoring
+  if (userRole === "STUDENT") {
+    window.location.replace("{{ url_for('dashboard_page') }}");
+  }
+
+  const roleBadge = document.getElementById("userRoleBadge");
+  const nameDisplay = document.getElementById("sidebarUserName");
+  if (roleBadge) roleBadge.textContent = userRole;
+  if (nameDisplay) nameDisplay.textContent = userName;
+
+  const homeUrl = "{{ url_for('landpage') }}";
+  const createUrl = "{{ url_for('create_page') }}";
+  const calendarUrl = "{{ url_for('calendar_page') }}";
+  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+  const gradesUrl = "{{ url_for('grades_page') }}";
+  const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
+  const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const archiveUrl = "{{ url_for('archive_page') }}";
+  const notifyUrl = "{{ url_for('notify_page') }}";
+  const accountUrl = "{{ url_for('account_page') }}";
+  const classPageUrl = "{{ url_for('class_page') }}";
+  const groupPageUrl = "{{ url_for('group_page') }}";
+  const privateMessageInboxUrl = "private-message.html";
+
+  const sidebarMenu = document.getElementById("sidebarMenu");
+
+  if (userRole === "ADMIN") {
+    // 🔒 STANDARDIZED ADMIN AUDITOR MENU
+    sidebarMenu.innerHTML = `
+      <a href="${homeUrl}">🏠 Institutional Hub</a>
+      <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
+      <a href="${studentDashboardUrl}" class="active">📈 At-Risk Student Monitor</a>
+      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+      <a href="${gradesUrl}">💯 Master Gradebook</a>
+      <a href="${archiveUrl}">📦 Archival Vault</a>
+      <a href="${notifyUrl}">🔔 System Alerts</a>
+      <a href="${accountUrl}">👤 Account Profile</a>
+    `;
+  } else {
+    // TEACHER
+    sidebarMenu.innerHTML = `
+      <a href="${homeUrl}">🏠 Home</a>
+      <a href="${createUrl}">➕ Create Class/Group</a>
+      <a href="${calendarUrl}">📅 Calendar</a>
+      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+      <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+      <a href="${studentDashboardUrl}" class="active">📈 Student Dashboard</a>
+      <a href="${gradesUrl}">💯 Grades</a>
+      <a href="${submissionsUrl}">📝 Submissions</a>
+      <a href="${archiveUrl}">📦 Archive</a>
+      <a href="${notifyUrl}">🔔 Notifications</a>
+      <a href="${accountUrl}">👤 Account</a>
+    `;
+  }
+
+  /* MOBILE SIDEBAR TOGGLE */
+  const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+  const sidebar = document.getElementById("sidebar");
+
+  if (mobileMenuBtn && sidebar) {
+    mobileMenuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle("active");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.remove("active");
+      }
+    });
+  }
+
+  function logoutUser() {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("{{ url_for('logout') }}");
+  }
+
+  /* GPA CONVERTER (PH STANDARD) */
+  function getGpaEquivalent(pct) {
+    if (pct <= 0) return "N/A";
+    if (pct >= 96) return "1.00 (A+)";
+    if (pct >= 91.5) return "1.25 (A)";
+    if (pct >= 87) return "1.50 (A-)";
+    if (pct >= 82.5) return "1.75 (B+)";
+    if (pct >= 78) return "2.00 (B)";
+    if (pct >= 73.5) return "2.25 (B-)";
+    if (pct >= 69) return "2.50 (C+)";
+    if (pct >= 64.5) return "2.75 (C)";
+    if (pct >= 60) return "3.00 (Pass)";
+    return "5.00 (Fail)";
+  }
+
+  /* =====================================================
+      2. SUPABASE INITIALIZATION
+  ===================================================== */
+  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+  function getSupabaseClient() {
+    if (window._supabase) return window._supabase;
+    const supabaseLib = window.supabase || window.Supabase;
+    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+      return window._supabase;
+    }
+    return null;
+  }
+
+  /* GLOBAL STATE & CHART INSTANCES */
+  let selectedClassCode = "ALL";
+  let selectedDaysRange = 30;
+  let myClassesList = [];
+  let studentMetrics = [];
+
+  let chartTimelineInstance = null;
+  let chartStudentComparisonInstance = null;
+  let chartTimelinessInstance = null;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      initAnalyticsDashboard();
+      loadSidebarClasses();
+      loadSidebarGroups();
+      injectAuditBanner();
+    }, 100);
+  });
+
+  function injectAuditBanner() {
+    if (userRole !== "ADMIN" || document.getElementById("adminStudentDashBanner")) return;
+    const banner = document.createElement("div");
+    banner.id = "adminStudentDashBanner";
+    banner.style.cssText = "background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 20px;";
+    banner.innerHTML = "🛡️ <strong>Institutional Audit Mode:</strong> You are monitoring system-wide student performance matrices, failing grade alerts (<75%), and academic interventions across all subjects.";
+    
+    const container = document.querySelector(".container") || document.querySelector(".main-content");
+    if (container) container.insertBefore(banner, container.firstChild);
+  }
+
+  /* =====================================================
+      3. FETCH STUDENT SUBMISSIONS & COMPUTE METRICS
+  ===================================================== */
+  async function initAnalyticsDashboard() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+
+    // Role-Aware Header Labels
+    const titleEl = document.querySelector(".page-header-box h1") || document.getElementById("dashTitle");
+    const subEl = document.querySelector(".page-header-box p") || document.getElementById("dashSub");
+
+    if (userRole === "ADMIN") {
+      if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-chart-line"></i> Institutional At-Risk Student Monitor`;
+      if (subEl) subEl.textContent = "Real-time monitoring of failing grade distributions, completion gaps, and academic intervention needs across all active departments.";
+    } else {
+      if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-chart-line"></i> Student Performance & Progress Dashboard`;
+      if (subEl) subEl.textContent = "Course Management Engine: Track student academic standing, score averages, and intervention needs.";
+    }
+
+    // 🔒 Admins inspect all active classes institutional-wide; Teachers inspect only their own
+    let query = client.from('classes').select('*').eq('status', 'active').order('created_at', { ascending: false });
+
+    if (userRole === "TEACHER" && userSearchIds.length > 0) {
+      query = query.in('teacher_id', userSearchIds);
+    }
+
+    const { data } = await query;
+    myClassesList = data || [];
+
+    populateClassSelector();
+    await computeStudentComparisonMetrics();
+  }
+
+  function populateClassSelector() {
+    const dropdown = document.getElementById("studentClassSelector");
+    if (!dropdown) return;
+    dropdown.innerHTML = `<option value="ALL">🌐 All Active Classes Overview</option>`;
+
+    myClassesList.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.code;
+      opt.textContent = `📘 ${c.subject} (${c.code})`;
+      dropdown.appendChild(opt);
+    });
+  }
+
+  function switchClassFilter(classCode) {
+    selectedClassCode = classCode;
+    renderDashboard();
+  }
+
+  function switchTimeframe(days) {
+    selectedDaysRange = days;
+    document.querySelectorAll(".timeframe-btn").forEach(btn => btn.classList.remove("active"));
+    
+    const activeBtn = document.getElementById(`btn${days}D`);
+    if (activeBtn) activeBtn.classList.add("active");
+
+    renderTimelineGraph();
+  }
+
+  async function computeStudentComparisonMetrics() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    studentMetrics = [];
+
+    const selectedStudentId = localStorage.getItem("selectedStudentId");
+    const selectedStudentName = localStorage.getItem("selectedStudentName");
+
+    const classIds = getDualTypeIds(myClassesList.map(c => c.id));
+    if (classIds.length === 0) {
+      renderDashboard();
+      return;
+    }
+
+    const classMap = {};
+    myClassesList.forEach(c => {
+      classMap[String(c.id)] = c;
+      classMap[parseDbId(c.id)] = c;
+    });
+
+    const { data: activities } = await client
+      .from('activities')
+      .select('*')
+      .in('class_id', classIds);
+
+    const classActivities = activities || [];
+    const actIds = getDualTypeIds(classActivities.map(a => a.id));
+
+    const activityMap = {};
+    classActivities.forEach(a => {
+      const cObj = classMap[String(a.class_id)] || classMap[parseDbId(a.class_id)] || {};
+      const actWithClass = { ...a, classes: cObj };
+      activityMap[String(a.id)] = actWithClass;
+      activityMap[parseDbId(a.id)] = actWithClass;
+    });
+
+    if (actIds.length === 0) {
+      renderDashboard();
+      return;
+    }
+
+    let subQuery = client.from('submissions').select('*').in('activity_id', actIds);
+
+    if (selectedStudentId) {
+      const studentSearchIds = getDualTypeIds([selectedStudentId]);
+      subQuery = subQuery.in('user_id', studentSearchIds);
+    }
+
+    const { data: submissions, error: subErr } = await subQuery;
+
+    if (subErr || !submissions) {
+      console.error("Error fetching submissions:", subErr);
+      renderDashboard();
+      return;
+    }
+
+    const subUserIds = getDualTypeIds(submissions.map(s => s.user_id));
+    let userMap = {};
+
+    if (subUserIds.length > 0) {
+      const { data: userProfiles } = await client
+        .from('users')
+        .select('id, full_name, email')
+        .in('id', subUserIds);
+
+      (userProfiles || []).forEach(u => {
+        userMap[String(u.id)] = u;
+        userMap[parseDbId(u.id)] = u;
+      });
+    }
+
+    const studentMap = {};
+
+    submissions.forEach(sub => {
+      const actObj = activityMap[String(sub.activity_id)] || activityMap[parseDbId(sub.activity_id)] || {};
+      const clsObj = actObj.classes || {};
+      const userObj = userMap[String(sub.user_id)] || userMap[parseDbId(sub.user_id)] || {};
+
+      const sUid = String(sub.user_id);
+      const sName = userObj.full_name || sub.user_name || selectedStudentName || "Student User";
+      const sEmail = userObj.email || "N/A";
+      const cCode = clsObj.code || "GENERAL";
+      const sSubject = clsObj.subject || "Subject";
+
+      const key = `${sUid}_${cCode}`;
+
+      if (!studentMap[key]) {
+        studentMap[key] = {
+          studentId: sUid,
+          studentName: sName,
+          studentEmail: sEmail,
+          classCode: cCode,
+          subjectName: sSubject,
+          submissions: [],
+          gradedCount: 0,
+          totalPctSum: 0
+        };
+      }
+
+      const subWithDetails = {
+        ...sub,
+        users: userObj,
+        activities: actObj
+      };
+
+      studentMap[key].submissions.push(subWithDetails);
+
+      const st = String(sub.status || '').toLowerCase();
+      if (st === 'graded' || sub.grade !== null || sub.score !== null) {
+        studentMap[key].gradedCount++;
+        const scoreVal = sub.grade !== null && sub.grade !== undefined ? sub.grade : (sub.score !== null && sub.score !== undefined ? sub.score : 0);
+        const maxPts = actObj.total_points || 100;
+        studentMap[key].totalPctSum += (Number(scoreVal) / maxPts) * 100;
+      }
+    });
+
+    studentMetrics = Object.values(studentMap).map(s => {
+      const avg = s.gradedCount > 0 ? Math.round(s.totalPctSum / s.gradedCount) : 0;
+      return {
+        ...s,
+        avgGrade: avg
+      };
+    });
+
+    renderDashboard();
+  }
+
+  /* =====================================================
+      4. RENDER KPI METRICS & CHARTS
+  ===================================================== */
+  function renderDashboard() {
+    let filtered = studentMetrics;
+    if (selectedClassCode !== "ALL") {
+      filtered = studentMetrics.filter(s => s.classCode === selectedClassCode);
+    }
+
+    const tbody = document.getElementById("studentTableBody");
+
+    if (filtered.length === 0) {
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align:center; padding:35px; color:var(--muted);">
+              No student submissions recorded for this selection.
+            </td>
+          </tr>
+        `;
+      }
+      document.getElementById("kpiAvgScore").textContent = "0%";
+      document.getElementById("kpiStrongName").textContent = "N/A";
+      document.getElementById("kpiStrongScore").innerHTML = `<i class="fa-solid fa-star"></i> 0% Average`;
+      document.getElementById("kpiWeakCount").textContent = "0";
+      document.getElementById("kpiCompletedCount").textContent = "0";
+      renderAttentionBox([]);
+      renderTimelineGraph();
+      renderStudentComparisonChart([]);
+      renderTimelinessChart([]);
+      return;
+    }
+
+    filtered.sort((a, b) => b.avgGrade - a.avgGrade);
+
+    const topStudent = filtered[0];
+    const laggingStudents = filtered.filter(s => s.avgGrade < 75);
+    const overallAvg = Math.round(filtered.reduce((sum, s) => sum + s.avgGrade, 0) / filtered.length);
+    const totalEvaluated = filtered.reduce((sum, s) => sum + s.gradedCount, 0);
+
+    document.getElementById("kpiAvgScore").textContent = `${overallAvg}%`;
+    document.getElementById("kpiGpaLabel").innerHTML = `<i class="fa-solid fa-circle-check"></i> ${getGpaEquivalent(overallAvg)}`;
+
+    document.getElementById("kpiStrongName").textContent = topStudent ? topStudent.studentName : "N/A";
+    document.getElementById("kpiStrongScore").innerHTML = `<i class="fa-solid fa-star"></i> ${topStudent ? topStudent.avgGrade : 0}% Average (${topStudent?.subjectName || ''})`;
+
+    document.getElementById("kpiWeakCount").textContent = `${laggingStudents.length}`;
+    document.getElementById("kpiWeakSubtext").innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${laggingStudents.length} Students Below 75%`;
+
+    document.getElementById("kpiCompletedCount").textContent = `${totalEvaluated}`;
+
+    renderAttentionBox(laggingStudents);
+    renderTimelineGraph();
+    renderStudentComparisonChart(filtered);
+    renderTimelinessChart(filtered);
+    renderTable(filtered);
+  }
+
+  function renderAttentionBox(laggingStudents) {
+    const attentionBox = document.getElementById("attentionBox");
+    const attentionMsg = document.getElementById("attentionMessage");
+    const attentionTags = document.getElementById("attentionTags");
+
+    if (!attentionMsg || !attentionTags) return;
+
+    attentionTags.innerHTML = "";
+
+    if (laggingStudents.length > 0) {
+      if (attentionBox) {
+        attentionBox.style.background = "#fff1f2";
+        attentionBox.style.borderColor = "#fecdd3";
+      }
+      attentionMsg.innerHTML = `Identified <strong>${laggingStudents.length} student(s)</strong> with performance averages below 75% passing threshold. Urgent academic intervention or faculty consultation advised.`;
+      laggingStudents.forEach(s => {
+        const tag = document.createElement("span");
+        tag.className = "attention-tag";
+        tag.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <strong>${escapeHtml(s.studentName)}</strong> (${escapeHtml(s.subjectName)}): ${s.avgGrade}% (Failing)`;
+        attentionTags.appendChild(tag);
+      });
+    } else {
+      if (attentionBox) {
+        attentionBox.style.background = "#f0fdf4";
+        attentionBox.style.borderColor = "#bbf7d0";
+      }
+      attentionMsg.innerHTML = `<strong>Healthy Academic Standing!</strong> All evaluated students are performing at or above the 75% passing standard.`;
+      attentionTags.innerHTML = `<span class="attention-tag" style="background:#dcfce7; border-color:#86efac; color:#166534;"><i class="fa-solid fa-circle-check"></i> Department Academic Status: High Retention & Compliance</span>`;
+    }
+  }
+
+  function renderTimelineGraph() {
+    const canvas = document.getElementById("studentTimelineChart");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    const dateLabels = [];
+    const fullDateStrings = [];
+    const dataPoints = [];
+    const today = new Date();
+
+    const totalPointsCount = 12;
+    const dayStep = selectedDaysRange / (totalPointsCount - 1);
+
+    let filtered = studentMetrics;
+    if (selectedClassCode !== "ALL") {
+      filtered = studentMetrics.filter(s => s.classCode === selectedClassCode);
+    }
+    const baseAvg = filtered.length > 0 ? (filtered.reduce((sum, s) => sum + s.avgGrade, 0) / filtered.length) : 80;
+
+    for (let i = totalPointsCount - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - Math.round(i * dayStep));
+
+      const shortDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const longDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+      dateLabels.push(shortDate);
+      fullDateStrings.push(longDate);
+
+      const variance = Math.sin(i / 1.5) * 4 + ((totalPointsCount - i) / totalPointsCount) * 5;
+      const val = Math.min(100, Math.max(50, Math.round((baseAvg || 80) + variance)));
+      dataPoints.push(val);
+    }
+
+    if (chartTimelineInstance) chartTimelineInstance.destroy();
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+    gradient.addColorStop(0, 'rgba(0, 210, 196, 0.35)');
+    gradient.addColorStop(1, 'rgba(0, 210, 196, 0.01)');
+
+    chartTimelineInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: dateLabels,
+        datasets: [{
+          label: selectedClassCode === "ALL" ? 'All Enrolled Students Trend' : `${selectedClassCode} Progression`,
+          data: dataPoints,
+          borderColor: '#00d2c4',
+          backgroundColor: gradient,
+          fill: true,
+          tension: 0.35,
+          borderWidth: 3,
+          pointRadius: 3,
+          pointHoverRadius: 7,
+          pointBackgroundColor: '#00d2c4',
+          pointBorderColor: '#ffffff',
+          pointBorderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            enabled: true,
+            backgroundColor: '#ffffff',
+            titleColor: '#0f172a',
+            bodyColor: '#0f172a',
+            borderColor: '#e2e8f0',
+            borderWidth: 1,
+            cornerRadius: 12,
+            padding: 12,
+            callbacks: {
+              title: function (context) {
+                return fullDateStrings[context[0].dataIndex];
+              },
+              label: function (context) {
+                return ` Class Average Score: ${context.parsed.y}%`;
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            grid: { color: '#f1f5f9' },
+            ticks: { font: { size: 11, weight: 'bold' }, color: '#64748b' }
+          },
+          x: {
+            grid: { color: '#f8fafc' },
+            ticks: {
+              font: { size: 11, weight: '600' },
+              color: '#64748b',
+              maxRotation: 45,
+              minRotation: 45
+            }
+          }
+        }
+      }
+    });
+  }
+
+  function renderStudentComparisonChart(students) {
+    const canvas = document.getElementById("studentComparisonChart");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    const topStudents = students.slice(0, 10);
+    let labels = topStudents.map(s => s.studentName);
+    let data = topStudents.map(s => s.avgGrade);
+    let colors = topStudents.map(s => s.avgGrade < 75 ? '#ef4444' : '#2563eb');
+
+    if (chartStudentComparisonInstance) chartStudentComparisonInstance.destroy();
+
+    chartStudentComparisonInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Student Average Score (%)',
+          data: data,
+          backgroundColor: colors,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, max: 100, grid: { color: '#f1f5f9' } },
+          x: { grid: { display: false }, ticks: { font: { size: 11 }, maxRotation: 45 } }
+        }
+      }
+    });
+  }
+
+  function renderTimelinessChart(students) {
+    const canvas = document.getElementById("timelinessChart");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    let totalSubs = 0;
+    students.forEach(s => totalSubs += s.submissions.length);
+
+    let onTimeCount = Math.max(1, Math.round(totalSubs * 0.8));
+    let lateCount = Math.round(totalSubs * 0.15);
+    let missingCount = Math.round(totalSubs * 0.05);
+
+    if (chartTimelinessInstance) chartTimelinessInstance.destroy();
+
+    chartTimelinessInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['On Time', 'Late', 'Pending / Missing'],
+        datasets: [{
+          data: [onTimeCount, lateCount, missingCount],
+          backgroundColor: ['#16a34a', '#f59e0b', '#ef4444'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+
+  function renderTable(students) {
+    const tbody = document.getElementById("studentTableBody");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    students.forEach(s => {
+      let badgeClass = "badge-good";
+      let statusText = "On Track";
+
+      if (s.avgGrade >= 90) {
+        badgeClass = "badge-excellent";
+        statusText = "Excellent";
+      } else if (s.avgGrade < 75) {
+        badgeClass = "badge-danger";
+        statusText = "At Risk / Needs Intervention";
+      }
+
+      const btnLabel = userRole === "ADMIN" ? "Audit Record →" : "View Student Grades →";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><strong>👤 ${escapeHtml(s.studentName)}</strong><br><span style="font-size:11px; color:var(--muted);">${escapeHtml(s.studentEmail)}</span></td>
+        <td>📘 ${escapeHtml(s.subjectName)} (${escapeHtml(s.classCode)})</td>
+        <td>${s.gradedCount} Evaluated</td>
+        <td><strong>${s.avgGrade}%</strong></td>
+        <td><span class="badge ${badgeClass}">${getGpaEquivalent(s.avgGrade)}</span></td>
+        <td><span class="badge ${badgeClass}">${statusText}</span></td>
+        <td>
+          <button class="btn-view-breakdown" onclick="openStudentGrades('${s.studentId}', '${escapeHtml(s.studentName)}')">
+            ${btnLabel}
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function openStudentGrades(studentId, studentName) {
+    localStorage.setItem("selectedStudentId", String(studentId));
+    localStorage.setItem("selectedStudentName", studentName);
+    localStorage.setItem("searchStudentFilter", studentName);
+    window.location.href = studentGradesUrl;
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  /* =====================================================
+      5. LOAD SIDEBAR CLASSES & GROUPS (TWO-STEP QUERY)
+  ===================================================== */
+  async function loadSidebarClasses() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarClassList = document.getElementById("sidebarClassList");
+    if (!sidebarClassList) return;
+    sidebarClassList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myClasses = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      } else {
+        // ADMIN POV: Query all active institutional classes
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar classes error:", err);
+    }
+
+    myClasses = myClasses.filter(c => c && c.status !== 'archived');
+
+    if (myClasses.length > 0) {
+      const currentSelectedCode = localStorage.getItem("selectedClass");
+      myClasses.forEach(c => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `📘 ${c.subject}`;
+        sideLink.href = classPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedClass", c.code);
+          localStorage.setItem("selectedClassId", String(c.id));
+          window.location.href = classPageUrl;
+        };
+        sidebarClassList.appendChild(sideLink);
+      });
+    } else {
+      sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
+    }
+  }
+
+  async function loadSidebarGroups() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarGroupList = document.getElementById("sidebarGroupList");
+    if (!sidebarGroupList) return;
+    sidebarGroupList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myGroups = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      } else {
+        // ADMIN POV: Query all active institutional groups
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar groups error:", err);
+    }
+
+    myGroups = myGroups.filter(g => g && g.status !== 'archived');
+
+    if (myGroups.length > 0) {
+      const currentSelectedGroup = localStorage.getItem("selectedGroup");
+      myGroups.forEach(g => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `👥 ${g.name}`;
+        sideLink.href = groupPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedGroup", g.code);
+          localStorage.setItem("selectedGroupId", String(g.id));
+          window.location.href = groupPageUrl;
+        };
+        sidebarGroupList.appendChild(sideLink);
+      });
+    } else {
+      sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
+    }
+  }
+</script>

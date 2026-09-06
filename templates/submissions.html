@@ -1,0 +1,1986 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- 🔒 PREVENT BROWSER CACHING AFTER LOGOUT -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <title>Submissions & Grading | Regis Marie College</title>
+
+  <!-- FAVICON -->
+  <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='rmc.jpg') }}">
+
+  <!-- FONT AWESOME & GOOGLE FONTS -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <!-- ⚡ SUPABASE JS CLIENT SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+  /* =========================================
+     GLOBAL RESET & BRAND DESIGN SYSTEM
+  ========================================= */
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #dbeafe;
+    --background: #f4f7fb;
+    --surface: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --warning: #f59e0b;
+    --warning-light: #fef3c7;
+    --danger: #ef4444;
+    --danger-light: #fee2e2;
+    --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    position: relative;
+  }
+
+  /* =========================================
+     SIDEBAR NAVIGATION RAIL & OVERLAY
+  ========================================= */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e40af, #1e3a8a);
+    color: #ffffff;
+    padding: 22px 15px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .user-profile-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .user-badge {
+    display: inline-block;
+    background: #fbbf24;
+    color: #1e3a8a;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar a,
+  #sidebarMenu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 14.5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .sidebar a:hover,
+  #sidebarMenu a:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: translateX(2px);
+    color: #ffffff !important;
+  }
+
+  .sidebar a.active,
+  #sidebarMenu a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    font-weight: bold;
+    color: #ffffff !important;
+  }
+
+  .sidebar-logout-btn {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffffff !important;
+    margin-top: 18px !important;
+    cursor: pointer;
+  }
+
+  .sidebar-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.45) !important;
+  }
+
+  .sidebar-section {
+    margin-top: 24px;
+  }
+
+  .sidebar-section-title {
+    padding: 0 10px 8px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    margin-bottom: 6px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* =========================================
+     MAIN WORKSPACE CONTAINER
+  ========================================= */
+  .main-content {
+    margin-left: 240px;
+    min-height: 100vh;
+    padding: 28px;
+    flex: 1 1 auto;
+    width: calc(100% - 240px);
+    max-width: 100%;
+    min-width: 0;
+    transition: margin-left 0.3s ease, width 0.3s ease, padding 0.3s ease;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto 28px;
+    padding: 24px 30px;
+    background: linear-gradient(135deg, #1e40af, #2563eb);
+    color: #ffffff;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .page-header-text {
+    flex: 1 1 240px;
+    min-width: 0;
+  }
+
+  .page-header h1 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 700;
+    word-break: break-word;
+    line-height: 1.3;
+  }
+
+  .page-header p {
+    margin: 0;
+    opacity: 0.92;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .header-icon {
+    font-size: 36px;
+    opacity: 0.9;
+    flex-shrink: 0;
+  }
+
+  .container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    min-width: 0;
+  }
+
+  /* =========================================
+     STATS SUMMARY CARDS
+  ========================================= */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 18px;
+    width: 100%;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .stat-details {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .stat-details h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .stat-details p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* =========================================
+     FILTER & CONTROLS CARD
+  ========================================= */
+  .card {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    min-width: 0;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .card-header h2 {
+    font-size: 17.5px;
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    word-break: break-word;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn-export-csv,
+  .btn-print-report {
+    min-height: 38px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .btn-export-csv {
+    background: #10b981;
+    color: #ffffff;
+  }
+
+  .btn-export-csv:hover {
+    background: #059669;
+  }
+
+  .btn-print-report {
+    background: #0284c7;
+    color: #ffffff;
+  }
+
+  .btn-print-report:hover {
+    background: #0369a1;
+  }
+
+  .filter-bar {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+    width: 100%;
+  }
+
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+
+  .filter-group label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  select,
+  input[type="text"] {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13.5px;
+    outline: none;
+    background: #f8fafc;
+    color: var(--text);
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+    font-weight: 500;
+  }
+
+  select:focus,
+  input[type="text"]:focus {
+    border-color: var(--primary);
+    background: #ffffff;
+  }
+
+  /* =========================================
+     RESPONSIVE DATA TABLE
+  ========================================= */
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13.5px;
+  }
+
+  th {
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+    padding: 12px 14px;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    color: #334155;
+    vertical-align: middle;
+  }
+
+  tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  /* STUDENT NAME LINK */
+  .student-name-link {
+    color: var(--primary-dark);
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .student-name-link:hover {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+
+  /* BADGES & ON-TIME / LATE INDICATORS */
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .badge-graded {
+    background: var(--success-light);
+    color: var(--success);
+  }
+
+  .badge-pending {
+    background: var(--warning-light);
+    color: #b45309;
+  }
+
+  .tag-ontime,
+  .tag-late {
+    font-size: 11.5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+
+  .tag-ontime {
+    background: var(--success-light);
+    color: var(--success);
+  }
+
+  .tag-late {
+    background: var(--danger-light);
+    color: var(--danger);
+  }
+
+  /* INPUTS IN TABLE */
+  .score-input {
+    width: 75px !important;
+    min-height: 36px !important;
+    padding: 6px 8px !important;
+    text-align: center;
+    font-weight: 700;
+    font-size: 13.5px;
+  }
+
+  .score-input:disabled {
+    background: #e2e8f0 !important;
+    color: #64748b;
+    cursor: not-allowed;
+    border-color: #cbd5e1;
+  }
+
+  /* ACTION BUTTONS IN TABLE */
+  .actions-flex {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .btn-save-grade,
+  .btn-update-grade,
+  .btn-view-work {
+    min-height: 36px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .btn-save-grade {
+    background: var(--primary);
+    color: #ffffff;
+  }
+
+  .btn-save-grade:hover {
+    background: var(--primary-dark);
+  }
+
+  .btn-update-grade {
+    background: #f59e0b;
+    color: #ffffff;
+  }
+
+  .btn-update-grade:hover {
+    background: #d97706;
+  }
+
+  .btn-view-work {
+    background: #10b981;
+    color: #ffffff;
+  }
+
+  .btn-view-work:hover {
+    background: #059669;
+  }
+
+  .file-download-btn {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: var(--primary);
+    min-height: 34px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: background 0.2s ease, color 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .file-download-btn:hover {
+    background: #dbeafe;
+    color: var(--primary-dark);
+  }
+
+  .empty-state {
+    padding: 36px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  /* BOTTOM NAVIGATION BAR */
+  .btn-bar {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .back-btn {
+    background: #64748b;
+    color: #ffffff;
+    min-height: 44px;
+    padding: 11px 26px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .back-btn:hover {
+    background: #475569;
+  }
+
+  /* =========================================
+     PRINT STYLING RULES
+  ========================================= */
+  @media print {
+    body {
+      background: #ffffff !important;
+      color: #000000 !important;
+    }
+
+    .sidebar,
+    .mobile-menu-btn,
+    .sidebar-overlay,
+    .header-actions,
+    .filter-bar,
+    .btn-bar,
+    .actions-flex,
+    th:last-child,
+    td:last-child {
+      display: none !important;
+    }
+
+    .main-content {
+      margin-left: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+    }
+
+    .page-header {
+      background: #ffffff !important;
+      color: #000000 !important;
+      border: 1px solid #cccccc !important;
+      box-shadow: none !important;
+      padding: 15px !important;
+    }
+
+    .card {
+      box-shadow: none !important;
+      border: 1px solid #cccccc !important;
+      padding: 15px !important;
+    }
+
+    table {
+      font-size: 12px !important;
+      min-width: 100% !important;
+    }
+
+    th, td {
+      border-bottom: 1px solid #dddddd !important;
+      padding: 8px 10px !important;
+    }
+  }
+
+  /* =========================================
+     RESPONSIVE BREAKPOINTS (RWD)
+  ========================================= */
+  /* Tablets and Standard Mobile Screens */
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+    }
+
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+      max-width: 100vw;
+      padding: 18px;
+      padding-top: 74px;
+    }
+
+    .page-header {
+      padding: 20px;
+    }
+
+    .header-icon {
+      display: none;
+    }
+
+    .card {
+      padding: 20px 16px;
+    }
+
+    .header-actions {
+      width: 100%;
+    }
+
+    .btn-export-csv,
+    .btn-print-report {
+      flex: 1;
+      text-align: center;
+    }
+
+    /* iOS auto-zoom prevention */
+    select,
+    input[type="text"] {
+      font-size: 16px;
+    }
+  }
+
+  /* Compact Smartphones (320px - 480px) */
+  @media (max-width: 480px) {
+    .main-content {
+      padding: 12px;
+      padding-top: 68px;
+    }
+
+    .page-header {
+      padding: 16px 14px;
+      border-radius: 12px;
+    }
+
+    .page-header h1 {
+      font-size: 20px;
+    }
+
+    .card {
+      padding: 16px 14px;
+      border-radius: 12px;
+    }
+
+    .card-header h2 {
+      font-size: 16.5px;
+    }
+
+    .filter-group {
+      flex: 1 1 100%;
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .stat-card {
+      padding: 16px 14px;
+    }
+
+    .back-btn {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+
+    <!-- USER PROFILE & ROLE BADGE -->
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">TEACHER</div>
+    </div>
+
+    <!-- DYNAMIC SIDEBAR LINKS -->
+    <div id="sidebarMenu"></div>
+
+    <!-- MY CLASSES -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <!-- MY GROUPS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <!-- LOGOUT BUTTON -->
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="main-content">
+
+    <!-- PAGE HEADER -->
+    <section class="page-header">
+      <div>
+        <h1 id="headerTitle">Student Submissions & Grading</h1>
+        <p id="headerSubtitle">Review submitted activity files and assign scores.</p>
+      </div>
+      <div class="header-icon">📝</div>
+    </section>
+
+    <div class="container">
+
+      <!-- STATS OVERVIEW -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+          <div class="stat-details">
+            <h3 id="statTotalStudents">0</h3>
+            <p>Class Students</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-file-arrow-up"></i></div>
+          <div class="stat-details">
+            <h3 id="statSubmittedCount">0</h3>
+            <p>Turned-In Works</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+          <div class="stat-details">
+            <h3 id="statPendingCount">0</h3>
+            <p>Pending Grading</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-chart-line"></i></div>
+          <div class="stat-details">
+            <h3 id="statAvgScore">0%</h3>
+            <p>Class Average Score</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER CONTROLS CARD -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-filter"></i> Submissions Filter</h2>
+        </div>
+        <div class="filter-bar">
+          <!-- 1. CLASS SELECTOR -->
+          <div class="filter-group">
+            <label for="classFilter">Select Class:</label>
+            <select id="classFilter" onchange="switchClass(this.value)">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+
+          <!-- 2. ACTIVITIES DROPDOWN -->
+          <div class="filter-group">
+            <label for="activityFilter">Select Activity:</label>
+            <select id="activityFilter" onchange="filterSubmissions()">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+
+          <!-- 3. STATUS FILTER -->
+          <div class="filter-group">
+            <label for="statusFilter">Status Filter:</label>
+            <select id="statusFilter" onchange="filterSubmissions()">
+              <option value="ALL">All Statuses</option>
+              <option value="Pending">Pending Grade</option>
+              <option value="Graded">Graded</option>
+            </select>
+          </div>
+
+          <!-- 4. SEARCH STUDENT -->
+          <div class="filter-group">
+            <label for="searchStudent">Search Student:</label>
+            <input type="text" id="searchStudent" placeholder="Type student name..." oninput="filterSubmissions()">
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBMISSIONS TABLE CARD -->
+      <div class="card">
+        <div class="card-header">
+          <h2 id="tableTitle"><i class="fa-solid fa-list-check"></i> Turned-In Submissions Queue</h2>
+          <div class="header-actions">
+            <button class="btn-print-report" onclick="window.print()">
+              <i class="fa-solid fa-print"></i> Print Report
+            </button>
+            <button class="btn-export-csv" onclick="exportSubmissionsCSV()">
+              <i class="fa-solid fa-file-excel"></i> Export CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Activity Title</th>
+                <th>Submission Timeliness</th>
+                <th>Attached Work</th>
+                <th>Status</th>
+                <th>Score</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="submissionsTableBody">
+              <tr>
+                <td colspan="7" class="empty-state">
+                  <i class="fa-solid fa-spinner fa-spin" style="font-size: 24px; color: #2563eb; margin-bottom: 10px;"></i><br>
+                  Loading student submissions from database...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- BACK BUTTON -->
+      <div class="btn-bar">
+        <a href="{{ url_for('landpage') }}" class="back-btn">← Back to Home</a>
+      </div>
+
+    </div>
+  </main>
+
+ <script>
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  /* =====================================================
+     0. TYPE-SAFE ID & ESCAPE HELPERS
+  ===================================================== */
+  function parseDbId(idVal) {
+    if (!idVal) return idVal;
+    if (typeof idVal === 'number') return idVal;
+    const str = String(idVal).trim();
+    return /^\d+$/.test(str) ? parseInt(str, 10) : str;
+  }
+
+  function getDualTypeIds(idArray) {
+    const result = new Set();
+    (idArray || []).forEach(id => {
+      if (id !== null && id !== undefined && id !== '') {
+        result.add(String(id));
+        const num = parseDbId(id);
+        if (typeof num === 'number' && !isNaN(num)) {
+          result.add(num);
+        }
+      }
+    });
+    return Array.from(result);
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeJsString(str) {
+    if (!str) return "";
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+  }
+
+  /* =====================================================
+     1. USER SESSION & ROLE PROTECTION
+  ===================================================== */
+  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
+  const userRole = rawRole.toUpperCase();
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+  // 🔒 HARD REDIRECT: Students cannot access the faculty submission review desk
+  if (userRole === "STUDENT") {
+    window.location.replace("{{ url_for('landpage') }}");
+  }
+
+  const roleBadge = document.getElementById("userRoleBadge");
+  const nameDisplay = document.getElementById("sidebarUserName");
+  if (roleBadge) roleBadge.textContent = userRole;
+  if (nameDisplay) nameDisplay.textContent = userName;
+
+  // Flask Route URLs
+  const homeUrl = "{{ url_for('landpage') }}";
+  const createUrl = "{{ url_for('create_page') }}";
+  const joinUrl = "{{ url_for('join_page') }}";
+  const calendarUrl = "{{ url_for('calendar_page') }}";
+  const myDashboardUrl = "{{ url_for('dashboard_page') }}";
+  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+  const gradesUrl = "{{ url_for('grades_page') }}";
+  const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
+  const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const studentWorkUrl = "{{ url_for('studentwork_page') }}";
+  const archiveUrl = "{{ url_for('archive_page') }}";
+  const notifyUrl = "{{ url_for('notify_page') }}";
+  const accountUrl = "{{ url_for('account_page') }}";
+  const classPageUrl = "{{ url_for('class_page') }}";
+  const groupPageUrl = "{{ url_for('group_page') }}";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+
+  const sidebarMenu = document.getElementById("sidebarMenu");
+
+  if (userRole === "ADMIN") {
+    sidebarMenu.innerHTML = `
+      <a href="${homeUrl}">🏠 Institutional Hub</a>
+      <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
+      <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
+      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+      <a href="${gradesUrl}">💯 Master Gradebook</a>
+      <a href="${archiveUrl}">📦 Archival Vault</a>
+      <a href="${notifyUrl}">🔔 System Alerts</a>
+      <a href="${accountUrl}">👤 Account Profile</a>
+    `;
+  } else if (userRole === "TEACHER") {
+    sidebarMenu.innerHTML = `
+      <a href="${homeUrl}">🏠 Home</a>
+      <a href="${createUrl}">➕ Create Class/Group</a>
+      <a href="${calendarUrl}">📅 Calendar</a>
+      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+      <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+      <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+      <a href="${gradesUrl}">💯 Grades</a>
+      <a href="${submissionsUrl}" class="active">📝 Submissions</a>
+      <a href="${archiveUrl}">📦 Archive</a>
+      <a href="${notifyUrl}">🔔 Notifications</a>
+      <a href="${accountUrl}">👤 Account</a>
+    `;
+  }
+
+  /* MOBILE SIDEBAR TOGGLE */
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const sidebar = document.getElementById('sidebar');
+
+  if (mobileMenuBtn && sidebar) {
+    mobileMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle('active');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.remove('active');
+      }
+    });
+  }
+
+  function logoutUser() {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("{{ url_for('logout') }}");
+  }
+
+  /* =====================================================
+     2. SUPABASE INITIALIZATION
+  ===================================================== */
+  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+  function getSupabaseClient() {
+    if (window._supabase) return window._supabase;
+    const supabaseLib = window.supabase || window.Supabase;
+    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+      return window._supabase;
+    }
+    return null;
+  }
+
+  /* STATE VARIABLES */
+  let teacherClasses = [];
+  let currentClassId = null;
+  let selectedClassCode = localStorage.getItem("selectedClass") || "";
+  let selectedActivityIdFilter = localStorage.getItem("selectedActivityId") || "ALL";
+  let allActivitiesList = [];
+  let rawSubmissionsList = [];
+  let currentFilteredSubmissions = [];
+  let enrolledStudentsCount = 0;
+  let isClassArchived = false;
+
+  const autoSearchStudent = localStorage.getItem("searchStudentFilter");
+  if (autoSearchStudent) {
+    const searchElem = document.getElementById("searchStudent");
+    if (searchElem) searchElem.value = autoSearchStudent;
+    localStorage.removeItem("searchStudentFilter");
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      initSubmissionsWorkspace();
+      loadSidebarClasses();
+      loadSidebarGroups();
+      injectAuditBanner();
+    }, 100);
+  });
+
+  function injectAuditBanner() {
+    if (userRole !== "ADMIN" || document.getElementById("adminSubmissionsAuditBanner")) return;
+    const banner = document.createElement("div");
+    banner.id = "adminSubmissionsAuditBanner";
+    banner.style.cssText = "background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 20px;";
+    banner.innerHTML = "🛡️ <strong>Institutional Audit Mode:</strong> You are viewing student deliverables, evaluation records, and submitted files in read-only observation mode.";
+
+    const container = document.querySelector(".container") || document.querySelector(".main-content");
+    if (container) {
+      container.insertBefore(banner, container.firstChild);
+    }
+  }
+
+  /* AUTOMATED DIRECT FILE DOWNLOAD HELPER */
+  async function downloadFileDirectly(url, filename) {
+    if (!url) return;
+    try {
+      if (url.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'submission_file';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+      
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename || 'submission_file';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'submission_file';
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  }
+
+  /* =====================================================
+     3. INITIALIZE WORKSPACE & FETCH CLASSES
+  ===================================================== */
+  async function initSubmissionsWorkspace() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+
+    let query = client.from('classes').select('*').order('created_at', { ascending: false });
+    if (userRole === "TEACHER" && userSearchIds.length > 0) {
+      query = query.in('teacher_id', userSearchIds);
+    }
+
+    const { data: classes } = await query;
+    teacherClasses = classes || [];
+
+    populateClassDropdown();
+
+    if (teacherClasses.length > 0) {
+      const match = teacherClasses.find(c => c.code === selectedClassCode) || teacherClasses[0];
+      selectedClassCode = match.code;
+      currentClassId = match.id;
+      isClassArchived = match.status === 'archived' || localStorage.getItem("isArchivedView") === "true";
+
+      const classFilterEl = document.getElementById("classFilter");
+      if (classFilterEl) classFilterEl.value = match.code;
+
+      localStorage.setItem("selectedClass", match.code);
+      localStorage.setItem("selectedClassId", String(match.id));
+
+      await loadClassSubmissionsData();
+    } else {
+      const tbody = document.getElementById("submissionsTableBody");
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="empty-state">
+              <i class="fa-solid fa-school" style="font-size: 32px; color: #94a3b8; margin-bottom: 10px;"></i><br>
+              No classes available to review submissions.
+            </td>
+          </tr>
+        `;
+      }
+    }
+  }
+
+  function populateClassDropdown() {
+    const classSelect = document.getElementById("classFilter");
+    if (!classSelect) return;
+    classSelect.innerHTML = "";
+
+    if (teacherClasses.length === 0) {
+      classSelect.innerHTML = `<option value="">No Classes Available</option>`;
+      return;
+    }
+
+    teacherClasses.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.code;
+      const archiveTag = c.status === 'archived' ? ' [Archived]' : '';
+      opt.textContent = `📘 ${c.subject} (${c.code})${archiveTag}`;
+      if (c.code === selectedClassCode) opt.selected = true;
+      classSelect.appendChild(opt);
+    });
+  }
+
+  async function switchClass(newCode) {
+    selectedClassCode = newCode;
+    localStorage.setItem("selectedClass", newCode);
+    const match = teacherClasses.find(c => c.code === newCode);
+    if (match) {
+      currentClassId = match.id;
+      isClassArchived = match.status === 'archived';
+      localStorage.setItem("selectedClassId", String(match.id));
+      if (isClassArchived) {
+        localStorage.setItem("isArchivedView", "true");
+      } else {
+        localStorage.removeItem("isArchivedView");
+      }
+    }
+    await loadClassSubmissionsData();
+  }
+
+  /* =====================================================
+     4. LOAD CLASS ACTIVITIES & SUBMISSIONS (DUAL-SCHEMA)
+  ===================================================== */
+  async function loadClassSubmissionsData() {
+    const client = getSupabaseClient();
+    if (!client || !currentClassId) return;
+
+    const classSearchIds = getDualTypeIds([currentClassId]);
+
+    const headerSub = document.getElementById("headerSubtitle");
+    if (headerSub) {
+      const modeLabel = userRole === "ADMIN" ? "Institutional Audit" : (isClassArchived ? "Archived (Read-Only)" : "Review & Grade");
+      headerSub.textContent = `Class Code: ${selectedClassCode} | ${modeLabel}`;
+    }
+
+    // 1. Fetch Class Students Count
+    const { count } = await client
+      .from('class_memberships')
+      .select('*', { count: 'exact', head: true })
+      .in('class_id', classSearchIds);
+
+    enrolledStudentsCount = count || 0;
+
+    // 2. Fetch Class Activities
+    const { data: acts } = await client
+      .from('activities')
+      .select('*')
+      .in('class_id', classSearchIds)
+      .order('created_at', { ascending: false });
+
+    allActivitiesList = acts || [];
+    populateActivityDropdown();
+
+    // 3. Fetch Submissions for these Activities
+    const actSearchIds = getDualTypeIds(allActivitiesList.map(a => a.id));
+
+    if (actSearchIds.length === 0) {
+      rawSubmissionsList = [];
+      filterSubmissions();
+      return;
+    }
+
+    const { data: subs, error } = await client
+      .from('submissions')
+      .select('*')
+      .in('activity_id', actSearchIds)
+      .order('submitted_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching submissions:", error);
+    }
+
+    const activeSubs = (subs || []).filter(s => {
+      const st = String(s.status || '').toLowerCase();
+      return st === 'submitted' || st === 'graded' || st === 'finished' || (s.submitted_at && st !== 'unsubmitted');
+    });
+
+    // Support both user_id and student_id column names in submissions
+    const userSearchIds = getDualTypeIds(activeSubs.map(s => s.user_id || s.student_id));
+    let userMap = {};
+
+    if (userSearchIds.length > 0) {
+      const { data: userList } = await client
+        .from('users')
+        .select('id, full_name, email, student_id')
+        .in('id', userSearchIds);
+
+      if (userList) {
+        userList.forEach(u => {
+          userMap[String(u.id)] = u;
+          const pUid = parseDbId(u.id);
+          userMap[pUid] = u;
+        });
+      }
+    }
+
+    let actMap = {};
+    allActivitiesList.forEach(a => {
+      actMap[String(a.id)] = a;
+      const pActId = parseDbId(a.id);
+      actMap[pActId] = a;
+    });
+
+    rawSubmissionsList = activeSubs.map(s => {
+      const actObj = actMap[String(s.activity_id)] || actMap[parseDbId(s.activity_id)] || {};
+      const studentKey = s.user_id || s.student_id;
+      const userObj = userMap[String(studentKey)] || userMap[parseDbId(studentKey)] || { full_name: s.user_name || "Student User" };
+      return {
+        ...s,
+        users: userObj,
+        activities: actObj
+      };
+    });
+
+    filterSubmissions();
+  }
+
+  function populateActivityDropdown() {
+    const select = document.getElementById("activityFilter");
+    if (!select) return;
+
+    select.innerHTML = `<option value="ALL">All Class Activities (${allActivitiesList.length})</option>`;
+
+    allActivitiesList.forEach(act => {
+      const opt = document.createElement("option");
+      opt.value = act.id;
+      opt.textContent = `📝 ${act.title}`;
+      if (String(act.id) === String(selectedActivityIdFilter)) {
+        opt.selected = true;
+      }
+      select.appendChild(opt);
+    });
+  }
+
+  /* =====================================================
+     5. MULTI-FIELD SEARCH & TABLE RENDERING
+  ===================================================== */
+  function filterSubmissions() {
+    const activitySelect = document.getElementById("activityFilter");
+    const statusSelect = document.getElementById("statusFilter");
+    const searchInput = document.getElementById("searchStudent");
+
+    const activityIdVal = activitySelect ? activitySelect.value : "ALL";
+    const selectedStatus = statusSelect ? statusSelect.value : "ALL";
+    const searchQuery = searchInput ? searchInput.value.toLowerCase().trim() : "";
+
+    currentFilteredSubmissions = rawSubmissionsList.filter(sub => {
+      const studentName = String(sub.users?.full_name || sub.user_name || "Student").toLowerCase();
+      const studentIdNum = String(sub.users?.student_id || "").toLowerCase();
+      const studentEmail = String(sub.users?.email || "").toLowerCase();
+
+      const st = String(sub.status || '').toLowerCase();
+      const isGraded = st === "graded" || sub.grade !== null || sub.score !== null;
+
+      const matchesActivity = activityIdVal === "ALL" || 
+                              String(sub.activity_id) === String(activityIdVal) || 
+                              parseDbId(sub.activity_id) === parseDbId(activityIdVal);
+      
+      let matchesStatus = true;
+      if (selectedStatus === "Pending") matchesStatus = !isGraded;
+      if (selectedStatus === "Graded") matchesStatus = isGraded;
+
+      // Multi-Field Search Match
+      const matchesSearch = searchQuery === "" || 
+                            studentName.includes(searchQuery) ||
+                            studentIdNum.includes(searchQuery) ||
+                            studentEmail.includes(searchQuery);
+
+      return matchesActivity && matchesStatus && matchesSearch;
+    });
+
+    renderSubmissionsTable(currentFilteredSubmissions);
+  }
+
+  function renderSubmissionsTable(dataToRender) {
+    const tbody = document.getElementById("submissionsTableBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    const turnedInCount = rawSubmissionsList.length;
+    const pendingCount = rawSubmissionsList.filter(s => {
+      const st = String(s.status || '').toLowerCase();
+      return st !== "graded" && (s.grade === null || s.grade === undefined) && (s.score === null || s.score === undefined);
+    }).length;
+
+    const gradedList = rawSubmissionsList.filter(s => {
+      const st = String(s.status || '').toLowerCase();
+      return st === "graded" || s.grade !== null || s.score !== null;
+    });
+
+    let totalPercentageSum = 0;
+    gradedList.forEach(s => {
+      const achieved = Number(s.grade !== null && s.grade !== undefined ? s.grade : s.score) || 0;
+      const maxPts = Number(s.activities?.total_points) || 100;
+      totalPercentageSum += (achieved / maxPts) * 100;
+    });
+
+    const avgScore = gradedList.length > 0 ? (totalPercentageSum / gradedList.length).toFixed(1) : 0;
+
+    const statTotal = document.getElementById("statTotalStudents");
+    const statSub = document.getElementById("statSubmittedCount");
+    const statPend = document.getElementById("statPendingCount");
+    const statAvg = document.getElementById("statAvgScore");
+
+    if (statTotal) statTotal.textContent = enrolledStudentsCount;
+    if (statSub) statSub.textContent = turnedInCount;
+    if (statPend) statPend.textContent = pendingCount;
+    if (statAvg) statAvg.textContent = `${avgScore}%`;
+
+    if (dataToRender.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" class="empty-state">
+            <i class="fa-solid fa-inbox" style="font-size: 28px; color: #94a3b8; margin-bottom: 10px;"></i><br>
+            No turned-in submissions found matching your filters.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    dataToRender.forEach((sub) => {
+      const tr = document.createElement("tr");
+
+      const studentName = sub.users?.full_name || sub.user_name || "Student User";
+      const activityTitle = sub.activities?.title || "Class Activity";
+      const maxPoints = sub.activities?.total_points || 100;
+      const currentScore = sub.grade !== null && sub.grade !== undefined ? sub.grade : (sub.score !== null && sub.score !== undefined ? sub.score : "");
+
+      const st = String(sub.status || '').toLowerCase();
+      const isGraded = st === "graded" || currentScore !== "";
+
+      const statusBadge = isGraded 
+        ? `<span class="badge badge-graded">Graded</span>`
+        : `<span class="badge badge-pending">Pending Grade</span>`;
+
+      let isLate = false;
+      const deadlineDate = sub.activities?.deadline || sub.activities?.due_date;
+      const submittedDate = sub.submitted_at || sub.created_at;
+
+      if (deadlineDate && submittedDate) {
+        const dTime = new Date(deadlineDate).getTime();
+        const sTime = new Date(submittedDate).getTime();
+        if (!isNaN(dTime) && !isNaN(sTime)) {
+          isLate = sTime > dTime;
+        }
+      }
+
+      const sDateObj = submittedDate ? new Date(submittedDate) : null;
+      const dateFormatted = sDateObj && !isNaN(sDateObj.getTime()) ? sDateObj.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'N/A';
+      const timeFormatted = sDateObj && !isNaN(sDateObj.getTime()) ? sDateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '11:59 PM';
+      
+      const statusLabel = isLate ? "Late" : "On Time";
+      const tagClass = isLate ? "tag-late" : "tag-ontime";
+      const iconClass = isLate ? "fa-clock" : "fa-bolt";
+
+      const timelinessTag = `<span class="${tagClass}"><i class="fa-solid ${iconClass}"></i> ${dateFormatted} - ${timeFormatted} - ${statusLabel}</span>`;
+
+      let fileDisplay = `<span style="color: #94a3b8; font-style: italic;">No file</span>`;
+      if (sub.file_url) {
+        const ext = sub.file_url.split('.').pop().toUpperCase();
+        fileDisplay = `<button class="file-download-btn" onclick="downloadFileDirectly('${escapeJsString(sub.file_url)}', '${escapeJsString(studentName)}_${escapeJsString(activityTitle)}.${ext.toLowerCase()}')"><i class="fa-solid fa-file-arrow-down"></i> Download (${ext})</button>`;
+      } else if (sub.link_url) {
+        fileDisplay = `<a href="${escapeHtml(sub.link_url)}" target="_blank" class="file-download-btn"><i class="fa-solid fa-link"></i> Open Link</a>`;
+      }
+
+      const studentUid = sub.user_id || sub.student_id || (sub.users ? sub.users.id : '');
+
+      let scoreCellHtml = "";
+      let actionCellHtml = "";
+
+      if (userRole === "ADMIN") {
+        scoreCellHtml = `
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="font-size: 14px; font-weight: 700; color: #1e293b;">${currentScore !== "" ? currentScore : "-"}</span>
+            <span style="font-size: 12px; color: var(--muted); font-weight: bold;">/ ${maxPoints}</span>
+          </div>
+        `;
+        actionCellHtml = `
+          <div class="actions-flex" id="action_cell_${sub.id}">
+            <button class="btn-view-work" onclick="openStudentWork(${sub.id})" title="Inspect student submission in audit mode">
+              <i class="fa-solid fa-eye"></i> Audit Work
+            </button>
+          </div>
+        `;
+      } else if (isClassArchived) {
+        scoreCellHtml = `
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="font-size: 14px; font-weight: 700; color: #64748b;">${currentScore !== "" ? currentScore : "-"}</span>
+            <span style="font-size: 12px; color: var(--muted); font-weight: bold;">/ ${maxPoints}</span>
+          </div>
+        `;
+        actionCellHtml = `
+          <div class="actions-flex" id="action_cell_${sub.id}">
+            <button class="btn-view-work" onclick="openStudentWork(${sub.id})" title="Inspect student submission">
+              <i class="fa-solid fa-eye"></i> View Work
+            </button>
+          </div>
+        `;
+      } else {
+        const inputDisabled = isGraded ? 'disabled="disabled"' : '';
+        const actionBtn = isGraded
+          ? `<button class="btn-update-grade" onclick="enableScoreEdit(${sub.id})"><i class="fa-solid fa-pen-to-square"></i> Update</button>`
+          : `<button class="btn-save-grade" id="save_btn_${sub.id}" onclick="saveGrade(${sub.id}, ${maxPoints}, '${escapeJsString(studentUid)}', '${escapeJsString(activityTitle)}')"><i class="fa-solid fa-floppy-disk"></i> Save</button>`;
+
+        scoreCellHtml = `
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <input type="number" min="0" max="${maxPoints}" class="score-input" id="score_${sub.id}" value="${currentScore}" placeholder="0" ${inputDisabled}>
+            <span style="font-size: 12px; color: var(--muted); font-weight: bold;">/ ${maxPoints}</span>
+          </div>
+        `;
+        actionCellHtml = `
+          <div class="actions-flex" id="action_cell_${sub.id}">
+            ${actionBtn}
+            <button class="btn-view-work" onclick="openStudentWork(${sub.id})" title="Inspect full submission notes">
+              <i class="fa-solid fa-eye"></i> View Work
+            </button>
+          </div>
+        `;
+      }
+
+      tr.innerHTML = `
+        <td>
+          <span class="student-name-link" onclick="openStudentGrades('${escapeJsString(studentName)}', '${escapeJsString(studentUid)}')" title="View ${escapeHtml(studentName)}'s grade profile">
+            👤 ${escapeHtml(studentName)}
+          </span>
+        </td>
+        <td>${escapeHtml(activityTitle)}</td>
+        <td>${timelinessTag}</td>
+        <td>${fileDisplay}</td>
+        <td id="status_cell_${sub.id}">${statusBadge}</td>
+        <td>${scoreCellHtml}</td>
+        <td>${actionCellHtml}</td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  /* =====================================================
+     6. SAVE & UPDATE STUDENT GRADE (MULTI-CHANNEL ALERT)
+  ===================================================== */
+  async function saveGrade(submissionId, maxPoints, studentUserId, activityTitle) {
+    if (userRole !== "TEACHER") {
+      alert("Permission denied: Only faculty instructors can evaluate and score student submissions.");
+      return;
+    }
+
+    if (isClassArchived) {
+      alert("This class is archived. Unarchive the subject before submitting grade changes.");
+      return;
+    }
+
+    const client = getSupabaseClient();
+    const scoreInput = document.getElementById(`score_${submissionId}`);
+    if (!client || !scoreInput) return;
+
+    const scoreVal = scoreInput.value.trim();
+
+    if (scoreVal === "" || isNaN(scoreVal) || Number(scoreVal) < 0 || Number(scoreVal) > maxPoints) {
+      alert(`Please enter a valid score between 0 and ${maxPoints}.`);
+      return;
+    }
+
+    const saveBtn = document.getElementById(`save_btn_${submissionId}`);
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    }
+
+    const numericScore = Number(scoreVal);
+    const subSearchIds = getDualTypeIds([submissionId]);
+
+    // 1. Update Submissions Table
+    const { error } = await client
+      .from('submissions')
+      .update({
+        grade: numericScore,
+        score: numericScore,
+        status: 'graded'
+      })
+      .in('id', subSearchIds);
+
+    if (error) {
+      alert("Error saving grade: " + error.message);
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save';
+      }
+      return;
+    }
+
+    // 2. Dispatch Multi-Channel Alerts to Student
+    const sub = rawSubmissionsList.find(s => String(s.id) === String(submissionId) || parseDbId(s.id) === parseDbId(submissionId));
+    const resolvedTitle = sub?.activities?.title || activityTitle || "Activity";
+
+    if (studentUserId) {
+      const parsedStudentId = parseDbId(studentUserId);
+
+      // In-App Notification
+      try {
+        await client
+          .from('notifications')
+          .insert([{
+            user_id: parsedStudentId,
+            title: `💯 Grade Posted: ${resolvedTitle}`,
+            message: `Your score for "${resolvedTitle}" has been evaluated: ${numericScore}/${maxPoints}.`,
+            is_read: false,
+            activity_id: sub?.activity_id ? parseDbId(sub.activity_id) : null,
+            submission_id: parseDbId(submissionId),
+            created_at: new Date().toISOString()
+          }]);
+      } catch (notifErr) {
+        console.warn("In-app notification dispatch warning:", notifErr);
+      }
+
+      // Push & Email Alerts via Flask API
+      const studentEmail = sub?.users?.email;
+      const emails = studentEmail ? [studentEmail] : [];
+      const studentIds = [String(studentUserId)];
+
+      try {
+        await fetch('/api/notify-users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            class_title: selectedClassCode ? `Class ${selectedClassCode}` : 'Your Course',
+            title: `Grade Posted: ${resolvedTitle}`,
+            type: 'grade_posted',
+            student_emails: emails,
+            student_ids: studentIds,
+            details: `Score: ${numericScore}/${maxPoints}. Log into your portal to view complete evaluation feedback.`
+          })
+        });
+      } catch (alertErr) {
+        console.warn("Could not dispatch automated push/email grade alerts:", alertErr);
+      }
+    }
+
+    alert("🎉 Score saved successfully! Student has been notified via portal, email, and mobile push.");
+    await loadClassSubmissionsData();
+  }
+
+  function enableScoreEdit(submissionId) {
+    if (userRole !== "TEACHER" || isClassArchived) return;
+
+    const scoreInput = document.getElementById(`score_${submissionId}`);
+    const actionCell = document.getElementById(`action_cell_${submissionId}`);
+
+    if (scoreInput) {
+      scoreInput.removeAttribute("disabled");
+      scoreInput.focus();
+    }
+
+    if (actionCell) {
+      const updateBtn = actionCell.querySelector(".btn-update-grade");
+      if (updateBtn) {
+        const sub = rawSubmissionsList.find(s => String(s.id) === String(submissionId) || parseDbId(s.id) === parseDbId(submissionId));
+        const maxPts = sub?.activities?.total_points || 100;
+        const studentUid = sub?.user_id || sub?.student_id || (sub?.users ? sub.users.id : '');
+        const actTitle = sub?.activities?.title || "Activity";
+
+        updateBtn.outerHTML = `<button class="btn-save-grade" id="save_btn_${submissionId}" onclick="saveGrade(${submissionId}, ${maxPts}, '${escapeJsString(studentUid)}', '${escapeJsString(actTitle)}')"><i class="fa-solid fa-floppy-disk"></i> Save</button>`;
+      }
+    }
+  }
+
+  /* =====================================================
+     7. EXPORT CSV TO EXCEL (SECURED)
+  ===================================================== */
+  function exportSubmissionsCSV() {
+    if (currentFilteredSubmissions.length === 0) {
+      alert("No submission records available to export.");
+      return;
+    }
+
+    function sanitizeForCsv(val) {
+      let str = String(val !== null && val !== undefined ? val : "");
+      // Prevent formula injection
+      if (/^[=\+\-@]/.test(str)) {
+        str = "'" + str;
+      }
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,";
+    csvContent += "Student Name,Student ID,Class Code,Activity Title,Max Points,Score Achieved,Percentage,Status,Timeliness,Submission Date\r\n";
+
+    currentFilteredSubmissions.forEach(sub => {
+      const studentName = sub.users?.full_name || sub.user_name || "Student";
+      const studentId = sub.users?.student_id || "N/A";
+      const classCode = selectedClassCode || "N/A";
+      const activityTitle = sub.activities?.title || "Activity";
+      const maxPoints = sub.activities?.total_points || 100;
+      const scoreAchieved = sub.grade !== null && sub.grade !== undefined ? sub.grade : (sub.score !== null && sub.score !== undefined ? sub.score : "Pending");
+      const percentage = typeof scoreAchieved === "number" ? ((scoreAchieved / maxPoints) * 100).toFixed(1) + "%" : "N/A";
+      const status = sub.status || "Submitted";
+
+      let timeliness = "On Time";
+      const deadlineDate = sub.activities?.deadline || sub.activities?.due_date;
+      const submittedDate = sub.submitted_at || sub.created_at;
+      if (deadlineDate && submittedDate) {
+        const dTime = new Date(deadlineDate).getTime();
+        const sTime = new Date(submittedDate).getTime();
+        if (!isNaN(dTime) && !isNaN(sTime) && sTime > dTime) {
+          timeliness = "Late";
+        }
+      }
+
+      const sDateObj = submittedDate ? new Date(submittedDate) : null;
+      const dateStr = sDateObj && !isNaN(sDateObj.getTime()) ? sDateObj.toLocaleString() : "N/A";
+
+      csvContent += [
+        sanitizeForCsv(studentName),
+        sanitizeForCsv(studentId),
+        sanitizeForCsv(classCode),
+        sanitizeForCsv(activityTitle),
+        sanitizeForCsv(maxPoints),
+        sanitizeForCsv(scoreAchieved),
+        sanitizeForCsv(percentage),
+        sanitizeForCsv(status),
+        sanitizeForCsv(timeliness),
+        sanitizeForCsv(dateStr)
+      ].join(",") + "\r\n";
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Submissions_${selectedClassCode}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  /* =====================================================
+     8. ROUTE SHORTCUTS
+  ===================================================== */
+  function openStudentGrades(studentName, studentId) {
+    localStorage.setItem("selectedStudentName", studentName);
+    if (studentId) localStorage.setItem("selectedStudentId", String(studentId));
+    window.location.href = studentGradesUrl;
+  }
+
+  function openStudentWork(submissionId) {
+    localStorage.setItem("selectedSubmissionId", String(submissionId));
+    window.location.href = studentWorkUrl;
+  }
+
+  /* =====================================================
+     9. LOAD SIDEBAR CLASSES & GROUPS
+  ===================================================== */
+  async function loadSidebarClasses() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarClassList = document.getElementById("sidebarClassList");
+    if (!sidebarClassList) return;
+    sidebarClassList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myClasses = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      } else {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar classes error:", err);
+    }
+
+    myClasses = myClasses.filter(c => c && c.status !== 'archived');
+
+    if (myClasses.length > 0) {
+      const currentSelectedCode = localStorage.getItem("selectedClass");
+      myClasses.forEach(c => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `📘 ${c.subject}`;
+        sideLink.href = classPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedClass", c.code);
+          localStorage.setItem("selectedClassId", String(c.id));
+          window.location.href = classPageUrl;
+        };
+        sidebarClassList.appendChild(sideLink);
+      });
+    } else {
+      sidebarClassList.innerHTML = `<p style="font-size: 12px; opacity: 0.7; padding-left: 10px; color: white;">No active classes</p>`;
+    }
+  }
+
+  async function loadSidebarGroups() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarGroupList = document.getElementById("sidebarGroupList");
+    if (!sidebarGroupList) return;
+    sidebarGroupList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myGroups = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      } else {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar groups error:", err);
+    }
+
+    myGroups = myGroups.filter(g => g && g.status !== 'archived');
+
+    if (myGroups.length > 0) {
+      const currentSelectedGroup = localStorage.getItem("selectedGroup");
+      myGroups.forEach(g => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `👥 ${g.name}`;
+        sideLink.href = groupPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedGroup", g.code);
+          localStorage.setItem("selectedGroupId", String(g.id));
+          window.location.href = groupPageUrl;
+        };
+        sidebarGroupList.appendChild(sideLink);
+      });
+    } else {
+      sidebarGroupList.innerHTML = `<p style="font-size: 12px; opacity: 0.7; padding-left: 10px; color: white;">No active groups</p>`;
+    }
+  }
+</script>

@@ -1,0 +1,1569 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grades & Gradebook - Smart Learning Platform</title>
+
+  <!-- SUPABASE JS CLIENT -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- FONT AWESOME -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+  /* =========================================
+     GLOBAL RESET & BRAND DESIGN SYSTEM
+  ========================================= */
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #dbeafe;
+    --background: #f5f7fb;
+    --surface: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --warning: #f59e0b;
+    --warning-light: #fef3c7;
+    --danger: #ef4444;
+    --danger-light: #fee2e2;
+    --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    position: relative;
+  }
+
+  /* =========================================
+     SIDEBAR NAVIGATION RAIL & OVERLAY
+  ========================================= */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e40af, #1e3a8a);
+    color: #ffffff;
+    padding: 22px 15px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .user-profile-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .user-badge {
+    display: inline-block;
+    background: #fbbf24;
+    color: #1e3a8a;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar a,
+  #sidebarMenu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 14.5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .sidebar a:hover,
+  #sidebarMenu a:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: translateX(2px);
+    color: #ffffff !important;
+  }
+
+  .sidebar a.active,
+  #sidebarMenu a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    font-weight: bold;
+    color: #ffffff !important;
+  }
+
+  .sidebar-logout-btn {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffffff !important;
+    margin-top: 18px !important;
+    cursor: pointer;
+  }
+
+  .sidebar-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.45) !important;
+  }
+
+  .sidebar-section {
+    margin-top: 24px;
+  }
+
+  .sidebar-section-title {
+    padding: 0 10px 8px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    margin-bottom: 6px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* =========================================
+     MAIN WORKSPACE CONTAINER
+  ========================================= */
+  .main-content {
+    margin-left: 240px;
+    flex: 1 1 auto;
+    min-height: 100vh;
+    padding: 28px;
+    width: calc(100% - 240px);
+    max-width: 100%;
+    min-width: 0;
+    transition: margin-left 0.3s ease, width 0.3s ease, padding 0.3s ease;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 90px;
+    padding: 24px 30px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #4285f4, #2563eb);
+    color: #ffffff;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.18);
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .page-header-text {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+
+  .page-header h1 {
+    margin: 0 0 6px;
+    font-size: 26px;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  .page-header p {
+    margin: 0;
+    opacity: 0.92;
+    font-size: 14.5px;
+    line-height: 1.4;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .btn-header {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    min-height: 42px;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .btn-header:hover {
+    background: #ffffff;
+    color: var(--primary-dark);
+  }
+
+  /* CONTENT CONTAINER */
+  .content-container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    min-width: 0;
+  }
+
+  /* STATS SUMMARY CARDS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 18px;
+    width: 100%;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+
+  .stat-details {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .stat-details h3 {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .stat-details p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* DYNAMIC CLASS SELECTOR DROPDOWN */
+  .class-select-dropdown {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--primary-dark);
+    background: #f8fafc;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+
+  .class-select-dropdown:focus,
+  .class-select-dropdown:hover {
+    border-color: var(--primary);
+    background: #ffffff;
+  }
+
+  /* MAIN GRADE CARD */
+  .card {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    min-width: 0;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .card-header h2 {
+    font-size: 18px;
+    color: var(--primary-dark);
+    font-weight: bold;
+    word-break: break-word;
+  }
+
+  .search-box {
+    position: relative;
+    width: 260px;
+    max-width: 100%;
+  }
+
+  .search-box input {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 14px 8px 36px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13.5px;
+    outline: none;
+    background: #f8fafc;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+
+  .search-box input:focus {
+    border-color: var(--primary);
+    background: #ffffff;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 14px;
+    pointer-events: none;
+  }
+
+  /* DATA TABLE CONTAINER */
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  table {
+    width: 100%;
+    min-width: 650px;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13.5px;
+  }
+
+  th {
+    background: #f8fafc;
+    color: #334155;
+    font-weight: bold;
+    padding: 12px 14px;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    color: #334155;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+
+  tbody tr:hover {
+    background: #f1f5f9;
+  }
+
+  /* CLICKABLE STUDENT NAME */
+  .student-name-link {
+    color: var(--primary-dark);
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .student-name-link:hover {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+
+  /* BADGES & ACTION PILLS */
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: bold;
+    text-transform: capitalize;
+    white-space: nowrap;
+  }
+
+  .badge-graded {
+    background: var(--success-light);
+    color: var(--success);
+  }
+
+  .badge-pending {
+    background: var(--warning-light);
+    color: #b45309;
+  }
+
+  .grade-pill-btn {
+    font-weight: bold;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: var(--primary-dark);
+    border: 1px solid var(--border);
+    cursor: default;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+
+  .btn-view-sheet {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    min-height: 36px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+  }
+
+  .btn-view-sheet:hover {
+    background: var(--primary-dark);
+  }
+
+  /* BOTTOM BUTTON BAR */
+  .btn-bar {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 10px;
+  }
+
+  .back-btn {
+    background: #64748b;
+    color: #ffffff;
+    min-height: 44px;
+    padding: 11px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .back-btn:hover {
+    background: #475569;
+  }
+
+  /* PRINT MEDIA STYLES */
+  @media print {
+    .sidebar, .mobile-menu-btn, .header-actions, .search-box, .btn-bar, .sidebar-overlay {
+      display: none !important;
+    }
+    .main-content {
+      margin-left: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+    }
+    .page-header {
+      background: none !important;
+      color: black !important;
+      box-shadow: none !important;
+      padding: 0 0 15px 0 !important;
+      border-bottom: 2px solid #000 !important;
+    }
+    .card {
+      box-shadow: none !important;
+      border: none !important;
+      padding: 0 !important;
+    }
+  }
+
+  /* =========================================
+     RESPONSIVE BREAKPOINTS (RWD)
+  ========================================= */
+  /* Tablets and Standard Mobile Screens */
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+    }
+
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+      max-width: 100vw;
+      padding: 18px;
+      padding-top: 74px;
+    }
+
+    .page-header {
+      padding: 20px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+    }
+
+    .header-actions {
+      width: 100%;
+    }
+
+    .btn-header {
+      flex: 1;
+    }
+
+    .card {
+      padding: 20px 16px;
+    }
+
+    .card-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .search-box {
+      width: 100%;
+    }
+
+    /* iOS auto-zoom prevention on mobile */
+    .search-box input,
+    .class-select-dropdown {
+      font-size: 16px;
+    }
+  }
+
+  /* Compact Smartphones (320px - 480px) */
+  @media (max-width: 480px) {
+    .main-content {
+      padding: 12px;
+      padding-top: 68px;
+    }
+
+    .page-header {
+      padding: 16px;
+      border-radius: 12px;
+    }
+
+    .page-header h1 {
+      font-size: 21px;
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .stat-card {
+      padding: 16px;
+    }
+
+    .card {
+      padding: 16px 12px;
+      border-radius: 12px;
+    }
+
+    .back-btn {
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+
+    <!-- USER PROFILE & ROLE BADGE -->
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">TEACHER</div>
+    </div>
+
+    <!-- DYNAMIC SIDEBAR LINKS -->
+    <div id="sidebarMenu"></div>
+
+    <!-- MY CLASSES -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <!-- MY GROUPS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <!-- LOGOUT BUTTON -->
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <!-- PAGE HEADER -->
+    <section class="page-header">
+      <div>
+        <h1 id="pageTitle">Master Grade Ledger</h1>
+        <p id="pageSubtitle">Managing academic performance report</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-header" onclick="window.print()"><i class="fa-solid fa-print"></i> Print Report</button>
+        <button class="btn-header" id="exportCsvBtn" onclick="exportGradesToCSV()"><i class="fa-solid fa-file-csv"></i> Export CSV</button>
+      </div>
+    </section>
+
+    <div class="content-container">
+      <!-- STATS OVERVIEW -->
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+          <div class="stat-icon">🏆</div>
+          <div class="stat-details">
+            <h3 id="statGrade">0%</h3>
+            <p id="statGradeLabel">Overall Average</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-details">
+            <h3 id="statCompleted">0%</h3>
+            <p id="statCompletedLabel">Highest Student Score</p>
+          </div>
+        </div>
+
+        <!-- DYNAMIC CLASSES DROPDOWN -->
+        <div class="stat-card">
+          <div class="stat-icon">🏫</div>
+          <div class="stat-details" style="width: 100%;">
+            <select id="classSelectDropdown" class="class-select-dropdown" onchange="switchActiveClass(this.value)">
+              <!-- Dynamically Populated -->
+            </select>
+            <p style="margin-top: 4px; font-size: 12px; color: var(--muted);">Select Active Class ▼</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN GRADES TABLE CARD -->
+      <section class="card">
+        <div class="card-header">
+          <h2 id="tableCardTitle">Student Roster & Performance</h2>
+          <div class="search-box" id="searchBoxWrapper" style="display: none;">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="studentSearch" placeholder="Search student name..." oninput="filterTeacherTable()">
+          </div>
+        </div>
+
+        <!-- STUDENT REPORT TABLE VIEW -->
+        <div class="table-wrapper" id="studentTableView">
+          <table>
+            <thead>
+              <tr>
+                <th>Activity Title</th>
+                <th>Due Date</th>
+                <th>Score</th>
+                <th>Percentage</th>
+                <th>Status</th>
+                <th>Grade Review</th>
+              </tr>
+            </thead>
+            <tbody id="studentTableBody">
+              <tr>
+                <td colspan="6" style="text-align:center; padding:30px; color:var(--muted);">
+                  <i class="fa-solid fa-spinner fa-spin"></i> Loading report card...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- TEACHER & ADMIN MASTER GRADEBOOK VIEW -->
+        <div class="table-wrapper" id="teacherTableView" style="display: none;">
+          <table>
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Class Code</th>
+                <th>Graded Activities</th>
+                <th>Average Score</th>
+                <th>Final Grade</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="teacherTableBody">
+              <tr>
+                <td colspan="6" style="text-align:center; padding:35px; color:var(--muted);">
+                  <i class="fa-solid fa-spinner fa-spin"></i> Loading roster & grades from database...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- BACK BUTTON BAR -->
+      <div class="btn-bar">
+        <a href="{{ url_for('landpage') }}" class="back-btn">← Back to Home</a>
+      </div>
+    </div>
+  </main>
+
+<script>
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  /* =====================================================
+     0. TYPE-SAFE ID HELPERS & ESCAPERS
+  ===================================================== */
+  function parseDbId(idVal) {
+    if (!idVal) return idVal;
+    if (typeof idVal === 'number') return idVal;
+    const str = String(idVal).trim();
+    return /^\d+$/.test(str) ? parseInt(str, 10) : str;
+  }
+
+  function getDualTypeIds(idArray) {
+    const result = new Set();
+    (idArray || []).forEach(id => {
+      if (id !== null && id !== undefined && id !== '') {
+        result.add(String(id));
+        const num = parseDbId(id);
+        if (typeof num === 'number' && !isNaN(num)) {
+          result.add(num);
+        }
+      }
+    });
+    return Array.from(result);
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeJsString(str) {
+    if (!str) return "";
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+  }
+
+  /* =====================================================
+     1. USER SESSION & ROLE-BASED ROUTE ACCESS
+  ===================================================== */
+  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
+  const userRole = rawRole.toUpperCase();
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+  // 🔒 HARD REDIRECT: Students must only view their personal report card
+  if (userRole === "STUDENT") {
+    window.location.replace("{{ url_for('studentgrades_page') }}");
+  }
+
+  const userBadgeEl = document.getElementById("userRoleBadge");
+  const sidebarNameEl = document.getElementById("sidebarUserName");
+  if (userBadgeEl) userBadgeEl.textContent = userRole;
+  if (sidebarNameEl) sidebarNameEl.textContent = userName;
+
+  const homeUrl = "{{ url_for('landpage') }}";
+  const createUrl = "{{ url_for('create_page') }}";
+  const joinUrl = "{{ url_for('join_page') }}";
+  const calendarUrl = "{{ url_for('calendar_page') }}";
+  const myDashboardUrl = "{{ url_for('dashboard_page') }}";
+  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+  const gradesUrl = "{{ url_for('grades_page') }}";
+  const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
+  const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const archiveUrl = "{{ url_for('archive_page') }}";
+  const notifyUrl = "{{ url_for('notify_page') }}";
+  const accountUrl = "{{ url_for('account_page') }}";
+  const classPageUrl = "{{ url_for('class_page') }}";
+  const groupPageUrl = "{{ url_for('group_page') }}";
+  const reviewPageUrl = "{{ url_for('review_page') }}";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+
+  const sidebarMenu = document.getElementById("sidebarMenu");
+
+  if (sidebarMenu) {
+    if (userRole === "ADMIN") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Institutional Hub</a>
+        <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
+        <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${gradesUrl}" class="active">💯 Master Gradebook</a>
+        <a href="${archiveUrl}">📦 Archival Vault</a>
+        <a href="${notifyUrl}">🔔 System Alerts</a>
+        <a href="${accountUrl}">👤 Account Profile</a>
+      `;
+    } else if (userRole === "TEACHER") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}">➕ Create Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${gradesUrl}" class="active">💯 Grades</a>
+        <a href="${submissionsUrl}">📝 Submissions</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    }
+  }
+
+  /* MOBILE SIDEBAR TOGGLE */
+  const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+  const sidebar = document.getElementById("sidebar");
+
+  if (mobileMenuBtn && sidebar) {
+    mobileMenuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle("active");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.remove("active");
+      }
+    });
+  }
+
+  function logoutUser() {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("{{ url_for('logout') }}");
+  }
+
+  /* PHILIPPINE COLLEGIATE GPA STANDARD (1.00 - 5.00, 75% PASSING) */
+  function getGpaEquivalent(pct) {
+    if (pct === null || pct === undefined || isNaN(pct) || pct <= 0) return "N/A";
+    if (pct >= 97) return "1.00 (Excellent)";
+    if (pct >= 94) return "1.25 (Superior)";
+    if (pct >= 91) return "1.50 (Very Good)";
+    if (pct >= 88) return "1.75 (Good)";
+    if (pct >= 85) return "2.00 (Above Average)";
+    if (pct >= 82) return "2.25 (Average)";
+    if (pct >= 79) return "2.50 (Satisfactory)";
+    if (pct >= 76) return "2.75 (Fair)";
+    if (pct >= 75) return "3.00 (Passing)";
+    return "5.00 (Failed)";
+  }
+
+  /* =====================================================
+     2. SUPABASE INITIALIZATION
+  ===================================================== */
+  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+  function getSupabaseClient() {
+    if (window._supabase) return window._supabase;
+    const supabaseLib = window.supabase || window.Supabase;
+    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        global: {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      });
+      return window._supabase;
+    }
+    return null;
+  }
+
+  /* STATE VARIABLES */
+  let selectedClassCode = localStorage.getItem("selectedClass") || "";
+  let currentClassId = localStorage.getItem("selectedClassId") || null;
+  let classList = [];
+  let isClassArchived = false;
+
+  const studentTableView = document.getElementById("studentTableView");
+  const teacherTableView = document.getElementById("teacherTableView");
+  const searchBoxWrapper = document.getElementById("searchBoxWrapper");
+  const exportCsvBtn = document.getElementById("exportCsvBtn");
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      initGradesPage();
+      loadSidebarClasses();
+      loadSidebarGroups();
+
+      const searchInput = document.getElementById("studentSearch");
+      if (searchInput) {
+        searchInput.addEventListener("input", filterTeacherTable);
+      }
+    }, 100);
+  });
+
+  /* =====================================================
+     3. INITIALIZE PAGE & FETCH CLASSES FROM SUPABASE
+  ===================================================== */
+  async function initGradesPage() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+
+    let query = client.from('classes').select('*').order('created_at', { ascending: false });
+
+    if (userRole === "TEACHER" && userSearchIds.length > 0) {
+      query = query.in('teacher_id', userSearchIds);
+    }
+
+    const { data: classes } = await query;
+    classList = classes || [];
+
+    populateClassDropdown();
+
+    if (classList.length > 0) {
+      const match = classList.find(c => c.code === selectedClassCode) || classList[0];
+      selectedClassCode = match.code;
+      currentClassId = match.id;
+      isClassArchived = match.status === 'archived' || localStorage.getItem("isArchivedView") === "true";
+
+      const dropdownEl = document.getElementById("classSelectDropdown");
+      if (dropdownEl) dropdownEl.value = match.code;
+
+      localStorage.setItem("selectedClass", match.code);
+      localStorage.setItem("selectedClassId", String(match.id));
+      if (isClassArchived) {
+        localStorage.setItem("isArchivedView", "true");
+      } else {
+        localStorage.removeItem("isArchivedView");
+      }
+    }
+
+    if (userRole === "ADMIN") {
+      document.getElementById("pageTitle").textContent = "Master Grade Ledger";
+      document.getElementById("pageSubtitle").textContent = `Institutional Audit: Class Code ${selectedClassCode || 'N/A'}`;
+      document.getElementById("tableCardTitle").textContent = "Institutional Student Roster & Grade Matrix";
+
+      if (studentTableView) studentTableView.style.display = "none";
+      if (teacherTableView) teacherTableView.style.display = "block";
+      if (searchBoxWrapper) searchBoxWrapper.style.display = "block";
+      if (exportCsvBtn) exportCsvBtn.style.display = "inline-flex";
+
+      injectAdminAuditBanner();
+      renderRosterAndGrades();
+    } else {
+      document.getElementById("pageTitle").textContent = "Teacher Gradebook & Scoring Ledger";
+      document.getElementById("pageSubtitle").textContent = `Managing student roster and grades for Class: ${selectedClassCode || 'N/A'}`;
+      document.getElementById("tableCardTitle").textContent = "Student Roster & Performance";
+
+      if (studentTableView) studentTableView.style.display = "none";
+      if (teacherTableView) teacherTableView.style.display = "block";
+      if (searchBoxWrapper) searchBoxWrapper.style.display = "block";
+      if (exportCsvBtn) exportCsvBtn.style.display = "inline-flex";
+
+      injectArchivalNoticeBanner();
+      renderRosterAndGrades();
+    }
+  }
+
+  function injectAdminAuditBanner() {
+    if (document.getElementById("adminGradeAuditBanner")) return;
+    const banner = document.createElement("div");
+    banner.id = "adminGradeAuditBanner";
+    banner.style.cssText = "background: #fef3c7; color: #92400e; padding: 12px 16px; font-size: 13px; border-left: 4px solid #f59e0b; margin-bottom: 18px; font-weight: 600; border-radius: 6px;";
+    banner.innerHTML = "🛡️ <strong>Institutional Audit Mode:</strong> You are viewing master gradebook sheets and Philippine GPA equivalents in read-only administrative mode.";
+    
+    const targetWrapper = document.querySelector(".page-header") || document.querySelector(".header") || teacherTableView;
+    if (targetWrapper && targetWrapper.parentElement) {
+      targetWrapper.parentElement.insertBefore(banner, targetWrapper.nextSibling);
+    }
+  }
+
+  function injectArchivalNoticeBanner() {
+    const existing = document.getElementById("archivedGradeNoticeBanner");
+    if (!isClassArchived) {
+      if (existing) existing.remove();
+      return;
+    }
+    if (existing) return;
+
+    const banner = document.createElement("div");
+    banner.id = "archivedGradeNoticeBanner";
+    banner.style.cssText = "background: #f1f5f9; color: #334155; padding: 12px 16px; font-size: 13px; border-left: 4px solid #64748b; margin-bottom: 18px; font-weight: 600; border-radius: 6px;";
+    banner.innerHTML = "📦 <strong>Archived Class Gradebook:</strong> This subject is archived. All student grades, submissions, and GPA equivalents are locked in read-only mode.";
+
+    const targetWrapper = document.querySelector(".page-header") || document.querySelector(".header") || teacherTableView;
+    if (targetWrapper && targetWrapper.parentElement) {
+      targetWrapper.parentElement.insertBefore(banner, targetWrapper.nextSibling);
+    }
+  }
+
+  function populateClassDropdown() {
+    const dropdown = document.getElementById("classSelectDropdown");
+    if (!dropdown) return;
+    dropdown.innerHTML = "";
+
+    if (classList.length === 0) {
+      dropdown.innerHTML = `<option value="">No Classes Available</option>`;
+      return;
+    }
+
+    classList.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.code;
+      const archiveTag = c.status === 'archived' ? ' [Archived]' : '';
+      opt.textContent = `📘 ${c.subject} (${c.code})${archiveTag}`;
+      if (c.code === selectedClassCode) opt.selected = true;
+      dropdown.appendChild(opt);
+    });
+  }
+
+  function switchActiveClass(newCode) {
+    selectedClassCode = newCode;
+    localStorage.setItem("selectedClass", newCode);
+    const match = classList.find(c => c.code === newCode);
+    if (match) {
+      currentClassId = match.id;
+      isClassArchived = match.status === 'archived';
+      localStorage.setItem("selectedClassId", String(match.id));
+      if (isClassArchived) {
+        localStorage.setItem("isArchivedView", "true");
+      } else {
+        localStorage.removeItem("isArchivedView");
+      }
+    }
+    initGradesPage();
+  }
+
+  /* =====================================================
+     4. ROSTER & PERFORMANCE VIEW WITH MISSING (0) LOGIC
+  ===================================================== */
+  async function renderRosterAndGrades() {
+    const client = getSupabaseClient();
+    const tbody = document.getElementById("teacherTableBody");
+    if (!tbody) return;
+
+    if (!client || !currentClassId) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align:center; padding:35px; color:var(--muted);">
+            No active class selected or database connection offline.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    const classSearchIds = [...new Set(getDualTypeIds([currentClassId]))];
+
+    // 1. Fetch Enrolled Students (checking both user_id and student_id in memberships)
+    const { data: memberships } = await client
+      .from('class_memberships')
+      .select('user_id, student_id')
+      .in('class_id', classSearchIds);
+
+    const rawStudentIds = [];
+    (memberships || []).forEach(m => {
+      if (m.user_id) rawStudentIds.push(m.user_id);
+      if (m.student_id) rawStudentIds.push(m.student_id);
+    });
+
+    const studentUserIds = [...new Set(getDualTypeIds(rawStudentIds))];
+
+    let enrolledStudents = [];
+    if (studentUserIds.length > 0) {
+      const { data: usersData } = await client
+        .from('users')
+        .select('id, full_name, email, student_id')
+        .in('id', studentUserIds);
+      enrolledStudents = usersData || [];
+    }
+
+    // 2. Fetch All Activities with Deadlines
+    const { data: activities } = await client
+      .from('activities')
+      .select('id, title, total_points, deadline, due_date')
+      .in('class_id', classSearchIds);
+
+    const classActivities = activities || [];
+    const actSearchIds = [...new Set(getDualTypeIds(classActivities.map(a => a.id)))];
+
+    // 3. Fetch Submissions for All Class Activities
+    let submissions = [];
+    if (actSearchIds.length > 0) {
+      const { data: subs, error: subsErr } = await client
+        .from('submissions')
+        .select('*')
+        .in('activity_id', actSearchIds);
+
+      if (subsErr) {
+        console.warn("Submissions query notice:", subsErr.message);
+      }
+      submissions = subs || [];
+    }
+
+    tbody.innerHTML = "";
+
+    if (enrolledStudents.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align:center; padding:35px; color:var(--muted);">
+            <i class="fa-solid fa-users-slash" style="font-size:26px; margin-bottom:8px;"></i><br>
+            No students enrolled in Class <strong>${escapeHtml(selectedClassCode)}</strong> yet.
+          </td>
+        </tr>
+      `;
+      document.getElementById("statGrade").textContent = "0%";
+      document.getElementById("statGradeLabel").textContent = "Overall Class Average";
+      document.getElementById("statCompleted").textContent = "0%";
+      document.getElementById("statCompletedLabel").textContent = "Highest Student Score";
+      return;
+    }
+
+    let classSumPct = 0;
+    let highestAvgPct = 0;
+    let gradedStudentCount = 0;
+    const now = new Date().getTime();
+
+    enrolledStudents.forEach((stu) => {
+      const studentIds = new Set(getDualTypeIds([stu.id]).map(String));
+
+      // Match submissions belonging to this student (handling user_id or student_id)
+      const studentSubs = submissions.filter(s => {
+        const uid = String(s.user_id || s.student_id || '');
+        return studentIds.has(uid);
+      });
+
+      const subMap = {};
+      studentSubs.forEach(s => {
+        subMap[String(s.activity_id)] = s;
+        const pId = parseDbId(s.activity_id);
+        if (pId) subMap[pId] = s;
+      });
+
+      let totalWeightedPct = 0;
+      let completedGradedCount = 0;
+      let countableActivitiesCount = 0;
+
+      classActivities.forEach(act => {
+        const sub = subMap[String(act.id)] || subMap[parseDbId(act.id)];
+        const max = Number(act.total_points) || 100;
+
+        let deadlineTime = null;
+        if (act.deadline || act.due_date) {
+          const dt = new Date(act.deadline || act.due_date);
+          if (!isNaN(dt.getTime())) deadlineTime = dt.getTime();
+        }
+
+        if (sub) {
+          const st = String(sub.status || '').toLowerCase();
+          const hasScore = (sub.grade !== null && sub.grade !== undefined && sub.grade !== '') || 
+                           (sub.score !== null && sub.score !== undefined && sub.score !== '');
+
+          if (st === "graded" || hasScore) {
+            let scoreVal = Number(sub.grade !== null && sub.grade !== undefined ? sub.grade : sub.score) || 0;
+            totalWeightedPct += (scoreVal / max) * 100;
+            completedGradedCount++;
+            countableActivitiesCount++;
+          } else if (deadlineTime && now > deadlineTime) {
+            // Overdue unsubmitted/ungraded work: counts as 0
+            totalWeightedPct += 0;
+            countableActivitiesCount++;
+          }
+        } else {
+          // No submission: if deadline has passed, penalty = 0
+          if (deadlineTime && now > deadlineTime) {
+            totalWeightedPct += 0;
+            countableActivitiesCount++;
+          }
+        }
+      });
+
+      let avgPct = 0;
+      if (countableActivitiesCount > 0) {
+        avgPct = Math.round(totalWeightedPct / countableActivitiesCount);
+        classSumPct += avgPct;
+        gradedStudentCount++;
+        if (avgPct > highestAvgPct) highestAvgPct = avgPct;
+      }
+
+      const tr = document.createElement("tr");
+      tr.className = "student-row";
+      tr.innerHTML = `
+        <td>
+          <span class="student-name-link" onclick="openStudentBreakdown('${escapeJsString(stu.id)}', '${escapeJsString(stu.full_name)}')" title="Click to view individual breakdown">
+            👤 ${escapeHtml(stu.full_name || 'Student')}
+          </span>
+        </td>
+        <td>${escapeHtml(selectedClassCode)}</td>
+        <td><span class="badge badge-graded">${completedGradedCount} / ${classActivities.length} Graded</span></td>
+        <td><strong>${avgPct}%</strong></td>
+        <td><span class="grade-pill-btn" style="cursor:default;">${getGpaEquivalent(avgPct)}</span></td>
+        <td>
+          <button class="btn-view-sheet" onclick="openStudentBreakdown('${escapeJsString(stu.id)}', '${escapeJsString(stu.full_name)}')">
+            ${userRole === "ADMIN" ? "Audit Breakdown →" : "View Breakdown →"}
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    const classAvg = gradedStudentCount > 0 ? (classSumPct / gradedStudentCount).toFixed(1) : 0;
+    document.getElementById("statGrade").textContent = `${classAvg}%`;
+    document.getElementById("statGradeLabel").textContent = "Overall Class Average";
+    document.getElementById("statCompleted").textContent = `${highestAvgPct}%`;
+    document.getElementById("statCompletedLabel").textContent = "Highest Student Score";
+  }
+
+  function openStudentBreakdown(studentId, studentName) {
+    localStorage.setItem("selectedStudentId", String(studentId));
+    localStorage.setItem("selectedStudentName", studentName);
+    localStorage.setItem("searchStudentFilter", studentName);
+    localStorage.setItem("selectedClass", selectedClassCode);
+    if (currentClassId) localStorage.setItem("selectedClassId", String(currentClassId));
+    window.location.href = studentGradesUrl;
+  }
+
+  function filterTeacherTable() {
+    const searchInput = document.getElementById("studentSearch");
+    if (!searchInput) return;
+    const query = searchInput.value.toLowerCase().trim();
+    const rows = document.querySelectorAll("#teacherTableBody tr");
+
+    rows.forEach(row => {
+      const text = row.textContent.toLowerCase();
+      row.style.display = text.includes(query) ? "" : "none";
+    });
+  }
+
+  /* =====================================================
+     5. EXPORT TO CSV (SECURED & EXCEL COMPATIBLE)
+  ===================================================== */
+  function exportGradesToCSV() {
+    const rows = document.querySelectorAll("#teacherTableBody tr");
+    if (rows.length === 0 || rows[0].querySelector("td[colspan]")) {
+      alert("No student grade records available to export for this class.");
+      return;
+    }
+
+    function sanitizeForCsv(val) {
+      let str = String(val !== null && val !== undefined ? val : "");
+      if (/^[=\+\-@]/.test(str)) {
+        str = "'" + str;
+      }
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+
+    const currentClassObj = classList.find(c => c.code === selectedClassCode) || {};
+    const className = currentClassObj.subject || selectedClassCode || "Course";
+
+    let csvContent = "\uFEFF";
+    csvContent += "REGIS MARIE COLLEGE - OFFICIAL MASTER GRADE LEDGER\r\n";
+    csvContent += `Class Subject: ${className},Class Code: ${selectedClassCode}\r\n`;
+    csvContent += `Export Date: ${new Date().toLocaleDateString()},Copy: ${userRole === 'ADMIN' ? 'Auditor/Registrar Copy' : 'Faculty Grade Record'}\r\n\r\n`;
+    csvContent += "Student Full Name,Class Code,Graded Work Progress,Average Score Percentage,Philippine GPA Equivalent\r\n";
+
+    rows.forEach(row => {
+      const cols = row.querySelectorAll("td");
+      if (cols.length >= 5) {
+        const name = cols[0].textContent.replace("👤", "").trim();
+        const code = cols[1].textContent.trim();
+        const progress = cols[2].textContent.trim();
+        const score = cols[3].textContent.trim();
+        const gpa = cols[4].textContent.trim();
+
+        csvContent += [
+          sanitizeForCsv(name),
+          sanitizeForCsv(code),
+          sanitizeForCsv(progress),
+          sanitizeForCsv(score),
+          sanitizeForCsv(gpa)
+        ].join(",") + "\r\n";
+      }
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `RMC_Master_Gradebook_${selectedClassCode || 'Report'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  /* =====================================================
+     6. LOAD SIDEBAR CLASSES & GROUPS
+  ===================================================== */
+  async function loadSidebarClasses() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarClassList = document.getElementById("sidebarClassList");
+    if (!sidebarClassList) return;
+    sidebarClassList.innerHTML = "";
+
+    const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+    let myClasses = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      } else {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar classes error:", err);
+    }
+
+    myClasses = myClasses.filter(c => c && c.status !== 'archived');
+
+    if (myClasses.length > 0) {
+      myClasses.forEach(c => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (c.code === selectedClassCode) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `📘 ${c.subject}`;
+        sideLink.href = classPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedClass", c.code);
+          localStorage.setItem("selectedClassId", String(c.id));
+          window.location.href = classPageUrl;
+        };
+        sidebarClassList.appendChild(sideLink);
+      });
+    } else {
+      sidebarClassList.innerHTML = `<p style="font-size: 12px; opacity: 0.7; padding-left: 10px; color: white;">No active classes</p>`;
+    }
+  }
+
+  async function loadSidebarGroups() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarGroupList = document.getElementById("sidebarGroupList");
+    if (!sidebarGroupList) return;
+    sidebarGroupList.innerHTML = "";
+
+    const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+    let myGroups = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      } else {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar groups error:", err);
+    }
+
+    myGroups = myGroups.filter(g => g && g.status !== 'archived');
+
+    if (myGroups.length > 0) {
+      myGroups.forEach(g => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (g.code === selectedClassCode) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `👥 ${g.name}`;
+        sideLink.href = groupPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedGroup", g.code);
+          localStorage.setItem("selectedGroupId", String(g.id));
+          window.location.href = groupPageUrl;
+        };
+        sidebarGroupList.appendChild(sideLink);
+      });
+    } else {
+      sidebarGroupList.innerHTML = `<p style="font-size: 12px; opacity: 0.7; padding-left: 10px; color: white;">No active groups</p>`;
+    }
+  }
+</script>

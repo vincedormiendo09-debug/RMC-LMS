@@ -1,0 +1,1049 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- ðŸ”’ PREVENT BROWSER CACHING AFTER LOGOUT -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <title>Regis Marie College | Create Class & Group</title>
+
+  <!-- Google Fonts & Font Awesome -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <!-- SUPABASE JS CLIENT SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  
+  <style>
+  /* =========================================
+     GLOBAL RESET & BRAND DESIGN SYSTEM
+  ========================================= */
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #eff6ff;
+    --background: #f3f6fb;
+    --card: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  }
+
+  html {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    position: relative;
+  }
+
+  /* =========================================
+     SIDEBAR NAVIGATION RAIL & OVERLAY
+  ========================================= */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e40af, #1e3a8a);
+    color: #ffffff;
+    padding: 22px 15px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .user-profile-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .user-badge {
+    display: inline-block;
+    background: #fbbf24;
+    color: #1e3a8a;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar a,
+  #sidebarMenu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 14.5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .sidebar a:hover,
+  #sidebarMenu a:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: translateX(2px);
+    color: #ffffff !important;
+  }
+
+  .sidebar a.active,
+  #sidebarMenu a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    font-weight: bold;
+    color: #ffffff !important;
+  }
+
+  .sidebar-logout-btn {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffffff !important;
+    margin-top: 18px !important;
+    cursor: pointer;
+  }
+
+  .sidebar-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.45) !important;
+  }
+
+  .sidebar-section {
+    margin-top: 24px;
+  }
+
+  .sidebar-section-title {
+    padding: 0 10px 8px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    margin-bottom: 6px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* =========================================
+     MAIN CONTENT AREA
+  ========================================= */
+  .main-content {
+    margin-left: 240px;
+    min-height: 100vh;
+    padding: 28px;
+    flex: 1 1 auto;
+    width: calc(100% - 240px);
+    max-width: 100%;
+    transition: margin-left 0.3s ease, width 0.3s ease, padding 0.3s ease;
+  }
+
+  .page-header {
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto 28px;
+    padding: 24px 30px;
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    color: #ffffff;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+  }
+
+  .page-header h1 {
+    margin: 0 0 8px;
+    font-size: 24px;
+    font-weight: bold;
+    word-break: break-word;
+  }
+
+  .page-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .container {
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 25px;
+    min-width: 0;
+  }
+
+  .form-box {
+    background: var(--card);
+    padding: 28px;
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .form-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .form-icon {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 20px;
+  }
+
+  .form-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .form-header p {
+    margin-top: 2px;
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.35;
+  }
+
+  label {
+    display: block;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input, select {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    background: #f8fafc;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    background: #ffffff;
+  }
+
+  .buttons {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 25px;
+  }
+
+  .back, .create {
+    flex: 1;
+    min-height: 44px;
+    padding: 11px 16px;
+    border-radius: 9px;
+    font-size: 14px;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: background 0.2s ease, transform 0.1s ease;
+  }
+
+  .back {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+  }
+
+  .back:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+  }
+
+  .create {
+    background: var(--primary);
+    color: #ffffff;
+  }
+
+  .create:hover {
+    background: var(--primary-dark);
+  }
+
+  .create:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  .code-box {
+    margin-top: 20px;
+    padding: 14px;
+    background: #f0fdf4;
+    border: 1px dashed #22c55e;
+    color: #166534;
+    text-align: center;
+    border-radius: 10px;
+    font-size: 13px;
+  }
+
+  .code-box strong {
+    display: block;
+    margin-top: 4px;
+    font-size: 22px;
+    letter-spacing: 2px;
+    font-weight: bold;
+    color: #15803d;
+    word-break: break-word;
+  }
+
+  /* =========================================
+     RESPONSIVE BREAKPOINTS (RWD)
+  ========================================= */
+  @media (max-width: 900px) {
+    .container {
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+    }
+
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+      max-width: 100vw;
+      padding: 18px;
+      padding-top: 74px;
+    }
+
+    .page-header {
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .form-box {
+      padding: 24px 20px;
+    }
+
+    /* iOS auto-zoom prevention */
+    input, select {
+      font-size: 16px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .main-content {
+      padding: 12px;
+      padding-top: 68px;
+    }
+
+    .page-header {
+      padding: 16px 14px;
+      border-radius: 12px;
+    }
+
+    .page-header h1 {
+      font-size: 20px;
+    }
+
+    .form-box {
+      padding: 20px 14px;
+      border-radius: 12px;
+    }
+
+    .form-header {
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+    }
+
+    .form-icon {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      font-size: 18px;
+    }
+
+    .form-header h2 {
+      font-size: 18px;
+    }
+
+    .buttons {
+      flex-direction: column-reverse;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .back, .create {
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+    
+    <!-- DYNAMIC USER PROFILE & ROLE BADGE -->
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">TEACHER</div>
+    </div>
+
+    <!-- DYNAMIC SIDEBAR LINKS -->
+    <div id="sidebarMenu"></div>
+
+    <!-- MY CLASSES -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <!-- MY GROUPS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <!-- LOGOUT BUTTON -->
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="main-content">
+    <section class="page-header">
+      <h1>Create Class & Group Hub</h1>
+      <p>Set up new classes or collaboration spaces for Regis Marie College students.</p>
+    </section>
+
+    <div class="container">
+
+      <!-- CREATE CLASS FORM -->
+      <div class="form-box">
+        <div class="form-header">
+          <div class="form-icon"><i class="fa-solid fa-book-open"></i></div>
+          <div>
+            <h2>Create Class</h2>
+            <p>Set up a new subject class.</p>
+          </div>
+        </div>
+
+        <form id="classForm">
+          <label for="classSubject">Class Subject:</label>
+          <input type="text" id="classSubject" placeholder="e.g. Web Development 101" required>
+
+          <label for="classYearLevel">Year Level:</label>
+          <select id="classYearLevel" required>
+            <option value="">Select year level</option>
+            <option value="1st Year">1st Year</option>
+            <option value="2nd Year">2nd Year</option>
+            <option value="3rd Year">3rd Year</option>
+            <option value="4th Year">4th Year</option>
+          </select>
+
+          <label for="classCourse">Course:</label>
+          <select id="classCourse" required>
+            <option value="">Select course</option>
+            <option value="BSCS">BSCS</option>
+            <option value="BSEd">BSEd</option>
+            <option value="BSOA">BSOA</option>
+            <option value="BSMA">BSMA</option>
+            <option value="BEEd">BEEd</option>
+          </select>
+
+          <label for="classSection">Section / Block:</label>
+          <select id="classSection" required>
+            <option value="">Select section</option>
+            <option value="Block 1">Block 1</option>
+            <option value="Block 2">Block 2</option>
+            <option value="Block 3">Block 3</option>
+            <option value="Block 4">Block 4</option>
+            <option value="Block 5">Block 5</option>
+          </select>
+
+          <div class="buttons">
+            <a href="{{ url_for('landpage') }}" class="back">
+              <i class="fa-solid fa-arrow-left"></i> Back
+            </a>
+            <button type="submit" class="create" id="createClassBtn">
+              <i class="fa-solid fa-plus"></i> Create Class
+            </button>
+          </div>
+        </form>
+
+        <div id="classCodeBox" class="code-box" style="display: none; margin-top: 15px; padding: 14px; background: #dcfce7; border: 1px solid #86efac; border-radius: 8px;">
+          🎉 Class Created! Share Access Code: <strong id="classCode" style="font-size: 18px; color: #166534;">------</strong>
+          <p style="font-size: 12px; margin-top: 6px; color: #166534;">Redirecting to Classroom Workspace in 2 seconds...</p>
+        </div>
+      </div>
+
+      <!-- CREATE GROUP FORM -->
+      <div class="form-box">
+        <div class="form-header">
+          <div class="form-icon"><i class="fa-solid fa-users"></i></div>
+          <div>
+            <h2>Create Group</h2>
+            <p>Create a space for team collaboration.</p>
+          </div>
+        </div>
+
+        <form id="groupForm">
+          <label for="groupName">Group Name:</label>
+          <input type="text" id="groupName" placeholder="e.g. Capstone Research Group A" required>
+
+          <label for="yearLevel">Year Level:</label>
+          <select id="yearLevel" required>
+            <option value="">Select year level</option>
+            <option value="1st Year">1st Year</option>
+            <option value="2nd Year">2nd Year</option>
+            <option value="3rd Year">3rd Year</option>
+            <option value="4th Year">4th Year</option>
+          </select>
+
+          <label for="course">Course:</label>
+          <select id="course" required>
+            <option value="">Select course</option>
+            <option value="BSCS">BSCS</option>
+            <option value="BSEd">BSEd</option>
+            <option value="BSOA">BSOA</option>
+            <option value="BSMA">BSMA</option>
+            <option value="BEEd">BEEd</option>
+          </select>
+
+          <label for="section">Section / Block:</label>
+          <select id="section" required>
+            <option value="">Select section</option>
+            <option value="Block 1">Block 1</option>
+            <option value="Block 2">Block 2</option>
+            <option value="Block 3">Block 3</option>
+            <option value="Block 4">Block 4</option>
+            <option value="Block 5">Block 5</option>
+          </select>
+
+          <div class="buttons">
+            <a href="{{ url_for('landpage') }}" class="back">
+              <i class="fa-solid fa-arrow-left"></i> Back
+            </a>
+            <button type="submit" class="create" id="createGroupBtn">
+              <i class="fa-solid fa-plus"></i> Create Group
+            </button>
+          </div>
+        </form>
+
+        <div id="groupCodeBox" class="code-box" style="display: none; margin-top: 15px; padding: 14px; background: #dcfce7; border: 1px solid #86efac; border-radius: 8px;">
+          🎉 Group Created! Share Access Code: <strong id="groupCode" style="font-size: 18px; color: #166534;">------</strong>
+          <p style="font-size: 12px; margin-top: 6px; color: #166534;">Redirecting to Group Workspace in 2 seconds...</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    });
+
+    /* =====================================================
+        0. TYPE-SAFE ID HELPERS
+    ===================================================== */
+    function parseDbId(idVal) {
+      if (!idVal) return idVal;
+      if (typeof idVal === 'number') return idVal;
+      const str = String(idVal).trim();
+      if (/^\d+$/.test(str)) {
+        return parseInt(str, 10);
+      }
+      return str;
+    }
+
+    function getDualTypeIds(idArray) {
+      const result = new Set();
+      (idArray || []).forEach(id => {
+        if (id !== null && id !== undefined && id !== '') {
+          result.add(String(id));
+          const num = parseDbId(id);
+          if (typeof num === 'number' && !isNaN(num)) {
+            result.add(num);
+          }
+        }
+      });
+      return Array.from(result);
+    }
+
+    /* =====================================================
+        1. STRICT ACCESS GUARD & USER SESSION
+    ===================================================== */
+    const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
+    const userRole = rawRole.toUpperCase();
+    const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+    const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+    // Block Students Immediately
+    if (userRole === "STUDENT") {
+      alert("Access restricted: Class and Group creation is only available for Teachers and Administrators.");
+      window.location.replace("{{ url_for('landpage') }}");
+    }
+
+    const roleBadge = document.getElementById("userRoleBadge");
+    const nameDisplay = document.getElementById("sidebarUserName");
+    if (roleBadge) roleBadge.textContent = userRole;
+    if (nameDisplay) nameDisplay.textContent = userName;
+
+    // Flask Route URLs
+    const homeUrl = "{{ url_for('landpage') }}";
+    const createUrl = "{{ url_for('create_page') }}";
+    const calendarUrl = "{{ url_for('calendar_page') }}";
+    const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+    const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+    const gradesUrl = "{{ url_for('grades_page') }}";
+    const submissionsUrl = "{{ url_for('submissions_page') }}";
+    const archiveUrl = "{{ url_for('archive_page') }}";
+    const notifyUrl = "{{ url_for('notify_page') }}";
+    const accountUrl = "{{ url_for('account_page') }}";
+    const classPageUrl = "{{ url_for('class_page') }}";
+    const groupPageUrl = "{{ url_for('group_page') }}";
+const privateMessageInboxUrl = "private-message.html";
+    const sidebarMenu = document.getElementById("sidebarMenu");
+
+    if (userRole === "ADMIN") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}" class="active">➕ Create Class/Group</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${gradesUrl}">💯 Master Grades</a>
+        <a href="${archiveUrl}">📦 Institutional Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    } else {
+      // TEACHER
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}" class="active">➕ Create Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${gradesUrl}">💯 Grades</a>
+        <a href="${submissionsUrl}">📝 Submissions</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    }
+
+    /* MOBILE SIDEBAR TOGGLE */
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.getElementById('sidebar');
+    if (mobileMenuBtn && sidebar) {
+      mobileMenuBtn.addEventListener('click', () => sidebar.classList.toggle('active'));
+    }
+
+    /* LOGOUT FUNCTION */
+    function logoutUser() {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace("{{ url_for('logout') }}");
+    }
+
+    /* CODE GENERATOR HELPER */
+    function generateCode(prefix = "RMC") {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let randomPart = "";
+      for (let i = 0; i < 5; i++) {
+        randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return `${prefix}-${randomPart}`;
+    }
+
+    /* =====================================================
+        2. SUPABASE INITIALIZATION
+    ===================================================== */
+    const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+    function getSupabaseClient() {
+      if (window._supabase) return window._supabase;
+      
+      const supabaseLib = window.supabase || window.Supabase;
+      if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+        window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+        return window._supabase;
+      }
+      return null;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      setTimeout(() => {
+        const client = getSupabaseClient();
+        if (client) {
+          loadSidebarClasses();
+          loadSidebarGroups();
+        }
+      }, 100);
+    });
+
+    /* =====================================================
+        LOAD SIDEBAR CLASSES & GROUPS
+    ===================================================== */
+    async function loadSidebarClasses() {
+      const client = getSupabaseClient();
+      if (!client) return;
+
+      const sidebarClassList = document.getElementById("sidebarClassList");
+      if (!sidebarClassList) return;
+      sidebarClassList.innerHTML = "";
+
+      const userSearchIds = getDualTypeIds([currentUserId]);
+      let query = client.from('classes').select('subject, code, status').eq('status', 'active').order('created_at', { ascending: false });
+      
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        query = query.in('teacher_id', userSearchIds);
+      }
+
+      const { data: classes } = await query;
+      
+      if (classes && classes.length > 0) {
+        classes.forEach(c => {
+          const sideLink = document.createElement("a");
+          sideLink.className = "sidebar-item";
+          sideLink.textContent = `📘 ${c.subject}`;
+          sideLink.href = classPageUrl;
+          sideLink.onclick = (e) => {
+            e.preventDefault();
+            localStorage.setItem("selectedClass", c.code);
+            localStorage.setItem("selectedClassId", c.id);
+            window.location.href = classPageUrl;
+          };
+          sidebarClassList.appendChild(sideLink);
+        });
+      } else {
+        sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
+      }
+    }
+
+    async function loadSidebarGroups() {
+      const client = getSupabaseClient();
+      if (!client) return;
+
+      const sidebarGroupList = document.getElementById("sidebarGroupList");
+      if (!sidebarGroupList) return;
+      sidebarGroupList.innerHTML = "";
+
+      const userSearchIds = getDualTypeIds([currentUserId]);
+      let query = client.from('groups').select('name, code, status').eq('status', 'active').order('created_at', { ascending: false });
+      
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        query = query.in('teacher_id', userSearchIds);
+      }
+
+      const { data: groups } = await query;
+      
+      if (groups && groups.length > 0) {
+        groups.forEach(g => {
+          const sideLink = document.createElement("a");
+          sideLink.className = "sidebar-item";
+          sideLink.textContent = `👥 ${g.name}`;
+          sideLink.href = groupPageUrl;
+          sideLink.onclick = (e) => {
+            e.preventDefault();
+            localStorage.setItem("selectedGroup", g.code);
+            window.location.href = groupPageUrl;
+          };
+          sidebarGroupList.appendChild(sideLink);
+        });
+      } else {
+        sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
+      }
+    }
+
+    /* =====================================================
+        3. SAVE CLASS DIRECTLY TO SUPABASE
+    ===================================================== */
+    document.getElementById('classForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const client = getSupabaseClient();
+      if (!client) {
+        alert("Database client is not initialized. Please try again.");
+        return;
+      }
+
+      const submitBtn = document.getElementById('createClassBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating Class...';
+
+      const generatedCode = generateCode("RMC");
+      const parsedTeacherId = parseDbId(currentUserId);
+
+      const classData = {
+        subject: document.getElementById('classSubject').value.trim(),
+        year_level: document.getElementById('classYearLevel').value,
+        course: document.getElementById('classCourse').value,
+        section: document.getElementById('classSection').value,
+        code: generatedCode,
+        teacher_id: parsedTeacherId,
+        status: 'active'
+      };
+
+      const { data: createdClass, error } = await client
+        .from('classes')
+        .insert([classData])
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        alert("Error creating class: " + error.message);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Create Class';
+      } else {
+        if (createdClass && parsedTeacherId) {
+          await client
+            .from('class_memberships')
+            .insert([{ class_id: parseDbId(createdClass.id), user_id: parsedTeacherId }]);
+          
+          localStorage.setItem("selectedClassId", createdClass.id);
+        }
+
+        localStorage.setItem("selectedClass", generatedCode);
+
+        const codeBox = document.getElementById('classCodeBox');
+        const codeSpan = document.getElementById('classCode');
+        if (codeSpan) codeSpan.textContent = generatedCode;
+        if (codeBox) codeBox.style.display = 'block';
+
+        document.getElementById('classForm').reset();
+        loadSidebarClasses();
+
+        setTimeout(() => {
+          window.location.href = classPageUrl;
+        }, 2000);
+      }
+    });
+
+    /* =====================================================
+        4. SAVE GROUP DIRECTLY TO SUPABASE
+    ===================================================== */
+    document.getElementById('groupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const client = getSupabaseClient();
+      if (!client) {
+        alert("Database client is not initialized. Please try again.");
+        return;
+      }
+
+      const submitBtn = document.getElementById('createGroupBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creating Group...';
+
+      const generatedCode = generateCode("GRP");
+      const parsedTeacherId = parseDbId(currentUserId);
+
+      const groupData = {
+        name: document.getElementById('groupName').value.trim(),
+        year_level: document.getElementById('yearLevel').value,
+        course: document.getElementById('course').value,
+        section: document.getElementById('section').value,
+        code: generatedCode,
+        teacher_id: parsedTeacherId,
+        status: 'active'
+      };
+
+      const { data: createdGroup, error } = await client
+        .from('groups')
+        .insert([groupData])
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        alert("Error creating group: " + error.message);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Create Group';
+      } else {
+        if (createdGroup && parsedTeacherId) {
+          await client
+            .from('group_memberships')
+            .insert([{ group_id: parseDbId(createdGroup.id), user_id: parsedTeacherId }]);
+        }
+
+        localStorage.setItem("selectedGroup", generatedCode);
+
+        const codeBox = document.getElementById('groupCodeBox');
+        const codeSpan = document.getElementById('groupCode');
+        if (codeSpan) codeSpan.textContent = generatedCode;
+        if (codeBox) codeBox.style.display = 'block';
+
+        document.getElementById('groupForm').reset();
+        loadSidebarGroups();
+
+        setTimeout(() => {
+          window.location.href = groupPageUrl;
+        }, 2000);
+      }
+    });
+
+    function escapeHtml(text) {
+      if (!text) return "";
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>

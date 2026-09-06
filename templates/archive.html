@@ -1,0 +1,1387 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archive - Smart Learning Platform</title>
+
+  <!-- SUPABASE JS CLIENT -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- FONT AWESOME -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  
+  <style>
+  /* =========================================
+     GLOBAL RESET & BRAND DESIGN SYSTEM
+  ========================================= */
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #dbeafe;
+    --background: #f4f7fb;
+    --surface: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --danger: #ef4444;
+    --danger-light: #fee2e2;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    overflow-x: hidden;
+  }
+
+  /* =========================================
+     SIDEBAR NAVIGATION RAIL
+  ========================================= */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e40af, #1e3a8a);
+    color: #ffffff;
+    padding: 22px 15px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .user-profile-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .user-badge {
+    display: inline-block;
+    background: #fbbf24;
+    color: #1e3a8a;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar a,
+  .sidebar a:link,
+  .sidebar a:visited,
+  #sidebarMenu a,
+  #sidebarMenu a:link,
+  #sidebarMenu a:visited {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 14.5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .sidebar a:hover,
+  #sidebarMenu a:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: translateX(2px);
+    color: #ffffff !important;
+  }
+
+  .sidebar a.active,
+  #sidebarMenu a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    font-weight: bold;
+    color: #ffffff !important;
+  }
+
+  .sidebar-logout-btn {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffffff !important;
+    margin-top: 18px !important;
+    cursor: pointer;
+  }
+
+  .sidebar-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.45) !important;
+  }
+
+  /* SIDEBAR SECTIONS */
+  .sidebar-section {
+    margin-top: 24px;
+  }
+
+  .sidebar-section-title {
+    padding: 0 10px 8px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item,
+  .sidebar-item:link,
+  .sidebar-item:visited {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    margin-bottom: 6px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 9px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 21px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  }
+
+  /* =========================================
+     MAIN CONTENT & ARCHIVE VAULT
+  ========================================= */
+  .main-content {
+    margin-left: 240px;
+    min-height: 100vh;
+    padding: 28px;
+    flex: 1;
+    width: calc(100% - 240px);
+    transition: margin-left 0.3s ease, padding 0.3s ease;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto 28px;
+    padding: 24px 30px;
+    background: linear-gradient(135deg, #4285f4, #2563eb);
+    color: #ffffff;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .page-header h1 {
+    margin: 0 0 8px;
+    font-size: 26px;
+    font-weight: bold;
+    word-break: break-word;
+  }
+
+  .page-header p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .header-icon {
+    font-size: 40px;
+    opacity: 0.85;
+    flex-shrink: 0;
+  }
+
+  /* CONTAINER */
+  .container {
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+  }
+
+  /* STATS SUMMARY CARDS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 18px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .stat-details h3 {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--text);
+  }
+
+  .stat-details p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* CARD SECTION */
+  .card {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+  }
+
+  .card-header h2 {
+    font-size: 18px;
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    word-break: break-word;
+  }
+
+  .badge-count {
+    background: var(--primary-light);
+    color: var(--primary);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  /* GRID LIST OF CARDS */
+  .archive-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+    gap: 16px;
+  }
+
+  .archive-item-card {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 14px;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+
+  .archive-item-card:hover {
+    border-color: #bfdbfe;
+    background: #f1f5f9;
+  }
+
+  .archive-item-info strong {
+    display: block;
+    font-size: 15px;
+    color: var(--text);
+    margin-bottom: 4px;
+    word-break: break-word;
+  }
+
+  .archive-item-info span {
+    font-size: 12.5px;
+    color: var(--muted);
+    display: block;
+    word-break: break-word;
+  }
+
+  .archive-code {
+    display: inline-block;
+    margin-top: 6px;
+    background: #e2e8f0;
+    color: var(--text);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ACTION BUTTONS */
+  .action-group {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+
+  .btn-restore,
+  .btn-delete {
+    flex: 1;
+    min-width: 100px;
+    min-height: 40px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .btn-restore {
+    background: var(--success-light);
+    color: var(--success);
+  }
+
+  .btn-restore:hover {
+    background: #bbf7d0;
+  }
+
+  .btn-delete {
+    background: var(--danger-light);
+    color: var(--danger);
+  }
+
+  .btn-delete:hover {
+    background: #fca5a5;
+  }
+
+  .empty-state {
+    padding: 28px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13.5px;
+    background: #f8fafc;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    line-height: 1.5;
+  }
+
+  /* BOTTOM NAVIGATION BUTTON */
+  .btn-bar {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .back-btn {
+    background: #64748b;
+    color: #ffffff;
+    min-height: 44px;
+    padding: 12px 28px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .back-btn:hover {
+    background: #475569;
+  }
+
+  /* =========================================
+     RESPONSIVE MEDIA QUERIES (RWD)
+  ========================================= */
+  /* Tablets and Mobile Devices */
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+      padding: 18px;
+      padding-top: 76px;
+    }
+
+    .page-header {
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .page-header h1 {
+      font-size: 22px;
+    }
+
+    .header-icon {
+      display: none;
+    }
+
+    .card {
+      padding: 20px 16px;
+    }
+  }
+
+  /* Small Smartphones */
+  @media (max-width: 480px) {
+    .main-content {
+      padding: 12px;
+      padding-top: 72px;
+    }
+
+    .page-header {
+      padding: 16px;
+      border-radius: 12px;
+    }
+
+    .page-header h1 {
+      font-size: 20px;
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .stat-card {
+      padding: 16px;
+    }
+
+    .archive-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .action-group {
+      flex-direction: column;
+    }
+
+    .btn-restore,
+    .btn-delete,
+    .back-btn {
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+
+    <!-- USER PROFILE & ROLE BADGE -->
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">TEACHER</div>
+    </div>
+
+    <!-- DYNAMIC SIDEBAR LINKS -->
+    <div id="sidebarMenu"></div>
+
+    <!-- MY CLASSES -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <!-- MY GROUPS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <!-- LOGOUT BUTTON -->
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="main-content">
+
+    <!-- PAGE HEADER -->
+    <section class="page-header">
+      <div>
+        <h1>Archive Vault</h1>
+        <p>Review past classes and collaboration groups or restore them to active status.</p>
+      </div>
+      <div class="header-icon">📦</div>
+    </section>
+
+    <div class="container">
+
+      <!-- STATS OVERVIEW -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-box-archive"></i></div>
+          <div class="stat-details">
+            <h3 id="statArchivedClasses">0</h3>
+            <p>Archived Classes</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-users-slash"></i></div>
+          <div class="stat-details">
+            <h3 id="statArchivedGroups">0</h3>
+            <p>Archived Groups</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-database"></i></div>
+          <div class="stat-details">
+            <h3 id="statTotalItems">0</h3>
+            <p>Total Stored Items</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARCHIVED CLASSES SECTION -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-book-bookmark"></i> Archived Classes</h2>
+          <span class="badge-count" id="classBadgeCount">0</span>
+        </div>
+        <div id="archivedClassesContainer" class="archive-grid">
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size:20px; color:#2563eb;"></i><br><br>
+            Loading archived classes from vault...
+          </div>
+        </div>
+      </div>
+
+      <!-- ARCHIVED GROUPS SECTION -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-people-roof"></i> Archived Groups</h2>
+          <span class="badge-count" id="groupBadgeCount">0</span>
+        </div>
+        <div id="archivedGroupsContainer" class="archive-grid">
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <i class="fa-solid fa-spinner fa-spin" style="font-size:20px; color:#2563eb;"></i><br><br>
+            Loading archived groups from vault...
+          </div>
+        </div>
+      </div>
+
+      <!-- BACK BUTTON -->
+      <div class="btn-bar">
+        <a href="{{ url_for('landpage') }}" class="back-btn">← Back to Home</a>
+      </div>
+
+    </div>
+  </main>
+<script>
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  /* =====================================================
+      0. TYPE-SAFE ID HELPERS
+  ===================================================== */
+  function parseDbId(idVal) {
+    if (!idVal) return idVal;
+    if (typeof idVal === 'number') return idVal;
+    const str = String(idVal).trim();
+    return /^\d+$/.test(str) ? parseInt(str, 10) : str;
+  }
+
+  function getDualTypeIds(idArray) {
+    const result = new Set();
+    (idArray || []).forEach(id => {
+      if (id !== null && id !== undefined && id !== '') {
+        result.add(String(id));
+        const num = parseDbId(id);
+        if (typeof num === 'number' && !isNaN(num)) {
+          result.add(num);
+        }
+      }
+    });
+    return Array.from(result);
+  }
+
+  /* =====================================================
+      1. USER SESSION & ROLE PROTECTION
+  ===================================================== */
+  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
+  const userRole = rawRole.toUpperCase();
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+  const badgeElem = document.getElementById("userRoleBadge");
+  const nameElem = document.getElementById("sidebarUserName");
+  if (badgeElem) badgeElem.textContent = userRole;
+  if (nameElem) nameElem.textContent = userName;
+
+  // Flask Route URLs
+  const homeUrl = "{{ url_for('landpage') }}";
+  const createUrl = "{{ url_for('create_page') }}";
+  const joinUrl = "{{ url_for('join_page') }}";
+  const calendarUrl = "{{ url_for('calendar_page') }}";
+  const myDashboardUrl = "{{ url_for('dashboard_page') }}";
+  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+  const privateMessageInboxUrl = "private-message.html";
+  const gradesUrl = "{{ url_for('grades_page') }}";
+  const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
+  const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const archiveUrl = "{{ url_for('archive_page') }}";
+  const notifyUrl = "{{ url_for('notify_page') }}";
+  const accountUrl = "{{ url_for('account_page') }}";
+  const classPageUrl = "{{ url_for('class_page') }}";
+  const groupPageUrl = "{{ url_for('group_page') }}";
+
+  const sidebarMenu = document.getElementById("sidebarMenu");
+
+  if (sidebarMenu) {
+    if (userRole === "ADMIN") {
+      // 🔒 STANDARDIZED AUDITOR MENU
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Institutional Hub</a>
+        <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
+        <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${gradesUrl}">💯 Master Gradebook</a>
+        <a href="${archiveUrl}" class="active">📦 Archival Vault</a>
+        <a href="${notifyUrl}">🔔 System Alerts</a>
+        <a href="${accountUrl}">👤 Account Profile</a>
+      `;
+    } else if (userRole === "TEACHER") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}">➕ Create Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${gradesUrl}">💯 Grades</a>
+        <a href="${submissionsUrl}">📝 Submissions</a>
+        <a href="${archiveUrl}" class="active">📦 Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    } else {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${joinUrl}">🔑 Join Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${myDashboardUrl}">📊 My Dashboard</a>
+        <a href="${studentGradesUrl}">💯 My Grades</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${archiveUrl}" class="active">📦 Archive</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    }
+  }
+
+  /* MOBILE SIDEBAR TOGGLE */
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const sidebar = document.getElementById('sidebar');
+
+  if (mobileMenuBtn && sidebar) {
+    mobileMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle('active');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.remove('active');
+      }
+    });
+  }
+
+  function logoutUser() {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("{{ url_for('logout') }}");
+  }
+
+  /* =====================================================
+      2. SUPABASE INITIALIZATION
+  ===================================================== */
+  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+  function getSupabaseClient() {
+    if (window._supabase) return window._supabase;
+    const supabaseLib = window.supabase || window.Supabase;
+    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+      return window._supabase;
+    }
+    return null;
+  }
+
+  let archivedClasses = [];
+  let archivedGroups = [];
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      fetchArchivedVaultFromSupabase();
+      loadSidebarClasses();
+      loadSidebarGroups();
+      injectAdminAuditBanner();
+    }, 100);
+  });
+
+  function injectAdminAuditBanner() {
+    if (userRole !== "ADMIN" || document.getElementById("adminArchiveBanner")) return;
+    const banner = document.createElement("div");
+    banner.id = "adminArchiveBanner";
+    banner.style.cssText = "background: #fef3c7; color: #92400e; padding: 12px 16px; font-size: 13px; border-left: 4px solid #f59e0b; margin-bottom: 20px; font-weight: 600; border-radius: 6px;";
+    banner.innerHTML = "🛡️ <strong>Institutional Archival Vault (Read-Only Audit):</strong> You have system-wide visibility to review historical courses and retention logs. Restoration and deletion authority remain strictly with faculty instructors.";
+    
+    const targetContainer = document.querySelector(".archive-header") || document.querySelector(".page-header") || document.querySelector(".container");
+    if (targetContainer) {
+      targetContainer.parentElement.insertBefore(banner, targetContainer);
+    }
+  }
+
+  /* =====================================================
+      3. FETCH ARCHIVED CLASSES & GROUPS
+  ===================================================== */
+  async function fetchArchivedVaultFromSupabase() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+
+    try {
+      if (userRole === "ADMIN") {
+        // ADMIN: Query all archived items across the entire institution (Read-Only Audit)
+        const { data: clsData } = await client
+          .from('classes')
+          .select('*')
+          .eq('status', 'archived')
+          .order('created_at', { ascending: false });
+
+        archivedClasses = clsData || [];
+
+        const { data: grpData } = await client
+          .from('groups')
+          .select('*')
+          .eq('status', 'archived')
+          .order('created_at', { ascending: false });
+
+        archivedGroups = grpData || [];
+
+      } else if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        // TEACHER: Query archived items owned by this faculty instructor
+        const { data: clsData } = await client
+          .from('classes')
+          .select('*')
+          .in('teacher_id', userSearchIds)
+          .eq('status', 'archived')
+          .order('created_at', { ascending: false });
+
+        archivedClasses = clsData || [];
+
+        const { data: grpData } = await client
+          .from('groups')
+          .select('*')
+          .in('teacher_id', userSearchIds)
+          .eq('status', 'archived')
+          .order('created_at', { ascending: false });
+
+        archivedGroups = grpData || [];
+
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        // STUDENT: Query past classes and groups they were enrolled in
+        const { data: cMemberships } = await client
+          .from('class_memberships')
+          .select('class_id')
+          .in('user_id', userSearchIds);
+
+        if (cMemberships && cMemberships.length > 0) {
+          const cIds = getDualTypeIds(cMemberships.map(m => m.class_id));
+          const { data: clsData } = await client
+            .from('classes')
+            .select('*')
+            .in('id', cIds)
+            .eq('status', 'archived');
+          archivedClasses = clsData || [];
+        } else {
+          const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
+          if (joinedClasses.length > 0) {
+            const { data: fallbackData } = await client
+              .from('classes')
+              .select('*')
+              .in('code', joinedClasses)
+              .eq('status', 'archived');
+            archivedClasses = fallbackData || [];
+          }
+        }
+
+        const { data: gMemberships } = await client
+          .from('group_memberships')
+          .select('group_id')
+          .in('user_id', userSearchIds);
+
+        if (gMemberships && gMemberships.length > 0) {
+          const gIds = getDualTypeIds(gMemberships.map(m => m.group_id));
+          const { data: grpData } = await client
+            .from('groups')
+            .select('*')
+            .in('id', gIds)
+            .eq('status', 'archived');
+          archivedGroups = grpData || [];
+        } else {
+          const joinedGroups = JSON.parse(localStorage.getItem("joinedGroups") || "[]");
+          if (joinedGroups.length > 0) {
+            const { data: fallbackData } = await client
+              .from('groups')
+              .select('*')
+              .in('code', joinedGroups)
+              .eq('status', 'archived');
+            archivedGroups = fallbackData || [];
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error reading archival vault:", err);
+    }
+
+    renderArchivePage();
+  }
+
+  /* =====================================================
+      4. RENDER ARCHIVE UI (ROLE-AWARE CONTROLS)
+  ===================================================== */
+  function renderArchivePage() {
+    const classesContainer = document.getElementById("archivedClassesContainer");
+    const groupsContainer = document.getElementById("archivedGroupsContainer");
+
+    if (!classesContainer || !groupsContainer) return;
+
+    const statClasses = document.getElementById("statArchivedClasses");
+    const statGroups = document.getElementById("statArchivedGroups");
+    const statTotal = document.getElementById("statTotalItems");
+    const classBadge = document.getElementById("classBadgeCount");
+    const groupBadge = document.getElementById("groupBadgeCount");
+
+    if (statClasses) statClasses.textContent = archivedClasses.length;
+    if (statGroups) statGroups.textContent = archivedGroups.length;
+    if (statTotal) statTotal.textContent = archivedClasses.length + archivedGroups.length;
+    if (classBadge) classBadge.textContent = archivedClasses.length;
+    if (groupBadge) groupBadge.textContent = archivedGroups.length;
+
+    // Render Archived Classes
+    classesContainer.innerHTML = "";
+    if (archivedClasses.length === 0) {
+      classesContainer.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; padding: 35px; text-align:center; color:var(--muted); background:#fff; border-radius:10px; border:1px dashed #cbd5e1;">📦 No archived classes found in vault.</div>`;
+    } else {
+      archivedClasses.forEach((c) => {
+        const itemCard = document.createElement("div");
+        itemCard.className = "archive-item-card";
+        itemCard.style.cursor = "pointer";
+        itemCard.title = "Click to inspect and back-read this archived course";
+
+        itemCard.onclick = (e) => {
+          if (e.target.closest('button')) return;
+          openArchivedClass(c.code, c.id);
+        };
+
+        let actionButtons = "";
+        if (userRole === "TEACHER") {
+          // 🔒 TEACHER: Full Restore and Delete authority for own classes
+          actionButtons = `
+            <div class="action-group" onclick="event.stopPropagation();">
+              <button class="btn-inspect" onclick="openArchivedClass('${escapeHtml(c.code)}', '${c.id}')" style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
+                <i class="fa-solid fa-eye"></i> Back-Read →
+              </button>
+              <button class="btn-restore" onclick="restoreClass('${c.id}', '${escapeHtml(c.subject)}')">
+                <i class="fa-solid fa-rotate-left"></i> Restore
+              </button>
+              <button class="btn-delete" onclick="deleteArchivedClass('${c.id}', '${escapeHtml(c.subject)}')">
+                <i class="fa-solid fa-trash"></i> Delete
+              </button>
+            </div>
+          `;
+        } else {
+          // 🔒 ADMIN & STUDENT: Read-only inspection and back-read privilege
+          actionButtons = `
+            <div class="action-group" onclick="event.stopPropagation();">
+              <button class="btn-inspect" onclick="openArchivedClass('${escapeHtml(c.code)}', '${c.id}')" style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+                <i class="fa-solid fa-book-open"></i> Back-Read Notes →
+              </button>
+            </div>
+          `;
+        }
+
+        itemCard.innerHTML = `
+          <div class="archive-item-info">
+            <strong>📘 ${escapeHtml(c.subject || 'Class Subject')}</strong>
+            <span>${escapeHtml(c.year_level || '')} • ${escapeHtml(c.course || '')} • ${escapeHtml(c.section || '')}</span>
+            <span class="archive-code">Access Code: ${escapeHtml(c.code || 'N/A')}</span>
+          </div>
+          ${actionButtons}
+        `;
+        classesContainer.appendChild(itemCard);
+      });
+    }
+
+    // Render Archived Groups
+    groupsContainer.innerHTML = "";
+    if (archivedGroups.length === 0) {
+      groupsContainer.innerHTML = `<div class="empty-state" style="grid-column: 1 / -1; padding: 35px; text-align:center; color:var(--muted); background:#fff; border-radius:10px; border:1px dashed #cbd5e1;">👥 No archived groups found in vault.</div>`;
+    } else {
+      archivedGroups.forEach((g) => {
+        const itemCard = document.createElement("div");
+        itemCard.className = "archive-item-card";
+        itemCard.style.cursor = "pointer";
+        itemCard.title = "Click to inspect and back-read this archived group";
+
+        itemCard.onclick = (e) => {
+          if (e.target.closest('button')) return;
+          openArchivedGroup(g.code, g.id);
+        };
+
+        let actionButtons = "";
+        if (userRole === "TEACHER") {
+          // 🔒 TEACHER: Full Restore and Delete authority for own groups
+          actionButtons = `
+            <div class="action-group" onclick="event.stopPropagation();">
+              <button class="btn-inspect" onclick="openArchivedGroup('${escapeHtml(g.code)}', '${g.id}')" style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer;">
+                <i class="fa-solid fa-eye"></i> Back-Read →
+              </button>
+              <button class="btn-restore" onclick="restoreGroup('${g.id}', '${escapeHtml(g.name)}')">
+                <i class="fa-solid fa-rotate-left"></i> Restore
+              </button>
+              <button class="btn-delete" onclick="deleteArchivedGroup('${g.id}', '${escapeHtml(g.name)}')">
+                <i class="fa-solid fa-trash"></i> Delete
+              </button>
+            </div>
+          `;
+        } else {
+          // 🔒 ADMIN & STUDENT: Read-only inspection and back-read privilege
+          actionButtons = `
+            <div class="action-group" onclick="event.stopPropagation();">
+              <button class="btn-inspect" onclick="openArchivedGroup('${escapeHtml(g.code)}', '${g.id}')" style="background:#f1f5f9; color:#1e293b; border:1px solid #cbd5e1; padding:6px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+                <i class="fa-solid fa-comments"></i> Back-Read Chats →
+              </button>
+            </div>
+          `;
+        }
+
+        itemCard.innerHTML = `
+          <div class="archive-item-info">
+            <strong>👥 ${escapeHtml(g.name || 'Group Name')}</strong>
+            <span>${escapeHtml(g.year_level || '')} • ${escapeHtml(g.course || '')} • ${escapeHtml(g.section || '')}</span>
+            <span class="archive-code">Group Code: ${escapeHtml(g.code || 'N/A')}</span>
+          </div>
+          ${actionButtons}
+        `;
+        groupsContainer.appendChild(itemCard);
+      });
+    }
+  }
+
+  /* =====================================================
+      5. INSPECT & BACK-READ NAVIGATION HANDLERS
+  ===================================================== */
+  function openArchivedClass(classCode, classId) {
+    localStorage.setItem("selectedClass", classCode);
+    localStorage.setItem("selectedClassId", String(classId));
+    localStorage.setItem("isArchivedView", "true");
+    window.location.href = classPageUrl;
+  }
+
+  function openArchivedGroup(groupCode, groupId) {
+    localStorage.setItem("selectedGroup", groupCode);
+    localStorage.setItem("selectedGroupId", String(groupId));
+    localStorage.setItem("isArchivedView", "true");
+    window.location.href = groupPageUrl;
+  }
+
+  /* =====================================================
+      6. RESTORE & PURGE (TEACHER EXCLUSIVE)
+  ===================================================== */
+  async function restoreClass(classId, className) {
+    if (userRole !== "TEACHER") {
+      alert("Permission denied: Only faculty instructors can restore archived subjects.");
+      return;
+    }
+
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    if (confirm(`Unarchive and restore course "${className}" to active status?`)) {
+      const searchIds = getDualTypeIds([classId]);
+      const { error } = await client
+        .from('classes')
+        .update({ status: 'active' })
+        .in('id', searchIds);
+
+      if (error) {
+        alert("Error restoring class: " + error.message);
+      } else {
+        alert(`🎉 Course "${className}" has been restored to active status!`);
+        await fetchArchivedVaultFromSupabase();
+        await loadSidebarClasses();
+      }
+    }
+  }
+
+  async function deleteArchivedClass(classId, className) {
+    if (userRole !== "TEACHER") {
+      alert("Permission denied: Only faculty instructors can permanently delete archived courses.");
+      return;
+    }
+
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    if (!confirm(`⚠️ DANGER: Are you sure you want to permanently delete course "${className}"?`)) return;
+    if (!confirm(`🚨 FINAL WARNING: This will permanently erase all student submissions, grades, and materials for this subject. Continue?`)) return;
+
+    const searchIds = getDualTypeIds([classId]);
+    const { error } = await client
+      .from('classes')
+      .delete()
+      .in('id', searchIds);
+
+    if (error) {
+      alert("Error deleting class: " + error.message);
+    } else {
+      alert(`Course "${className}" has been permanently purged.`);
+      fetchArchivedVaultFromSupabase();
+      loadSidebarClasses();
+    }
+  }
+
+  async function restoreGroup(groupId, groupName) {
+    if (userRole !== "TEACHER") {
+      alert("Permission denied: Only faculty instructors can restore archived groups.");
+      return;
+    }
+
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    if (confirm(`Unarchive and restore group "${groupName}" to active status?`)) {
+      const searchIds = getDualTypeIds([groupId]);
+      const { error } = await client
+        .from('groups')
+        .update({ status: 'active' })
+        .in('id', searchIds);
+
+      if (error) {
+        alert("Error restoring group: " + error.message);
+      } else {
+        alert(`🎉 Group "${groupName}" has been restored to active status!`);
+        await fetchArchivedVaultFromSupabase();
+        await loadSidebarGroups();
+      }
+    }
+  }
+
+  async function deleteArchivedGroup(groupId, groupName) {
+    if (userRole !== "TEACHER") {
+      alert("Permission denied: Only faculty instructors can permanently delete archived groups.");
+      return;
+    }
+
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    if (!confirm(`⚠️ Are you sure you want to permanently delete group "${groupName}"?`)) return;
+    if (!confirm(`🚨 FINAL WARNING: This action will permanently erase all chat logs and shared media files. Proceed?`)) return;
+
+    const searchIds = getDualTypeIds([groupId]);
+    const { error } = await client
+      .from('groups')
+      .delete()
+      .in('id', searchIds);
+
+    if (error) {
+      alert("Error deleting group: " + error.message);
+    } else {
+      alert(`Group "${groupName}" has been permanently purged.`);
+      fetchArchivedVaultFromSupabase();
+      loadSidebarGroups();
+    }
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  /* =====================================================
+      7. LOAD SIDEBAR CLASSES & GROUPS (TWO-STEP QUERY)
+  ===================================================== */
+  async function loadSidebarClasses() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarClassList = document.getElementById("sidebarClassList");
+    if (!sidebarClassList) return;
+    sidebarClassList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myClasses = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const { data: mems, error: memErr } = await client
+          .from('class_memberships')
+          .select('class_id')
+          .in('user_id', userSearchIds);
+
+        if (!memErr && mems && mems.length > 0) {
+          const classSearchIds = getDualTypeIds(mems.map(m => m.class_id));
+          if (classSearchIds.length > 0) {
+            const { data: fetchedClasses } = await client
+              .from('classes')
+              .select('id, subject, code, status')
+              .in('id', classSearchIds);
+            myClasses = fetchedClasses || [];
+          }
+        } else {
+          const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
+          if (joinedClasses.length > 0) {
+            const { data: fallbackData } = await client
+              .from('classes')
+              .select('id, subject, code, status')
+              .in('code', joinedClasses);
+            myClasses = fallbackData || [];
+          }
+        }
+      } else {
+        // ADMIN: Inspects all active institutional classes
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar classes error:", err);
+    }
+
+    myClasses = myClasses.filter(c => c && c.status !== 'archived');
+
+    if (myClasses.length > 0) {
+      const currentSelectedCode = localStorage.getItem("selectedClass");
+      myClasses.forEach(c => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `📘 ${c.subject}`;
+        sideLink.href = classPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedClass", c.code);
+          localStorage.setItem("selectedClassId", String(c.id));
+          window.location.href = classPageUrl;
+        };
+        sidebarClassList.appendChild(sideLink);
+      });
+    } else {
+      sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
+    }
+  }
+
+  async function loadSidebarGroups() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarGroupList = document.getElementById("sidebarGroupList");
+    if (!sidebarGroupList) return;
+    sidebarGroupList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myGroups = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const { data: mems, error: memErr } = await client
+          .from('group_memberships')
+          .select('group_id')
+          .in('user_id', userSearchIds);
+
+        if (!memErr && mems && mems.length > 0) {
+          const groupSearchIds = getDualTypeIds(mems.map(m => m.group_id));
+          if (groupSearchIds.length > 0) {
+            const { data: fetchedGroups } = await client
+              .from('groups')
+              .select('id, name, code, status')
+              .in('id', groupSearchIds);
+            myGroups = fetchedGroups || [];
+          }
+        } else {
+          const joinedGroups = JSON.parse(localStorage.getItem("joinedGroups") || "[]");
+          if (joinedGroups.length > 0) {
+            const { data: fallbackData } = await client
+              .from('groups')
+              .select('id, name, code, status')
+              .in('code', joinedGroups);
+            myGroups = fallbackData || [];
+          }
+        }
+      } else {
+        // ADMIN: Inspects all active institutional groups
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar groups error:", err);
+    }
+
+    myGroups = myGroups.filter(g => g && g.status !== 'archived');
+
+    if (myGroups.length > 0) {
+      const currentSelectedGroup = localStorage.getItem("selectedGroup");
+      myGroups.forEach(g => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `👥 ${g.name}`;
+        sideLink.href = groupPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedGroup", g.code);
+          localStorage.setItem("selectedGroupId", String(g.id));
+          window.location.href = groupPageUrl;
+        };
+        sidebarGroupList.appendChild(sideLink);
+      });
+    } else {
+      sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
+    }
+  }
+</script>

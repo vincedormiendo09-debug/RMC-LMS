@@ -1,0 +1,1432 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- ðŸ”’ PREVENT BROWSER CACHING AFTER LOGOUT -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <title>Activity Review & Feedback | Regis Marie College</title>
+
+  <!-- SUPABASE JS CLIENT SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- GOOGLE FONTS & FONT AWESOME -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+  /* =========================================
+     GLOBAL RESET & BRAND DESIGN SYSTEM
+  ========================================= */
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #dbeafe;
+    --background: #f4f7fb;
+    --surface: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --warning: #f59e0b;
+    --warning-light: #fef3c7;
+    --danger: #ef4444;
+    --danger-light: #fee2e2;
+    --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', Arial, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    position: relative;
+  }
+
+  /* =========================================
+     SIDEBAR NAVIGATION RAIL & OVERLAY
+  ========================================= */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e40af, #1e3a8a);
+    color: #ffffff;
+    padding: 22px 15px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .user-profile-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .user-badge {
+    display: inline-block;
+    background: #fbbf24;
+    color: #1e3a8a;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar a,
+  #sidebarMenu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 14.5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .sidebar a:hover,
+  #sidebarMenu a:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: translateX(2px);
+    color: #ffffff !important;
+  }
+
+  .sidebar a.active,
+  #sidebarMenu a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    font-weight: bold;
+    color: #ffffff !important;
+  }
+
+  .sidebar-logout-btn {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffffff !important;
+    margin-top: 18px !important;
+    cursor: pointer;
+  }
+
+  .sidebar-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.45) !important;
+  }
+
+  .sidebar-section {
+    margin-top: 24px;
+  }
+
+  .sidebar-section-title {
+    padding: 0 10px 8px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    margin-bottom: 6px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* =========================================
+     MAIN WORKSPACE CONTAINER
+  ========================================= */
+  .main-content {
+    margin-left: 240px;
+    min-height: 100vh;
+    padding: 28px;
+    flex: 1 1 auto;
+    width: calc(100% - 240px);
+    max-width: 100%;
+    min-width: 0;
+    transition: margin-left 0.3s ease, width 0.3s ease, padding 0.3s ease;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    max-width: 1000px;
+    width: 100%;
+    margin: 0 auto 28px;
+    padding: 24px 30px;
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    color: #ffffff;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .page-header-text {
+    flex: 1 1 240px;
+    min-width: 0;
+  }
+
+  .page-header h1 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 700;
+    word-break: break-word;
+    line-height: 1.3;
+  }
+
+  .page-header p {
+    margin: 0;
+    opacity: 0.92;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .header-icon {
+    font-size: 36px;
+    opacity: 0.9;
+    flex-shrink: 0;
+  }
+
+  .container {
+    max-width: 1000px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    min-width: 0;
+  }
+
+  /* =========================================
+     STATS SCORE CARDS
+  ========================================= */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 18px;
+    width: 100%;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    background: var(--success-light);
+    color: var(--success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .stat-details {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .stat-details h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .stat-details p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* =========================================
+     REVIEW CARDS & CONTENT
+  ========================================= */
+  .card {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    min-width: 0;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .card-header h2 {
+    font-size: 17.5px;
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    word-break: break-word;
+  }
+
+  .description-box {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #334155;
+    word-break: break-word;
+  }
+
+  /* FEEDBACK BOX */
+  .feedback-box {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: #1e293b;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    padding: 16px 20px;
+    border-radius: 10px;
+    font-weight: 500;
+    margin-top: 10px;
+    word-break: break-word;
+  }
+
+  .feedback-box i {
+    color: var(--success);
+    margin-right: 6px;
+  }
+
+  /* ATTACHMENT ITEM */
+  .attachment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .attachment-name {
+    font-size: 13.5px;
+    color: #334155;
+    font-weight: 600;
+    word-break: break-word;
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+
+  .btn-download {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    min-height: 38px;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .btn-download:hover {
+    background: #bfdbfe;
+  }
+
+  /* SUBMITTED WORK DISPLAY */
+  .submitted-work-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    padding: 14px 18px;
+    border-radius: 10px;
+    flex-wrap: wrap;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .file-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    min-width: 0;
+    flex: 1 1 220px;
+    word-break: break-word;
+  }
+
+  .file-meta i {
+    font-size: 20px;
+    color: var(--primary);
+    flex-shrink: 0;
+  }
+
+  .btn-action {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    color: var(--primary);
+    min-height: 40px;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+
+  .btn-action:hover {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+  }
+
+  /* ACTION BAR */
+  .action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn-back {
+    background: #64748b;
+    color: #ffffff;
+    min-height: 44px;
+    padding: 11px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+
+  .btn-back:hover {
+    background: #475569;
+  }
+
+  /* =========================================
+     RESPONSIVE BREAKPOINTS (RWD)
+  ========================================= */
+  /* Tablets and Standard Mobile Screens */
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+    }
+
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+      max-width: 100vw;
+      padding: 18px;
+      padding-top: 74px;
+    }
+
+    .page-header {
+      padding: 20px;
+    }
+
+    .header-icon {
+      display: none;
+    }
+
+    .action-bar {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .btn-back {
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+  }
+
+  /* Compact Smartphones (320px - 480px) */
+  @media (max-width: 480px) {
+    .main-content {
+      padding: 12px;
+      padding-top: 68px;
+    }
+
+    .page-header {
+      padding: 16px 14px;
+      border-radius: 12px;
+    }
+
+    .page-header h1 {
+      font-size: 20px;
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .stat-card {
+      padding: 16px;
+    }
+
+    .card {
+      padding: 18px 14px;
+      border-radius: 12px;
+    }
+
+    .attachment-item {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 12px;
+    }
+
+    .btn-download {
+      width: 100%;
+      text-align: center;
+    }
+
+    .submitted-work-item {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 14px 12px;
+    }
+
+    .btn-action {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+
+    <!-- USER PROFILE & ROLE BADGE -->
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">STUDENT</div>
+    </div>
+
+    <!-- DYNAMIC SIDEBAR LINKS -->
+    <div id="sidebarMenu"></div>
+
+    <!-- MY CLASSES -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <!-- MY GROUPS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <!-- LOGOUT BUTTON -->
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="main-content">
+
+    <!-- PAGE HEADER -->
+    <section class="page-header">
+      <div>
+        <h1 id="revActivityTitle">Graded Activity Review</h1>
+        <p id="revActivitySubtitle">Official score, teacher instructions, lesson materials, and evaluation</p>
+      </div>
+      <div class="header-icon">🏅</div>
+    </section>
+
+    <div class="container">
+
+      <!-- SCORE STATS OVERVIEW -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-award"></i></div>
+          <div class="stat-details">
+            <h3 id="revScoreVal">0 / 100</h3>
+            <p>Raw Activity Score</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-percent"></i></div>
+          <div class="stat-details">
+            <h3 id="revPctVal">0%</h3>
+            <p>Percentage Grade</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-graduation-cap"></i></div>
+          <div class="stat-details">
+            <h3 id="revGpaVal">1.00 (A+)</h3>
+            <p>GPA Equivalent</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TEACHER INSTRUCTIONS, LESSON MATERIALS & REMARKS CARD -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-chalkboard-user"></i> Activity Instructions, Materials & Remarks</h2>
+        </div>
+        
+        <!-- Activity Description / Guidelines -->
+        <div style="margin-bottom: 16px;">
+          <strong style="color: var(--primary-dark); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="fa-solid fa-align-left"></i> Activity Instructions:
+          </strong>
+          <div class="description-box" id="revActivityDescription" style="margin-top: 6px;">
+            Loading activity guidelines...
+          </div>
+        </div>
+
+        <!-- Teacher Reference Files / Links -->
+        <div style="margin-bottom: 16px;">
+          <strong style="color: var(--primary-dark); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="fa-solid fa-folder-open"></i> Lesson Materials & Attachments:
+          </strong>
+          <div id="revTeacherAttachmentsList" style="margin-top: 6px;"></div>
+        </div>
+
+        <!-- Teacher Remarks / Feedback -->
+        <div>
+          <strong style="color: var(--success); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">
+            <i class="fa-solid fa-comment-dots"></i> Teacher Evaluation Remarks:
+          </strong>
+          <div class="feedback-box" id="revTeacherFeedback">
+            <i class="fa-solid fa-quote-left"></i> Loading teacher remarks...
+          </div>
+        </div>
+      </div>
+
+      <!-- SUBMITTED WORK CARD -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-file-arrow-up"></i> Your Turned-In Work</h2>
+        </div>
+        <div class="submitted-work-item">
+          <div class="file-meta">
+            <i class="fa-solid fa-paperclip" id="revFileIcon"></i>
+            <div>
+              <span id="revFileName">Submitted_Work.pdf</span>
+              <div style="font-size:12px; color:var(--muted); font-weight:normal;" id="revTurnedInDate">Turned in on N/A</div>
+            </div>
+          </div>
+          <a href="#" class="btn-action" id="revFileDownload" target="_blank" style="display: inline-flex;">
+            <i class="fa-solid fa-download"></i> Download / Inspect Work
+          </a>
+        </div>
+
+        <!-- STUDENT SUBMISSION NOTES BOX -->
+        <div id="studentCommentsBox" style="margin-top: 14px; padding: 12px 16px; background: #f1f5f9; border-radius: 8px; font-size: 13px; display: none;">
+          <strong style="color: var(--primary-dark);"><i class="fa-solid fa-comment"></i> Your Submission Notes:</strong>
+          <p id="studentCommentsText" style="margin-top: 4px; color: #334155; line-height: 1.5;"></p>
+        </div>
+      </div>
+
+      <!-- ACTION BAR -->
+      <div class="action-bar">
+        <a href="{{ url_for('studentgrades_page') }}" class="btn-back" id="backBtn">
+          <i class="fa-solid fa-arrow-left"></i> Back to Grades
+        </a>
+      </div>
+
+    </div>
+  </main>
+
+<script>
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  /* =====================================================
+     0. TYPE-SAFE ID HELPERS & ESCAPE UTILITIES
+  ===================================================== */
+  function parseDbId(idVal) {
+    if (!idVal) return idVal;
+    if (typeof idVal === 'number') return idVal;
+    const str = String(idVal).trim();
+    return /^\d+$/.test(str) ? parseInt(str, 10) : str;
+  }
+
+  function getDualTypeIds(idArray) {
+    const result = new Set();
+    (idArray || []).forEach(id => {
+      if (id !== null && id !== undefined && id !== '') {
+        result.add(String(id));
+        const num = parseDbId(id);
+        if (typeof num === 'number' && !isNaN(num)) {
+          result.add(num);
+        }
+      }
+    });
+    return Array.from(result);
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeJsString(str) {
+    if (!str) return "";
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+  }
+
+  /* =====================================================
+     1. USER SESSION & ROLE PROTECTION
+  ===================================================== */
+  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "STUDENT";
+  const userRole = rawRole.toUpperCase();
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+  const badgeElem = document.getElementById("userRoleBadge");
+  const nameElem = document.getElementById("sidebarUserName");
+  if (badgeElem) badgeElem.textContent = userRole;
+  if (nameElem) nameElem.textContent = userName;
+
+  // Flask Route URLs
+  const homeUrl = "{{ url_for('landpage') }}";
+  const createUrl = "{{ url_for('create_page') }}";
+  const joinUrl = "{{ url_for('join_page') }}";
+  const calendarUrl = "{{ url_for('calendar_page') }}";
+  const myDashboardUrl = "{{ url_for('dashboard_page') }}";
+  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+  const gradesUrl = "{{ url_for('grades_page') }}";
+  const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
+  const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const archiveUrl = "{{ url_for('archive_page') }}";
+  const notifyUrl = "{{ url_for('notify_page') }}";
+  const accountUrl = "{{ url_for('account_page') }}";
+  const classPageUrl = "{{ url_for('class_page') }}";
+  const groupPageUrl = "{{ url_for('group_page') }}";
+
+  const sidebarMenu = document.getElementById("sidebarMenu");
+
+  if (sidebarMenu) {
+    if (userRole === "ADMIN") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Institutional Hub</a>
+        <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
+        <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${gradesUrl}">💯 Master Gradebook</a>
+        <a href="${archiveUrl}">📦 Archival Vault</a>
+        <a href="${notifyUrl}">🔔 System Alerts</a>
+        <a href="${accountUrl}">👤 Account Profile</a>
+      `;
+    } else if (userRole === "TEACHER") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}">➕ Create Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${gradesUrl}">💯 Grades</a>
+        <a href="${submissionsUrl}">📝 Submissions</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    } else {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${joinUrl}">🔑 Join Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${myDashboardUrl}">📊 My Dashboard</a>
+        <a href="${studentGradesUrl}" class="active">💯 My Grades</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    }
+  }
+
+  /* MOBILE SIDEBAR TOGGLE */
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const sidebar = document.getElementById('sidebar');
+
+  if (mobileMenuBtn && sidebar) {
+    mobileMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle('active');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.remove('active');
+      }
+    });
+  }
+
+  function logoutUser() {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("{{ url_for('logout') }}");
+  }
+
+  /* PHILIPPINE COLLEGIATE GPA STANDARD (1.00 - 5.00, 75% PASSING) */
+  function getGpaEquivalent(pct) {
+    if (pct === null || pct === undefined || isNaN(pct)) return "N/A";
+    if (pct >= 97) return "1.00 (Excellent)";
+    if (pct >= 94) return "1.25 (Superior)";
+    if (pct >= 91) return "1.50 (Very Good)";
+    if (pct >= 88) return "1.75 (Good)";
+    if (pct >= 85) return "2.00 (Above Average)";
+    if (pct >= 82) return "2.25 (Average)";
+    if (pct >= 79) return "2.50 (Satisfactory)";
+    if (pct >= 76) return "2.75 (Fair)";
+    if (pct >= 75) return "3.00 (Passing)";
+    return "5.00 (Failed)";
+  }
+
+  /* AUTOMATED DIRECT FILE DOWNLOAD HELPER */
+  async function downloadFileDirectly(url, filename) {
+    if (!url) return;
+    try {
+      if (url.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'resource_file';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+      
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename || 'resource_file';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'resource_file';
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  }
+
+  /* =====================================================
+     2. SUPABASE INITIALIZATION
+  ===================================================== */
+  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+  function getSupabaseClient() {
+    if (window._supabase) return window._supabase;
+    const supabaseLib = window.supabase || window.Supabase;
+    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        global: {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      });
+      return window._supabase;
+    }
+    return null;
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      fetchReviewDataFromSupabase();
+      loadSidebarClasses();
+      loadSidebarGroups();
+      injectAuditBanner();
+    }, 100);
+  });
+
+  function injectAuditBanner() {
+    if (userRole !== "ADMIN" || document.getElementById("adminReviewAuditBanner")) return;
+    const banner = document.createElement("div");
+    banner.id = "adminReviewAuditBanner";
+    banner.style.cssText = "background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 20px;";
+    banner.innerHTML = "🛡️ <strong>Institutional Audit Mode:</strong> You are auditing student evaluation records, faculty rubrics, and submission deliverables in read-only mode.";
+
+    const container = document.querySelector(".container") || document.querySelector(".main-content");
+    if (container) {
+      container.insertBefore(banner, container.firstChild);
+    }
+  }
+
+  /* =====================================================
+     3. FETCH REVIEW DATA FROM SUPABASE (DUAL-SCHEMA)
+  ===================================================== */
+  async function fetchReviewDataFromSupabase() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const selectedSubmissionId = localStorage.getItem("selectedSubmissionId");
+    const selectedActivityId = localStorage.getItem("selectedActivityId");
+    const selectedClassCode = localStorage.getItem("selectedClass") || "";
+    const selectedStudentId = localStorage.getItem("selectedStudentId");
+
+    let subData = null;
+
+    // 1. Fetch Submission Record by ID
+    if (selectedSubmissionId) {
+      const subSearchIds = [...new Set(getDualTypeIds([selectedSubmissionId]))];
+      const { data } = await client
+        .from('submissions')
+        .select('*')
+        .in('id', subSearchIds)
+        .maybeSingle();
+      subData = data;
+    }
+
+    // 2. Fallback: Lookup by Activity ID + Target User Context (user_id and student_id dual check)
+    if (!subData && selectedActivityId) {
+      const actSearchIds = [...new Set(getDualTypeIds([selectedActivityId]))];
+      const targetUserId = (userRole === "STUDENT" || !selectedStudentId) ? currentUserId : selectedStudentId;
+      const userSearchIds = [...new Set(getDualTypeIds([targetUserId]))];
+
+      const { data: subUser } = await client
+        .from('submissions')
+        .select('*')
+        .in('activity_id', actSearchIds)
+        .in('user_id', userSearchIds)
+        .maybeSingle();
+
+      if (subUser) {
+        subData = subUser;
+      } else {
+        const { data: subStudent } = await client
+          .from('submissions')
+          .select('*')
+          .in('activity_id', actSearchIds)
+          .in('student_id', userSearchIds)
+          .maybeSingle();
+        subData = subStudent;
+      }
+    }
+
+    // 3. Fetch Associated Activity Instructions & Materials
+    let actData = null;
+    const actIdToSearch = subData?.activity_id || selectedActivityId;
+
+    if (actIdToSearch) {
+      const actSearchIds = [...new Set(getDualTypeIds([actIdToSearch]))];
+      const { data } = await client
+        .from('activities')
+        .select('*')
+        .in('id', actSearchIds)
+        .maybeSingle();
+      actData = data;
+    }
+
+    // Render Header UI
+    const actTitle = actData?.title || "Activity Review";
+    document.getElementById("revActivityTitle").textContent = `Review: ${actTitle}`;
+    document.getElementById("revActivitySubtitle").textContent = `Class Code: ${selectedClassCode || 'Course'} | Score Evaluation & Instructions`;
+
+    // Determine Evaluation Status
+    const st = String(subData?.status || '').toLowerCase();
+    const hasGrade = (subData?.grade !== null && subData?.grade !== undefined && subData?.grade !== '') ||
+                     (subData?.score !== null && subData?.score !== undefined && subData?.score !== '');
+    const isGraded = st === 'graded' || hasGrade;
+
+    const maxPts = Number(actData?.total_points) || 100;
+
+    if (isGraded) {
+      let scoreVal = 0;
+      if (subData?.grade !== null && subData?.grade !== undefined && subData?.grade !== '') {
+        scoreVal = Number(subData.grade);
+      } else if (subData?.score !== null && subData?.score !== undefined && subData?.score !== '') {
+        scoreVal = Number(subData.score);
+      }
+
+      const pct = Math.round((scoreVal / maxPts) * 100);
+      document.getElementById("revScoreVal").textContent = `${scoreVal} / ${maxPts}`;
+      document.getElementById("revPctVal").textContent = `${pct}%`;
+      document.getElementById("revGpaVal").textContent = getGpaEquivalent(pct);
+    } else {
+      document.getElementById("revScoreVal").textContent = `- / ${maxPts}`;
+      document.getElementById("revPctVal").textContent = `Pending`;
+      document.getElementById("revGpaVal").textContent = `Pending Evaluation`;
+    }
+
+    // Render Teacher Instructions & Description
+    const revActivityDescription = document.getElementById("revActivityDescription");
+    if (revActivityDescription) {
+      revActivityDescription.textContent = actData?.description || "No detailed instructions provided for this activity.";
+    }
+
+    // Render Teacher Uploaded Materials / Reference Links
+    const teacherAttachmentsList = document.getElementById("revTeacherAttachmentsList");
+    if (teacherAttachmentsList) {
+      teacherAttachmentsList.innerHTML = "";
+      let teacherResourceCount = 0;
+
+      if (actData?.file_url) {
+        teacherResourceCount++;
+        teacherAttachmentsList.innerHTML += `
+          <div class="attachment-item">
+            <div class="file-meta">
+              <i class="fa-solid fa-file-arrow-down"></i>
+              <span>Teacher Reference File / Worksheet</span>
+            </div>
+            <a href="${actData.file_url}" target="_blank" download onclick="event.preventDefault(); downloadFileDirectly('${escapeJsString(actData.file_url)}', '${escapeJsString(actTitle)}_Reference');" class="btn-download">
+              <i class="fa-solid fa-download"></i> Download Reference File
+            </a>
+          </div>
+        `;
+      }
+
+      if (actData?.link_url) {
+        teacherResourceCount++;
+        teacherAttachmentsList.innerHTML += `
+          <div class="attachment-item">
+            <div class="file-meta">
+              <i class="fa-solid fa-link"></i>
+              <span>Teacher Resource Link</span>
+            </div>
+            <a href="${escapeHtml(actData.link_url)}" target="_blank" class="btn-download">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Resource Link
+            </a>
+          </div>
+        `;
+      }
+
+      if (teacherResourceCount === 0) {
+        teacherAttachmentsList.innerHTML = `<div style="color:var(--muted); font-size:13px; font-style:italic;">No reference files or external links attached by the teacher.</div>`;
+      }
+    }
+
+    // Render Teacher Remarks / Feedback
+    const feedbackBox = document.getElementById("revTeacherFeedback");
+    const teacherFeedback = subData?.feedback || subData?.remarks || subData?.teacher_comments;
+    if (feedbackBox) {
+      if (teacherFeedback && teacherFeedback.trim() !== "") {
+        feedbackBox.innerHTML = `<i class="fa-solid fa-quote-left"></i> ${escapeHtml(teacherFeedback.trim())}`;
+      } else if (isGraded) {
+        feedbackBox.innerHTML = `<i class="fa-solid fa-circle-check"></i> Great effort! Your activity submission was successfully evaluated by your teacher.`;
+      } else {
+        feedbackBox.innerHTML = `<i class="fa-solid fa-hourglass-half" style="color:var(--warning);"></i> Your submission has been received and is currently awaiting faculty evaluation.`;
+      }
+    }
+
+    // Render Student Notes
+    const studentCommentsBox = document.getElementById("studentCommentsBox");
+    const studentCommentsText = document.getElementById("studentCommentsText");
+    const studentNotes = subData?.comments || subData?.notes || subData?.note;
+    if (studentCommentsBox && studentCommentsText) {
+      if (studentNotes && studentNotes.trim() !== "") {
+        studentCommentsText.textContent = studentNotes.trim();
+        studentCommentsBox.style.display = "block";
+      } else {
+        studentCommentsBox.style.display = "none";
+      }
+    }
+
+    // Calculate Late / On-Time Timeliness
+    let isLate = false;
+    const deadlineStr = actData?.deadline || actData?.due_date;
+    const submittedDateStr = subData?.submitted_at || subData?.created_at;
+
+    if (deadlineStr && submittedDateStr) {
+      const dTime = new Date(deadlineStr).getTime();
+      const sTime = new Date(submittedDateStr).getTime();
+      if (!isNaN(dTime) && !isNaN(sTime) && sTime > dTime) {
+        isLate = true;
+      }
+    }
+
+    const sDateObj = submittedDateStr ? new Date(submittedDateStr) : null;
+    const dateFormatted = sDateObj && !isNaN(sDateObj.getTime())
+      ? sDateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : 'Recently Submitted';
+
+    const timelinessTag = isLate
+      ? `<span style="display:inline-block; margin-left:8px; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:#fee2e2; color:#991b1b;">Late Submission</span>`
+      : `<span style="display:inline-block; margin-left:8px; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:#dcfce7; color:#166534;">On Time</span>`;
+
+    // Render Student's Submitted Deliverable File / Link
+    const fileNameEl = document.getElementById("revFileName");
+    const turnedInDateEl = document.getElementById("revTurnedInDate");
+    const downloadBtn = document.getElementById("revFileDownload");
+    const fileIcon = document.getElementById("revFileIcon");
+
+    if (subData?.file_url) {
+      let cleanName = "Submitted_Work_File";
+      try {
+        const parts = subData.file_url.split('/');
+        cleanName = decodeURIComponent(parts[parts.length - 1].split('?')[0]);
+      } catch (e) {
+        cleanName = "Submitted_Work_File";
+      }
+      fileNameEl.textContent = cleanName;
+      turnedInDateEl.innerHTML = `Turned in on ${dateFormatted} ${timelinessTag}`;
+      downloadBtn.href = subData.file_url;
+      downloadBtn.style.display = "inline-flex";
+      downloadBtn.innerHTML = `<i class="fa-solid fa-download"></i> Download Work`;
+      downloadBtn.onclick = (e) => {
+        e.preventDefault();
+        downloadFileDirectly(subData.file_url, cleanName);
+      };
+      if (fileIcon) fileIcon.className = "fa-solid fa-file-arrow-down";
+    } else if (subData?.link_url) {
+      fileNameEl.textContent = "External Submission Link";
+      turnedInDateEl.innerHTML = `Submitted link on ${dateFormatted} ${timelinessTag}`;
+      downloadBtn.href = subData.link_url;
+      downloadBtn.style.display = "inline-flex";
+      downloadBtn.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i> Open Submission Link`;
+      downloadBtn.onclick = null;
+      if (fileIcon) fileIcon.className = "fa-solid fa-link";
+    } else {
+      fileNameEl.textContent = "No file uploaded (Text / Comment Submission)";
+      turnedInDateEl.innerHTML = `Turned in on ${dateFormatted} ${timelinessTag}`;
+      downloadBtn.style.display = "none";
+      if (fileIcon) fileIcon.className = "fa-solid fa-comment-dots";
+    }
+  }
+
+  /* =====================================================
+     4. LOAD SIDEBAR CLASSES & GROUPS
+  ===================================================== */
+  async function loadSidebarClasses() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarClassList = document.getElementById("sidebarClassList");
+    if (!sidebarClassList) return;
+    sidebarClassList.innerHTML = "";
+
+    const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+    let myClasses = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const { data: mems, error: memErr } = await client
+          .from('class_memberships')
+          .select('class_id')
+          .in('user_id', userSearchIds);
+
+        if (!memErr && mems && mems.length > 0) {
+          const classSearchIds = [...new Set(getDualTypeIds(mems.map(m => m.class_id)))];
+          if (classSearchIds.length > 0) {
+            const { data: fetchedClasses } = await client
+              .from('classes')
+              .select('id, subject, code, status')
+              .in('id', classSearchIds);
+            myClasses = fetchedClasses || [];
+          }
+        } else {
+          const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
+          if (joinedClasses.length > 0) {
+            const { data: fallbackData } = await client
+              .from('classes')
+              .select('id, subject, code, status')
+              .in('code', joinedClasses);
+            myClasses = fallbackData || [];
+          }
+        }
+      } else {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar classes error:", err);
+    }
+
+    myClasses = myClasses.filter(c => c && c.status !== 'archived');
+
+    if (myClasses.length > 0) {
+      const currentSelectedCode = localStorage.getItem("selectedClass");
+      myClasses.forEach(c => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `📘 ${c.subject}`;
+        sideLink.href = classPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedClass", c.code);
+          localStorage.setItem("selectedClassId", String(c.id));
+          window.location.href = classPageUrl;
+        };
+        sidebarClassList.appendChild(sideLink);
+      });
+    } else {
+      sidebarClassList.innerHTML = `<p style="font-size: 12px; opacity: 0.7; padding-left: 10px; color: white;">No active classes</p>`;
+    }
+  }
+
+  async function loadSidebarGroups() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarGroupList = document.getElementById("sidebarGroupList");
+    if (!sidebarGroupList) return;
+    sidebarGroupList.innerHTML = "";
+
+    const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+    let myGroups = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const { data: mems, error: memErr } = await client
+          .from('group_memberships')
+          .select('group_id')
+          .in('user_id', userSearchIds);
+
+        if (!memErr && mems && mems.length > 0) {
+          const groupSearchIds = [...new Set(getDualTypeIds(mems.map(m => m.group_id)))];
+          if (groupSearchIds.length > 0) {
+            const { data: fetchedGroups } = await client
+              .from('groups')
+              .select('id, name, code, status')
+              .in('id', groupSearchIds);
+            myGroups = fetchedGroups || [];
+          }
+        } else {
+          const joinedGroups = JSON.parse(localStorage.getItem("joinedGroups") || "[]");
+          if (joinedGroups.length > 0) {
+            const { data: fallbackData } = await client
+              .from('groups')
+              .select('id, name, code, status')
+              .in('code', joinedGroups);
+            myGroups = fallbackData || [];
+          }
+        }
+      } else {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar groups error:", err);
+    }
+
+    myGroups = myGroups.filter(g => g && g.status !== 'archived');
+
+    if (myGroups.length > 0) {
+      const currentSelectedGroup = localStorage.getItem("selectedGroup");
+      myGroups.forEach(g => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `👥 ${g.name}`;
+        sideLink.href = groupPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedGroup", g.code);
+          localStorage.setItem("selectedGroupId", String(g.id));
+          window.location.href = groupPageUrl;
+        };
+        sidebarGroupList.appendChild(sideLink);
+      });
+    } else {
+      sidebarGroupList.innerHTML = `<p style="font-size: 12px; opacity: 0.7; padding-left: 10px; color: white;">No active groups</p>`;
+    }
+  }
+</script>

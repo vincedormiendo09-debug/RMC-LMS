@@ -1,0 +1,2068 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- PREVENT BROWSER CACHING AFTER LOGOUT -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <title>Activity Submission Hub | Regis Marie College</title>
+
+  <!-- FONT AWESOME & GOOGLE FONTS -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <!-- SUPABASE JS CLIENT SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+  /* =========================================
+     GENERAL PAGE STYLE & DESIGN TOKENS
+  ========================================= */
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #dbeafe;
+    --background: #f4f7fb;
+    --surface: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --success: #16a34a;
+    --success-dark: #15803d;
+    --success-light: #dcfce7;
+    --warning: #f59e0b;
+    --warning-light: #fef3c7;
+    --danger: #ef4444;
+    --shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    overflow-x: hidden;
+  }
+
+  /* =========================================
+     SIDEBAR NAVIGATION RAIL
+  ========================================= */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e40af, #1e3a8a);
+    color: #ffffff;
+    padding: 22px 15px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .user-profile-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .user-badge {
+    display: inline-block;
+    background: #fbbf24;
+    color: #1e3a8a;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar a,
+  .sidebar a:link,
+  .sidebar a:visited,
+  #sidebarMenu a,
+  #sidebarMenu a:link,
+  #sidebarMenu a:visited {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 14.5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .sidebar a:hover,
+  #sidebarMenu a:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: translateX(2px);
+    color: #ffffff !important;
+  }
+
+  .sidebar a.active,
+  #sidebarMenu a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    font-weight: bold;
+    color: #ffffff !important;
+  }
+
+  .sidebar-logout-btn {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffffff !important;
+    margin-top: 18px !important;
+    cursor: pointer;
+  }
+
+  .sidebar-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.45) !important;
+  }
+
+  /* SIDEBAR SECTIONS */
+  .sidebar-section {
+    margin-top: 24px;
+  }
+
+  .sidebar-section-title {
+    padding: 0 10px 8px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item,
+  .sidebar-item:link,
+  .sidebar-item:visited {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    margin-bottom: 6px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 9px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 21px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  }
+
+  /* =========================================
+     MAIN SUBMISSION CONTENT
+  ========================================= */
+  .main-content {
+    margin-left: 240px;
+    min-height: 100vh;
+    padding: 28px;
+    flex: 1;
+    width: calc(100% - 240px);
+    transition: margin-left 0.3s ease, padding 0.3s ease;
+  }
+
+  .container {
+    max-width: 900px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    background: linear-gradient(135deg, #1e40af, #2563eb);
+    color: #ffffff;
+    padding: 24px 28px;
+    border-radius: 14px;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.15);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .header-content {
+    flex: 1;
+    min-width: 240px;
+  }
+
+  .page-header h1 {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 6px;
+    word-break: break-word;
+  }
+
+  .page-header p {
+    font-size: 13.5px;
+    opacity: 0.9;
+    line-height: 1.4;
+  }
+
+  /* THREE DOTS MENU */
+  .menu-container {
+    position: relative;
+  }
+
+  .three-dots-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #ffffff;
+    font-size: 20px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 4px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+  }
+
+  .three-dots-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 48px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+    min-width: 180px;
+    overflow: hidden;
+  }
+
+  .dropdown-menu.show {
+    display: block;
+  }
+
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 14px;
+    border: none;
+    background: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.2s ease;
+  }
+
+  .dropdown-item:hover {
+    background: #f1f5f9;
+  }
+
+  .dropdown-item.delete {
+    color: var(--danger);
+  }
+
+  /* META SUMMARY BAR */
+  .meta-bar {
+    display: flex;
+    background: var(--surface);
+    padding: 16px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--text);
+  }
+
+  .meta-item i {
+    color: var(--primary);
+  }
+
+  .badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .badge-pending {
+    background: var(--warning-light);
+    color: #b45309;
+  }
+
+  .badge-graded {
+    background: var(--success-light);
+    color: var(--success);
+  }
+
+  /* CARDS */
+  .card, .submission-card {
+    background: var(--surface);
+    padding: 24px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+
+  .card-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+
+  .card-header h2 {
+    font-size: 16px;
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .description-box {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #334155;
+    word-break: break-word;
+  }
+
+  .attachment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    word-break: break-word;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .btn-download {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    min-height: 38px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .btn-download:hover {
+    background: #bfdbfe;
+  }
+
+  /* SUBMISSION FORM */
+  label {
+    display: block;
+    margin-top: 16px;
+    font-size: 12.5px;
+    font-weight: bold;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input[type="url"],
+  input[type="file"],
+  textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 14px;
+    margin-top: 6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text);
+    background: #f8fafc;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  textarea {
+    min-height: 100px;
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  input:focus,
+  textarea:focus {
+    border-color: var(--primary);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+
+  /* DISABLED INPUT LOCK STYLING */
+  input:disabled,
+  textarea:disabled {
+    background: #e2e8f0 !important;
+    color: #64748b !important;
+    cursor: not-allowed !important;
+    border-color: #cbd5e1 !important;
+    opacity: 0.85;
+  }
+
+  /* ACTION BAR & BUTTONS */
+  .action-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    gap: 12px;
+  }
+
+  .btn-back {
+    background: #64748b;
+    color: #ffffff;
+    min-height: 44px;
+    padding: 10px 22px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.2s ease;
+  }
+
+  .btn-back:hover {
+    background: #475569;
+  }
+
+  .btn-submit-now {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    min-height: 44px;
+    padding: 11px 26px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.2s ease, transform 0.1s ease;
+  }
+
+  .btn-submit-now:hover {
+    background: var(--primary-dark);
+  }
+
+  /* GREEN SUBMITTED STATE BUTTON */
+  .btn-submit-now.submitted {
+    background: var(--success) !important;
+  }
+
+  .btn-submit-now.submitted:hover {
+    background: var(--success-dark) !important;
+  }
+
+  /* RESPONSIVE MEDIA QUERIES (RWD) */
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+      padding: 18px;
+      padding-top: 76px;
+    }
+
+    .page-header {
+      padding: 20px;
+    }
+
+    .card, .submission-card {
+      padding: 20px;
+    }
+
+    input[type="url"],
+    input[type="file"],
+    textarea {
+      font-size: 16px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .main-content {
+      padding: 12px;
+      padding-top: 72px;
+    }
+
+    .page-header {
+      padding: 18px 16px;
+      border-radius: 12px;
+    }
+
+    .page-header h1 {
+      font-size: 20px;
+    }
+
+    .meta-bar {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .attachment-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .btn-download {
+      width: 100%;
+      text-align: center;
+    }
+
+    .action-bar {
+      flex-direction: column-reverse;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .btn-back,
+    .btn-submit-now {
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+  }
+
+  /* DIRECT CONSULTATION & BADGE STYLES */
+  .btn-msg-teacher {
+    background: #ffffff;
+    color: var(--primary-dark);
+    border: 1.5px solid #bfdbfe;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
+    transition: all 0.2s ease;
+  }
+
+  .btn-msg-teacher:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    transform: translateY(-1px);
+  }
+
+  .badge-ontime {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+    border: 1px solid #86efac;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+  }
+
+  .badge-late {
+    background: #fee2e2 !important;
+    color: #991b1b !important;
+    border: 1px solid #fca5a5;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+  }
+
+  .badge-graded {
+    background: #eff6ff !important;
+    color: #1e40af !important;
+    border: 1px solid #bfdbfe;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+  }
+
+  .badge-pending {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+    border: 1px solid #fde68a;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+  }
+  </style>
+</head>
+
+<body>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+
+    <!-- USER PROFILE & ROLE BADGE -->
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">STUDENT</div>
+    </div>
+
+    <!-- DYNAMIC SIDEBAR LINKS -->
+    <div id="sidebarMenu"></div>
+
+    <!-- MY CLASSES -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <!-- MY GROUPS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <!-- LOGOUT BUTTON -->
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="main-content">
+
+    <!-- PAGE HEADER -->
+    <section class="page-header">
+      <div>
+        <h1 id="activityTitle">Loading Activity...</h1>
+        <p id="activitySubtitle">Viewing activity guidelines and submission hub</p>
+      </div>
+
+      <!-- DIRECT MESSAGE INSTRUCTOR SHORTCUT (STUDENT POV) -->
+      <div id="studentActionControls" style="display: flex; align-items: center; gap: 10px;">
+        <button id="msgTeacherBtn" class="btn-msg-teacher" onclick="askTeacherAboutActivity()" style="display: none;" title="Message teacher about this assignment">
+          <i class="fa-solid fa-comment-dots"></i> Message Teacher
+        </button>
+      </div>
+
+      <!-- TEACHER OPTIONS MENU (⋮) -->
+      <div class="menu-container" id="teacherMenuContainer" style="display: none;">
+        <button class="three-dots-btn" onclick="toggleDropdown(event)">⋮</button>
+        <div class="dropdown-menu" id="dropdownMenu">
+          <button class="dropdown-item" onclick="redirectToUpdate()"><i class="fa-solid fa-pen-to-square"></i> Update Activity</button>
+          <button class="dropdown-item" onclick="redirectToSubmissions()"><i class="fa-solid fa-inbox"></i> Review Submissions</button>
+          <button class="dropdown-item delete" onclick="deleteActivity()"><i class="fa-solid fa-trash"></i> Delete Activity</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="container">
+
+      <!-- META SUMMARY BAR -->
+      <div class="meta-bar">
+        <div class="meta-item">
+          <i class="fa-solid fa-calendar"></i>
+          <span>Due Date: <strong id="dueDate">Loading...</strong></span>
+        </div>
+        <div class="meta-item">
+          <i class="fa-solid fa-clock"></i>
+          <span>Time: <strong id="dueTime">11:59 PM</strong></span>
+        </div>
+        <div class="meta-item">
+          <i class="fa-solid fa-award"></i>
+          <span>Max Points: <strong id="scorePoints">100 Points</strong></span>
+        </div>
+        <div class="meta-item">
+          <i class="fa-solid fa-circle-info"></i>
+          <span>Status: <span id="statusBadge" class="badge badge-pending">Pending Work</span></span>
+        </div>
+      </div>
+
+      <!-- GRADING & EVALUATION FEEDBACK CARD -->
+      <div class="card" id="gradingFeedbackCard" style="display: none; border-left: 5px solid #2563eb; background: #f8fbff;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <h2><i class="fa-solid fa-award" style="color: #2563eb;"></i> Teacher Evaluation & Official Grade</h2>
+          <span id="gpaEquivalentBadge" style="font-size: 12px; font-weight: bold; background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 12px;">1.00 (Passed)</span>
+        </div>
+        <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 14px;">
+            <div>Score Earned: <strong id="feedbackScoreDisplay" style="color: #1e40af; font-size: 16px;">0 / 100</strong></div>
+            <div>Rating: <strong id="feedbackRatingDisplay" style="color: #166534;">100%</strong></div>
+            <div>Punctuality: <span id="punctualityBadge" class="badge badge-ontime">On Time</span></div>
+          </div>
+          <div id="feedbackRemarksContainer" style="background: #ffffff; border: 1px solid var(--border); padding: 12px 14px; border-radius: 8px; font-size: 13.5px; line-height: 1.5; color: #334155; margin-top: 4px;">
+            <strong>Instructor Feedback:</strong>
+            <p id="feedbackRemarksText" style="margin-top: 4px; color: #475569;">No written feedback provided yet.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- INSTRUCTIONS CARD -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-align-left"></i> Activity Instructions</h2>
+        </div>
+        <div class="description-box" id="activityDescription">
+          Loading detailed activity instructions...
+        </div>
+      </div>
+
+      <!-- TEACHER LESSON MATERIALS CARD -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-folder-open"></i> Lesson Materials & Resources</h2>
+        </div>
+        <div class="attachments-list" id="attachmentsList">
+          <!-- Dynamically Populated -->
+        </div>
+      </div>
+
+      <!-- STUDENT SUBMISSION FORM CARD -->
+      <div class="submission-card" id="submissionSection">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-paper-plane"></i> Submit Your Work</h2>
+        </div>
+
+        <form id="studentSubmitForm">
+          <label for="studentComments">Notes / Comments for Teacher:</label>
+          <textarea id="studentComments" rows="3" placeholder="Type any notes or comments about your work..."></textarea>
+
+          <label for="studentLink">Submission Link (e.g., Google Drive, GitHub, Figma):</label>
+          <input type="url" id="studentLink" placeholder="https://docs.google.com/...">
+
+          <label for="studentFiles">Upload Academic Submission File (PDF, Word, PPT, Excel, Images - Max 25MB):</label>
+          <input type="file" id="studentFiles" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg,.webp">
+          <div id="existingFileNote" style="font-size: 12.5px; color: #2563eb; margin-top: 6px; display: none;"></div>
+
+          <div class="action-bar">
+            <a href="{{ url_for('class_page') }}" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Back to Class</a>
+            <button type="button" class="btn-submit-now" id="submitBtn" onclick="handleSubmissionButtonClick()">
+              <i class="fa-solid fa-check"></i> Turn In Work
+            </button>
+          </div>
+        </form>
+      </div>
+
+    </div>
+  </main>
+</body>
+
+<script>
+  /* PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  /* =====================================================
+     0. TYPE-SAFE ID HELPERS & ESCAPE UTILITIES
+  ===================================================== */
+  function parseDbId(idVal) {
+    if (!idVal) return idVal;
+    if (typeof idVal === 'number') return idVal;
+    const str = String(idVal).trim();
+    return /^\d+$/.test(str) ? parseInt(str, 10) : str;
+  }
+
+  function getDualTypeIds(idArray) {
+    const result = new Set();
+    (idArray || []).forEach(id => {
+      if (id !== null && id !== undefined && id !== '') {
+        result.add(String(id));
+        const num = parseDbId(id);
+        if (typeof num === 'number' && !isNaN(num)) {
+          result.add(num);
+        }
+      }
+    });
+    return Array.from(result);
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeJsString(str) {
+    if (!str) return "";
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+  }
+
+  /* =====================================================
+     1. USER SESSION & ROLE PROTECTION
+  ===================================================== */
+  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "STUDENT";
+  const userRole = rawRole.toUpperCase();
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+  // Restrict Admin Access
+  if (userRole === "ADMIN") {
+    alert("Access restricted: Administrators do not submit activities directly.");
+    window.location.replace("{{ url_for('landpage') }}");
+  }
+
+  const roleBadge = document.getElementById("userRoleBadge");
+  const nameDisplay = document.getElementById("sidebarUserName");
+  if (roleBadge) roleBadge.textContent = userRole;
+  if (nameDisplay) nameDisplay.textContent = userName;
+
+  // Flask Route URLs
+  const homeUrl = "{{ url_for('landpage') }}";
+  const createUrl = "{{ url_for('create_page') }}";
+  const joinUrl = "{{ url_for('join_page') }}";
+  const calendarUrl = "{{ url_for('calendar_page') }}";
+  const myDashboardUrl = "{{ url_for('dashboard_page') }}";
+  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+  const gradesUrl = "{{ url_for('grades_page') }}";
+  const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
+  const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const archiveUrl = "{{ url_for('archive_page') }}";
+  const notifyUrl = "{{ url_for('notify_page') }}";
+  const accountUrl = "{{ url_for('account_page') }}";
+  const classPageUrl = "{{ url_for('class_page') }}";
+  const groupPageUrl = "{{ url_for('group_page') }}";
+  const updatePageUrl = "{{ url_for('update_page') }}";
+  const messageTeacherUrl = "{{ url_for('message_teacher_page') }}";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+  const loginUrl = "{{ url_for('login') }}";
+
+  const sidebarMenu = document.getElementById("sidebarMenu");
+
+  if (userRole === "TEACHER") {
+    sidebarMenu.innerHTML = `
+      <a href="${homeUrl}">🏠 Home</a>
+      <a href="${createUrl}">➕ Create Class/Group</a>
+      <a href="${calendarUrl}">📅 Calendar</a>
+      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+      <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+      <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+      <a href="${gradesUrl}">💯 Grades</a>
+      <a href="${submissionsUrl}">📝 Submissions</a>
+      <a href="${archiveUrl}">📦 Archive</a>
+      <a href="${notifyUrl}">🔔 Notifications</a>
+      <a href="${accountUrl}">👤 Account</a>
+    `;
+    const teacherMenu = document.getElementById("teacherMenuContainer");
+    const subSec = document.getElementById("submissionSection");
+    if (teacherMenu) teacherMenu.style.display = "block";
+    if (subSec) subSec.style.display = "none";
+  } else {
+    sidebarMenu.innerHTML = `
+      <a href="${homeUrl}">🏠 Home</a>
+      <a href="${joinUrl}">🔑 Join Class/Group</a>
+      <a href="${calendarUrl}">📅 Calendar</a>
+      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+      <a href="${myDashboardUrl}">📊 My Dashboard</a>
+      <a href="${studentGradesUrl}">💯 My Grades</a>
+      <a href="${notifyUrl}">🔔 Notifications</a>
+      <a href="${archiveUrl}">📦 Archive</a>
+      <a href="${accountUrl}">👤 Account</a>
+    `;
+    const teacherMenu = document.getElementById("teacherMenuContainer");
+    const subSec = document.getElementById("submissionSection");
+    if (teacherMenu) teacherMenu.style.display = "none";
+    if (subSec) subSec.style.display = "block";
+  }
+
+  /* MOBILE SIDEBAR TOGGLE */
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const sidebar = document.getElementById('sidebar');
+
+  if (mobileMenuBtn && sidebar) {
+    mobileMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle('active');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.remove('active');
+      }
+    });
+  }
+
+  function logoutUser() {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("{{ url_for('logout') }}");
+  }
+
+  /* =====================================================
+     2. SUPABASE INITIALIZATION & CONSTANTS
+  ===================================================== */
+  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+  function getSupabaseClient() {
+    if (window._supabase) return window._supabase;
+    const supabaseLib = window.supabase || window.Supabase;
+    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+      return window._supabase;
+    }
+    return null;
+  }
+
+  const rawSelectedActivityId = localStorage.getItem("selectedActivityId");
+  const selectedActivityId = parseDbId(rawSelectedActivityId);
+  const selectedCode = localStorage.getItem("selectedClass");
+  let currentActivityData = null;
+  let currentSubmissionData = null;
+  let currentTeacherProfile = null;
+  let isCurrentlySubmitted = false;
+  let isClassArchived = false;
+
+  const ALLOWED_EXTENSIONS = new Set([
+    'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'csv',
+    'png', 'jpg', 'jpeg', 'webp'
+  ]);
+
+  const BLOCKED_EXTENSIONS = new Set([
+    'exe', 'bat', 'cmd', 'sh', 'vbs', 'vbe', 'js', 'jse', 'wsf', 'wsh',
+    'scr', 'msi', 'com', 'pif', 'hta', 'cpl', 'jar', 'apk', 'bin',
+    'ps1', 'py', 'php', 'asp', 'aspx', 'jsp', 'cgi', 'zip', 'rar', '7z', 'tar', 'gz', 'iso', 'dll'
+  ]);
+
+  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB Limit
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      loadActivityAndSubmissionDetails();
+      loadSidebarClasses();
+      loadSidebarGroups();
+    }, 100);
+  });
+
+  function formatUrl(url) {
+    if (!url) return null;
+    let trimmed = url.trim();
+    if (!trimmed) return null;
+    if (!/^https?:\/\//i.test(trimmed)) {
+      return 'https://' + trimmed;
+    }
+    return trimmed;
+  }
+
+  function format12HourTime(dtObj) {
+    if (!dtObj || isNaN(dtObj.getTime())) return "11:59 PM";
+    let hours = dtObj.getHours();
+    let minutes = dtObj.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+    return `${hours}:${minutesStr} ${ampm}`;
+  }
+
+  async function downloadFileDirectly(url, filename) {
+    if (!url) return;
+    try {
+      if (url.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'resource_file';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+      
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename || 'resource_file';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'resource_file';
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  }
+
+  function calculateGpaEquivalent(score, maxScore) {
+    if (!maxScore || maxScore <= 0) maxScore = 100;
+    const percentage = Math.round((score / maxScore) * 100);
+    
+    if (percentage >= 97) return { gpa: "1.00", rating: "Excellent", passed: true, percentage };
+    if (percentage >= 94) return { gpa: "1.25", rating: "Superior", passed: true, percentage };
+    if (percentage >= 91) return { gpa: "1.50", rating: "Very Good", passed: true, percentage };
+    if (percentage >= 88) return { gpa: "1.75", rating: "Good", passed: true, percentage };
+    if (percentage >= 85) return { gpa: "2.00", rating: "Above Average", passed: true, percentage };
+    if (percentage >= 82) return { gpa: "2.25", rating: "Average", passed: true, percentage };
+    if (percentage >= 79) return { gpa: "2.50", rating: "Satisfactory", passed: true, percentage };
+    if (percentage >= 76) return { gpa: "2.75", rating: "Fair", passed: true, percentage };
+    if (percentage >= 75) return { gpa: "3.00", rating: "Passing", passed: true, percentage };
+    return { gpa: "5.00", rating: "Failed", passed: false, percentage };
+  }
+
+  /* =====================================================
+     3. FETCH ACTIVITY & STUDENT SUBMISSION (DUAL-SCHEMA)
+  ===================================================== */
+  async function loadActivityAndSubmissionDetails() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const rawActId = localStorage.getItem("selectedActivityId");
+    const actSearchIds = getDualTypeIds([rawActId]);
+
+    if (actSearchIds.length === 0) {
+      alert("No activity selected! Redirecting to classroom.");
+      window.location.href = classPageUrl;
+      return;
+    }
+
+    const { data: activity, error: actErr } = await client
+      .from('activities')
+      .select('*')
+      .in('id', actSearchIds)
+      .maybeSingle();
+
+    if (actErr || !activity) {
+      console.error("Error fetching activity:", actErr);
+      document.getElementById("activityTitle").textContent = "Activity Not Found";
+      document.getElementById("activityDescription").textContent = "Could not load activity guidelines from database. Please return to Classroom and select the activity again.";
+      return;
+    }
+
+    currentActivityData = activity;
+
+    let subjectName = selectedCode || "Course";
+    if (activity.class_id) {
+      const classSearchIds = getDualTypeIds([activity.class_id]);
+      const { data: clsData } = await client
+        .from('classes')
+        .select('subject, code, teacher_id, status')
+        .in('id', classSearchIds)
+        .maybeSingle();
+
+      if (clsData) {
+        subjectName = clsData.subject;
+        if (clsData.code) localStorage.setItem("selectedClass", clsData.code);
+
+        if (clsData.status === 'archived' || localStorage.getItem("isArchivedView") === "true") {
+          isClassArchived = true;
+          localStorage.setItem("isArchivedView", "true");
+        }
+
+        if (clsData.teacher_id) {
+          const teacherSearchIds = getDualTypeIds([clsData.teacher_id]);
+          const { data: tProfile } = await client
+            .from('users')
+            .select('id, full_name, email')
+            .in('id', teacherSearchIds)
+            .maybeSingle();
+
+          if (tProfile) {
+            currentTeacherProfile = tProfile;
+            const msgBtn = document.getElementById("msgTeacherBtn");
+            if (msgBtn && userRole === "STUDENT") {
+              msgBtn.style.display = "inline-flex";
+              msgBtn.innerHTML = `<i class="fa-solid fa-comment-dots"></i> Message ${escapeHtml(tProfile.full_name || 'Teacher')}`;
+            }
+          }
+        }
+      }
+    }
+
+    if (isClassArchived) {
+      const container = document.querySelector(".container") || document.querySelector(".main-content");
+      if (container && !document.getElementById("archivedActivityBanner")) {
+        const banner = document.createElement("div");
+        banner.id = "archivedActivityBanner";
+        banner.style.cssText = "background: #f1f5f9; color: #334155; border-left: 4px solid #64748b; padding: 12px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 20px;";
+        banner.innerHTML = "📦 <strong>Archived Subject (Closed):</strong> This class has been archived. Submissions, resubmissions, and content modifications are permanently closed.";
+        container.insertBefore(banner, container.firstChild);
+      }
+
+      const teacherMenu = document.getElementById("teacherMenuContainer");
+      if (teacherMenu) teacherMenu.style.display = "none";
+    }
+
+    const archiveTag = isClassArchived ? " [Archived]" : "";
+    document.getElementById("activityTitle").textContent = `${activity.title || "Untitled Activity"}${archiveTag}`;
+    document.getElementById("activitySubtitle").textContent = `Class: ${subjectName} | View & Submit`;
+    document.getElementById("scorePoints").textContent = `${activity.total_points || 100} Points`;
+    document.getElementById("activityDescription").textContent = activity.description || "No detailed instructions provided for this activity.";
+
+    if (activity.deadline || activity.due_date) {
+      const dateStr = activity.deadline || activity.due_date;
+      const dt = new Date(dateStr);
+      if (!isNaN(dt.getTime())) {
+        document.getElementById("dueDate").textContent = dt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        document.getElementById("dueTime").textContent = format12HourTime(dt);
+      } else {
+        document.getElementById("dueDate").textContent = dateStr;
+        document.getElementById("dueTime").textContent = "";
+      }
+    } else {
+      document.getElementById("dueDate").textContent = "No Due Date";
+      document.getElementById("dueTime").textContent = "11:59 PM";
+    }
+
+    const attachmentsList = document.getElementById("attachmentsList");
+    if (attachmentsList) {
+      attachmentsList.innerHTML = "";
+      let resourceCount = 0;
+
+      if (activity.file_url) {
+        resourceCount++;
+        attachmentsList.innerHTML += `
+          <div class="attachment-item">
+            <div class="file-info">
+              <i class="fa-solid fa-file-arrow-down" style="color:var(--primary);"></i>
+              <span>Attached Reference File / Worksheet</span>
+            </div>
+            <a href="${activity.file_url}" target="_blank" download onclick="event.preventDefault(); downloadFileDirectly('${escapeJsString(activity.file_url)}', '${escapeJsString(activity.title)}_Reference');" class="btn-download">
+              <i class="fa-solid fa-download"></i> Download File
+            </a>
+          </div>
+        `;
+      }
+
+      if (activity.link_url) {
+        resourceCount++;
+        attachmentsList.innerHTML += `
+          <div class="attachment-item">
+            <div class="file-info">
+              <i class="fa-solid fa-link" style="color:var(--primary);"></i>
+              <span>External Resource Link</span>
+            </div>
+            <a href="${escapeHtml(activity.link_url)}" target="_blank" class="btn-download">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Resource Link
+            </a>
+          </div>
+        `;
+      }
+
+      if (resourceCount === 0) {
+        attachmentsList.innerHTML = `<div style="color:var(--muted); font-size:13px; font-style:italic;">No reference files or links attached by the teacher.</div>`;
+      }
+    }
+
+    if (userRole === "STUDENT" && currentUserId) {
+      const userSearchIds = getDualTypeIds([currentUserId]);
+
+      let submission = null;
+      const { data: subUser, error: errUser } = await client
+        .from('submissions')
+        .select('*')
+        .in('activity_id', actSearchIds)
+        .in('user_id', userSearchIds)
+        .maybeSingle();
+
+      if (!errUser && subUser) {
+        submission = subUser;
+      } else {
+        const { data: subStudent } = await client
+          .from('submissions')
+          .select('*')
+          .in('activity_id', actSearchIds)
+          .in('student_id', userSearchIds)
+          .maybeSingle();
+        submission = subStudent;
+      }
+
+      if (submission) {
+        currentSubmissionData = submission;
+        const st = String(submission.status || '').toLowerCase();
+
+        if (st === 'submitted' || st === 'graded' || st === 'finished') {
+          isCurrentlySubmitted = true;
+
+          const commentsInput = document.getElementById("studentComments");
+          const linkInput = document.getElementById("studentLink");
+          if (commentsInput && submission.comments) commentsInput.value = submission.comments;
+          if (linkInput && submission.link_url) linkInput.value = submission.link_url;
+
+          if (submission.file_url) {
+            const fileNote = document.getElementById("existingFileNote");
+            if (fileNote) {
+              fileNote.style.display = "block";
+              fileNote.innerHTML = `📎 <a href="${submission.file_url}" target="_blank" download onclick="event.preventDefault(); downloadFileDirectly('${escapeJsString(submission.file_url)}', 'My_Submitted_Work');" style="color:#2563eb; text-decoration:none; font-weight:600;"><i class="fa-solid fa-download"></i> Download Your Submitted File</a>`;
+            }
+          }
+
+          updateFormState(true, submission);
+        } else {
+          isCurrentlySubmitted = false;
+          updateFormState(false);
+        }
+      } else {
+        isCurrentlySubmitted = false;
+        updateFormState(false);
+      }
+    }
+  }
+
+  /* =====================================================
+     4. HARD DEADLINE LOCKOUT & EVALUATION DISPLAY
+  ===================================================== */
+  function updateFormState(submitted, submissionObj = null) {
+    const statusBadge = document.getElementById("statusBadge");
+    const submitBtn = document.getElementById("submitBtn");
+    const commentsInput = document.getElementById("studentComments");
+    const linkInput = document.getElementById("studentLink");
+    const fileInput = document.getElementById("studentFiles");
+    const feedbackCard = document.getElementById("gradingFeedbackCard");
+
+    if (isClassArchived) {
+      if (commentsInput) commentsInput.disabled = true;
+      if (linkInput) linkInput.disabled = true;
+      if (fileInput) fileInput.disabled = true;
+      if (submitBtn) submitBtn.style.display = "none";
+      if (statusBadge) {
+        statusBadge.textContent = "Archived / Closed";
+        statusBadge.className = "badge";
+        statusBadge.style.background = "#e2e8f0";
+        statusBadge.style.color = "#475569";
+      }
+      return;
+    }
+
+    const now = new Date().getTime();
+    let isDeadlinePassed = false;
+    if (currentActivityData && (currentActivityData.deadline || currentActivityData.due_date)) {
+      const deadlineTime = new Date(currentActivityData.deadline || currentActivityData.due_date).getTime();
+      if (!isNaN(deadlineTime) && now > deadlineTime) {
+        isDeadlinePassed = true;
+      }
+    }
+
+    if (submitted && submissionObj) {
+      if (commentsInput) commentsInput.disabled = true;
+      if (linkInput) linkInput.disabled = true;
+      if (fileInput) fileInput.disabled = true;
+
+      const st = String(submissionObj.status || '').toLowerCase();
+      const isGraded = st === 'graded' || submissionObj.grade !== null || submissionObj.score !== null;
+
+      let isLate = false;
+      if (currentActivityData && (currentActivityData.deadline || currentActivityData.due_date) && submissionObj.submitted_at) {
+        const deadlineTime = new Date(currentActivityData.deadline || currentActivityData.due_date).getTime();
+        const submitTime = new Date(submissionObj.submitted_at).getTime();
+        if (!isNaN(deadlineTime) && !isNaN(submitTime) && submitTime > deadlineTime) {
+          isLate = true;
+        }
+      }
+
+      if (submitBtn) {
+        if (isGraded) {
+          submitBtn.className = "btn-submit-now submitted";
+          submitBtn.disabled = true;
+          submitBtn.style.opacity = "0.75";
+          submitBtn.style.cursor = "not-allowed";
+          submitBtn.style.background = "";
+          submitBtn.innerHTML = `<i class="fa-solid fa-lock"></i> Graded & Locked`;
+        } else if (isDeadlinePassed) {
+          // 🔒 Hard Lockout: Cannot unsubmit after deadline has passed
+          submitBtn.className = "btn-submit-now submitted";
+          submitBtn.disabled = true;
+          submitBtn.style.opacity = "0.75";
+          submitBtn.style.cursor = "not-allowed";
+          submitBtn.style.background = "#64748b";
+          submitBtn.innerHTML = `<i class="fa-solid fa-lock"></i> Submitted (Deadline Closed)`;
+        } else {
+          submitBtn.className = "btn-submit-now submitted";
+          submitBtn.disabled = false;
+          submitBtn.style.opacity = "1";
+          submitBtn.style.cursor = "pointer";
+          submitBtn.style.background = "";
+          submitBtn.innerHTML = `<i class="fa-solid fa-rotate-left"></i> Unsubmit Work`;
+        }
+      }
+
+      if (statusBadge) {
+        if (isGraded) {
+          const score = submissionObj.score ?? submissionObj.grade ?? 0;
+          statusBadge.textContent = `Graded: ${score}/${currentActivityData?.total_points || 100}`;
+          statusBadge.className = "badge badge-graded";
+          statusBadge.style.background = "";
+          statusBadge.style.color = "";
+        } else {
+          statusBadge.textContent = isLate ? "Turned In (Late)" : "Turned In (On Time)";
+          statusBadge.className = isLate ? "badge badge-late" : "badge badge-ontime";
+          statusBadge.style.background = "";
+          statusBadge.style.color = "";
+        }
+      }
+
+      if (isGraded && feedbackCard) {
+        feedbackCard.style.display = "block";
+        const score = Number(submissionObj.score ?? submissionObj.grade ?? 0);
+        const maxScore = Number(currentActivityData?.total_points || 100);
+        const gpaData = calculateGpaEquivalent(score, maxScore);
+
+        document.getElementById("feedbackScoreDisplay").textContent = `${score} / ${maxScore}`;
+        document.getElementById("feedbackRatingDisplay").textContent = `${gpaData.percentage}%`;
+        
+        const gpaBadge = document.getElementById("gpaEquivalentBadge");
+        if (gpaBadge) {
+          gpaBadge.textContent = `GPA: ${gpaData.gpa} (${gpaData.rating})`;
+          gpaBadge.style.background = gpaData.passed ? "#dcfce7" : "#fee2e2";
+          gpaBadge.style.color = gpaData.passed ? "#166534" : "#991b1b";
+        }
+
+        const punctBadge = document.getElementById("punctualityBadge");
+        if (punctBadge) {
+          punctBadge.textContent = isLate ? "Late Submission" : "On Time";
+          punctBadge.className = isLate ? "badge badge-late" : "badge badge-ontime";
+        }
+
+        const remarks = submissionObj.feedback || submissionObj.remarks || submissionObj.teacher_comments;
+        document.getElementById("feedbackRemarksText").textContent = remarks || "Great effort! Your work has been evaluated and recorded.";
+      } else if (feedbackCard) {
+        feedbackCard.style.display = "none";
+      }
+
+    } else {
+      // 🔒 NOT SUBMITTED: Check if deadline has passed for HARD LOCKOUT
+      if (isDeadlinePassed) {
+        if (commentsInput) commentsInput.disabled = true;
+        if (linkInput) linkInput.disabled = true;
+        if (fileInput) fileInput.disabled = true;
+
+        if (submitBtn) {
+          submitBtn.className = "btn-submit-now";
+          submitBtn.disabled = true;
+          submitBtn.style.opacity = "0.65";
+          submitBtn.style.cursor = "not-allowed";
+          submitBtn.style.background = "#ef4444";
+          submitBtn.innerHTML = `<i class="fa-solid fa-ban"></i> Deadline Closed (Submission Locked)`;
+        }
+
+        if (statusBadge) {
+          statusBadge.textContent = "Missing / Overdue (Locked: 0)";
+          statusBadge.className = "badge badge-late";
+          statusBadge.style.background = "#fee2e2";
+          statusBadge.style.color = "#991b1b";
+        }
+      } else {
+        // Within deadline: normal submission allowed
+        if (commentsInput) commentsInput.disabled = false;
+        if (linkInput) linkInput.disabled = false;
+        if (fileInput) fileInput.disabled = false;
+
+        if (submitBtn) {
+          submitBtn.className = "btn-submit-now";
+          submitBtn.disabled = false;
+          submitBtn.style.opacity = "1";
+          submitBtn.style.cursor = "pointer";
+          submitBtn.style.background = "";
+          submitBtn.innerHTML = `<i class="fa-solid fa-check"></i> Turn In Work`;
+        }
+
+        if (statusBadge) {
+          statusBadge.textContent = "Pending Work";
+          statusBadge.className = "badge badge-pending";
+          statusBadge.style.background = "";
+          statusBadge.style.color = "";
+        }
+      }
+
+      if (feedbackCard) feedbackCard.style.display = "none";
+    }
+  }
+
+  /* =====================================================
+     5. SUBMISSION BUTTON HANDLER (HARD DEADLINE ENFORCED)
+  ===================================================== */
+  async function handleSubmissionButtonClick() {
+    if (isClassArchived) {
+      alert("This activity belongs to an archived class. Submissions are permanently closed.");
+      return;
+    }
+
+    const client = getSupabaseClient();
+    if (!client) {
+      alert("Database connection unavailable.");
+      return;
+    }
+
+    if (!currentUserId) {
+      alert("Session expired. Please sign in again.");
+      window.location.href = loginUrl;
+      return;
+    }
+
+    const now = new Date().getTime();
+
+    // 🔒 HARD LOCKOUT CHECK: Check if the deadline has passed
+    if (currentActivityData && (currentActivityData.deadline || currentActivityData.due_date)) {
+      const deadlineTime = new Date(currentActivityData.deadline || currentActivityData.due_date).getTime();
+      if (!isNaN(deadlineTime) && now > deadlineTime) {
+        alert("🛑 Deadline Passed: Submissions for this activity are strictly closed. You cannot turn in or unsubmit work.");
+        return;
+      }
+    }
+
+    const submitBtn = document.getElementById("submitBtn");
+
+    // CASE A: STUDENT CLICKS UNSUBMIT WORK
+    if (isCurrentlySubmitted) {
+      const isGraded = currentSubmissionData && (
+        currentSubmissionData.status === 'graded' ||
+        currentSubmissionData.grade !== null ||
+        currentSubmissionData.score !== null
+      );
+
+      if (isGraded) {
+        alert("🔒 This activity has already been evaluated and recorded by your teacher. You cannot unsubmit graded work.");
+        return;
+      }
+
+      const confirmUnsubmit = confirm("Are you sure you want to unsubmit your work? This will unlock your assignment so you can edit and replace files.");
+      if (!confirmUnsubmit) return;
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Unsubmitting...';
+      }
+
+      const subSearchIds = getDualTypeIds([currentSubmissionData?.id]);
+
+      const { error } = await client
+        .from('submissions')
+        .update({ status: 'unsubmitted' })
+        .in('id', subSearchIds);
+
+      if (error) {
+        alert("Error unsubmitting work: " + error.message);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.className = "btn-submit-now submitted";
+          submitBtn.innerHTML = `<i class="fa-solid fa-rotate-left"></i> Unsubmit Work`;
+        }
+      } else {
+        alert("Work unsubmitted. You can now edit your details and re-upload files.");
+        isCurrentlySubmitted = false;
+        if (submitBtn) submitBtn.disabled = false;
+        updateFormState(false);
+      }
+      return;
+    }
+
+    // CASE B: STUDENT CLICKS TURN IN WORK
+    const commentsEl = document.getElementById("studentComments");
+    const linkEl = document.getElementById("studentLink");
+    const fileInput = document.getElementById("studentFiles");
+
+    const comments = commentsEl ? commentsEl.value.trim() : "";
+    const linkInput = linkEl ? linkEl.value.trim() : "";
+
+    // 1. Validate Comments with Multilingual AI Safety Check
+    if (comments) {
+      try {
+        const aiResp = await fetch('/api/ai-moderate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: comments })
+        });
+        if (aiResp.ok) {
+          const aiData = await aiResp.json();
+          if (!aiData.allowed) {
+            alert(`🛑 Submission Blocked: ${aiData.reason || 'Inappropriate content detected in student comments.'}`);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("AI moderation offline bypass:", err);
+      }
+    }
+
+    // 2. Validate File Selection (Anti-Malware & Whitelisting)
+    let pickedFile = null;
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+      pickedFile = fileInput.files[0];
+      const ext = pickedFile.name.split('.').pop().toLowerCase();
+
+      if (BLOCKED_EXTENSIONS.has(ext)) {
+        alert(`🛑 Security Alert: The file type (.${ext}) is strictly prohibited to prevent malware and protect school networks.`);
+        fileInput.value = "";
+        return;
+      }
+
+      if (!ALLOWED_EXTENSIONS.has(ext)) {
+        alert(`🛑 Prohibited Format: Only academic documents (PDF, Word, PPT, Excel, Text) and valid images are permitted.`);
+        fileInput.value = "";
+        return;
+      }
+
+      if (pickedFile.size > MAX_FILE_SIZE) {
+        alert("🛑 File Too Large: Maximum allowed upload size is 25MB.");
+        return;
+      }
+
+      try {
+        const fileCheckResp = await fetch('/api/ai-moderate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file_name: pickedFile.name })
+        });
+        if (fileCheckResp.ok) {
+          const checkData = await fileCheckResp.json();
+          if (!checkData.allowed) {
+            alert(`🛑 File Check Failed: ${checkData.reason}`);
+            fileInput.value = "";
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("AI file check offline warning:", err);
+      }
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting Work...';
+    }
+
+    let uploadedFileUrl = currentSubmissionData ? currentSubmissionData.file_url : null;
+    let uploadedStoragePath = null;
+    let uploadedBucketName = null;
+
+    if (pickedFile) {
+      try {
+        const fileExt = pickedFile.name.split('.').pop().toLowerCase();
+        const fileName = `turnin_${currentUserId}_${Date.now()}.${fileExt}`;
+        const filePath = `activity_${selectedActivityId}/${fileName}`;
+
+        let uploadBucket = 'student-submissions';
+        let { data: uploadData, error: uploadError } = await client.storage
+          .from(uploadBucket)
+          .upload(filePath, pickedFile);
+
+        if (uploadError) {
+          uploadBucket = 'lesson-files';
+          const retry = await client.storage.from(uploadBucket).upload(filePath, pickedFile);
+          uploadData = retry.data;
+          uploadError = retry.error;
+        }
+
+        if (!uploadError && uploadData) {
+          const { data: urlData } = client.storage.from(uploadBucket).getPublicUrl(filePath);
+          uploadedFileUrl = urlData.publicUrl;
+          uploadedStoragePath = filePath;
+          uploadedBucketName = uploadBucket;
+        } else {
+          throw new Error(uploadError?.message || "Storage upload failure");
+        }
+      } catch (err) {
+        alert("Upload Error: " + err.message);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
+        }
+        return;
+      }
+    }
+
+    // 3. Vision Safety Check on Uploaded Image Deliverables
+    if (uploadedFileUrl && pickedFile) {
+      const isImg = ['png', 'jpg', 'jpeg', 'webp'].includes(pickedFile.name.split('.').pop().toLowerCase());
+      if (isImg) {
+        try {
+          const aiVisionResp = await fetch('/api/ai-moderate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image_url: uploadedFileUrl,
+              file_name: pickedFile.name
+            })
+          });
+
+          if (aiVisionResp.ok) {
+            const visionData = await aiVisionResp.json();
+            if (!visionData.allowed) {
+              alert(`🛑 Image Rejected by Safety Filter: ${visionData.reason || 'Explicit or inappropriate imagery detected.'}`);
+              
+              if (uploadedStoragePath && uploadedBucketName) {
+                await client.storage.from(uploadedBucketName).remove([uploadedStoragePath]);
+              }
+
+              if (fileInput) fileInput.value = "";
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
+              }
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn("Vision moderation error:", err);
+        }
+      }
+    }
+
+    const formattedLink = formatUrl(linkInput);
+    const parsedUid = parseDbId(currentUserId);
+    const parsedActId = parseDbId(selectedActivityId);
+    const submissionTime = new Date().toISOString();
+    let subError = null;
+
+    let targetSubId = currentSubmissionData?.id;
+    if (!targetSubId) {
+      const { data: existingSubUser } = await client
+        .from('submissions')
+        .select('id')
+        .in('activity_id', getDualTypeIds([parsedActId]))
+        .in('user_id', getDualTypeIds([parsedUid]))
+        .maybeSingle();
+
+      if (existingSubUser?.id) {
+        targetSubId = existingSubUser.id;
+      } else {
+        const { data: existingSubStudent } = await client
+          .from('submissions')
+          .select('id')
+          .in('activity_id', getDualTypeIds([parsedActId]))
+          .in('student_id', getDualTypeIds([parsedUid]))
+          .maybeSingle();
+        if (existingSubStudent?.id) targetSubId = existingSubStudent.id;
+      }
+    }
+
+    if (targetSubId) {
+      const subSearchIds = getDualTypeIds([targetSubId]);
+      const { data: updatedSub, error } = await client
+        .from('submissions')
+        .update({
+          comments: comments,
+          link_url: formattedLink,
+          file_url: uploadedFileUrl,
+          status: 'submitted',
+          submitted_at: submissionTime
+        })
+        .in('id', subSearchIds)
+        .select()
+        .maybeSingle();
+
+      subError = error;
+      if (updatedSub) currentSubmissionData = updatedSub;
+    } else {
+      let { data: newSub, error } = await client
+        .from('submissions')
+        .insert([{
+          activity_id: parsedActId,
+          user_id: parsedUid,
+          comments: comments,
+          link_url: formattedLink,
+          file_url: uploadedFileUrl,
+          status: 'submitted',
+          submitted_at: submissionTime
+        }])
+        .select()
+        .maybeSingle();
+
+      if (error && (error.code === 'PGRST204' || (error.message && error.message.includes('user_id')))) {
+        const retry = await client
+          .from('submissions')
+          .insert([{
+            activity_id: parsedActId,
+            student_id: parsedUid,
+            comments: comments,
+            link_url: formattedLink,
+            file_url: uploadedFileUrl,
+            status: 'submitted',
+            submitted_at: submissionTime
+          }])
+          .select()
+          .maybeSingle();
+
+        newSub = retry.data;
+        error = retry.error;
+      }
+
+      subError = error;
+      if (newSub) currentSubmissionData = newSub;
+    }
+
+    if (subError) {
+      alert("Error turning in work: " + subError.message);
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.className = "btn-submit-now";
+        submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
+      }
+    } else {
+      if (currentTeacherProfile?.id) {
+        const teacherSearchIds = getDualTypeIds([currentTeacherProfile.id]);
+        if (teacherSearchIds.length > 0) {
+          await client
+            .from('notifications')
+            .insert([{
+              user_id: parseDbId(teacherSearchIds[0]),
+              title: `📝 New Submission: ${userName}`,
+              message: `${userName} turned in work for "${currentActivityData?.title || 'Assignment'}".`,
+              is_read: false,
+              created_at: new Date().toISOString()
+            }]);
+        }
+      }
+
+      alert("🎉 Work turned in successfully on time!");
+      isCurrentlySubmitted = true;
+      if (submitBtn) submitBtn.disabled = false;
+      updateFormState(true, currentSubmissionData);
+    }
+  }
+
+  /* =====================================================
+     6. DIRECT PRIVATE CONSULTATION SHORTCUT
+  ===================================================== */
+  function askTeacherAboutActivity() {
+    if (!currentTeacherProfile) {
+      alert("Teacher information is currently loading or unavailable.");
+      return;
+    }
+
+    localStorage.setItem("chatTargetTeacherId", String(currentTeacherProfile.id));
+    localStorage.setItem("chatTargetTeacherName", currentTeacherProfile.full_name || "Instructor");
+    localStorage.setItem("chatTargetStudentId", String(currentUserId));
+    localStorage.setItem("chatTargetStudentName", userName);
+    localStorage.setItem("updateType", "private-chat");
+    window.location.href = messageTeacherUrl;
+  }
+
+  /* =====================================================
+     7. TEACHER ACTION DROPDOWN & UTILITIES
+  ===================================================== */
+  function toggleDropdown(e) {
+    e.stopPropagation();
+    const menu = document.getElementById("dropdownMenu");
+    if (menu) menu.classList.toggle("show");
+  }
+
+  document.addEventListener("click", () => {
+    const menu = document.getElementById("dropdownMenu");
+    if (menu) menu.classList.remove("show");
+  });
+
+  function redirectToUpdate() {
+    if (isClassArchived) {
+      alert("Archived activities cannot be edited.");
+      return;
+    }
+    localStorage.setItem("updateType", "activity");
+    localStorage.setItem("selectedActivityId", String(selectedActivityId));
+    window.location.href = updatePageUrl;
+  }
+
+  function redirectToSubmissions() {
+    localStorage.setItem("selectedActivityId", String(selectedActivityId));
+    window.location.href = submissionsUrl;
+  }
+
+  async function deleteActivity() {
+    if (isClassArchived) {
+      alert("Archived activities cannot be deleted.");
+      return;
+    }
+
+    if (confirm("Are you sure you want to delete this activity and all student submissions?")) {
+      const client = getSupabaseClient();
+      if (!client) return;
+
+      const actSearchIds = getDualTypeIds([selectedActivityId]);
+      const { error } = await client
+        .from('activities')
+        .delete()
+        .in('id', actSearchIds);
+
+      if (error) {
+        alert("Error deleting activity: " + error.message);
+      } else {
+        alert("Activity deleted successfully.");
+        window.location.href = classPageUrl;
+      }
+    }
+  }
+
+  /* =====================================================
+     8. LOAD SIDEBAR CLASSES & GROUPS
+  ===================================================== */
+  async function loadSidebarClasses() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarClassList = document.getElementById("sidebarClassList");
+    if (!sidebarClassList) return;
+    sidebarClassList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myClasses = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const { data: mems, error: memErr } = await client
+          .from('class_memberships')
+          .select('class_id')
+          .in('user_id', userSearchIds);
+
+        if (!memErr && mems && mems.length > 0) {
+          const classSearchIds = getDualTypeIds(mems.map(m => m.class_id));
+          if (classSearchIds.length > 0) {
+            const { data: fetchedClasses } = await client
+              .from('classes')
+              .select('id, subject, code, status')
+              .in('id', classSearchIds);
+            myClasses = fetchedClasses || [];
+          }
+        } else {
+          const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
+          if (joinedClasses.length > 0) {
+            const { data: fallbackData } = await client
+              .from('classes')
+              .select('id, subject, code, status')
+              .in('code', joinedClasses);
+            myClasses = fallbackData || [];
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Sidebar classes error:", err);
+    }
+
+    myClasses = myClasses.filter(c => c && c.status !== 'archived');
+
+    if (myClasses.length > 0) {
+      const currentSelectedCode = localStorage.getItem("selectedClass");
+      myClasses.forEach(c => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `📘 ${c.subject}`;
+        sideLink.href = classPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedClass", c.code);
+          localStorage.setItem("selectedClassId", String(c.id));
+          window.location.href = classPageUrl;
+        };
+        sidebarClassList.appendChild(sideLink);
+      });
+    } else {
+      sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
+    }
+  }
+
+  async function loadSidebarGroups() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarGroupList = document.getElementById("sidebarGroupList");
+    if (!sidebarGroupList) return;
+    sidebarGroupList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myGroups = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const { data: mems, error: memErr } = await client
+          .from('group_memberships')
+          .select('group_id')
+          .in('user_id', userSearchIds);
+
+        if (!memErr && mems && mems.length > 0) {
+          const groupSearchIds = getDualTypeIds(mems.map(m => m.group_id));
+          if (groupSearchIds.length > 0) {
+            const { data: fetchedGroups } = await client
+              .from('groups')
+              .select('id, name, code, status')
+              .in('id', groupSearchIds);
+            myGroups = fetchedGroups || [];
+          }
+        } else {
+          const joinedGroups = JSON.parse(localStorage.getItem("joinedGroups") || "[]");
+          if (joinedGroups.length > 0) {
+            const { data: fallbackData } = await client
+              .from('groups')
+              .select('id, name, code, status')
+              .in('code', joinedGroups);
+            myGroups = fallbackData || [];
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Sidebar groups error:", err);
+    }
+
+    myGroups = myGroups.filter(g => g && g.status !== 'archived');
+
+    if (myGroups.length > 0) {
+      const currentSelectedGroup = localStorage.getItem("selectedGroup");
+      myGroups.forEach(g => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `👥 ${g.name}`;
+        sideLink.href = groupPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedGroup", g.code);
+          localStorage.setItem("selectedGroupId", String(g.id));
+          window.location.href = groupPageUrl;
+        };
+        sidebarGroupList.appendChild(sideLink);
+      });
+    } else {
+      sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
+    }
+  }
+</script>

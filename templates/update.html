@@ -1,0 +1,1314 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- ðŸ”’ PREVENT BROWSER CACHING AFTER LOGOUT -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <title>Update Content | Regis Marie College</title>
+
+  <!-- FONT AWESOME & GOOGLE FONTS -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <!-- âš¡ SUPABASE JS CLIENT SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+  /* =========================================
+     GLOBAL RESET & BRAND DESIGN SYSTEM
+  ========================================= */
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #dbeafe;
+    --background: #f4f7fb;
+    --surface: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --success: #16a34a;
+    --danger: #ef4444;
+    --shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    position: relative;
+  }
+
+  /* =========================================
+     SIDEBAR NAVIGATION RAIL & OVERLAY
+  ========================================= */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e40af, #1e3a8a);
+    color: #ffffff;
+    padding: 22px 15px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .user-profile-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .user-badge {
+    display: inline-block;
+    background: #fbbf24;
+    color: #1e3a8a;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar a,
+  #sidebarMenu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 14.5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .sidebar a:hover,
+  #sidebarMenu a:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: translateX(2px);
+    color: #ffffff !important;
+  }
+
+  .sidebar a.active,
+  #sidebarMenu a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    font-weight: bold;
+    color: #ffffff !important;
+  }
+
+  .sidebar-logout-btn {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffffff !important;
+    margin-top: 18px !important;
+    cursor: pointer;
+  }
+
+  .sidebar-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.45) !important;
+  }
+
+  .sidebar-section {
+    margin-top: 24px;
+  }
+
+  .sidebar-section-title {
+    padding: 0 10px 8px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    margin-bottom: 6px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* =========================================
+     MAIN FORM CONTAINER
+  ========================================= */
+  .main-content {
+    margin-left: 240px;
+    min-height: 100vh;
+    padding: 28px;
+    flex: 1 1 auto;
+    width: calc(100% - 240px);
+    max-width: 100%;
+    min-width: 0;
+    transition: margin-left 0.3s ease, width 0.3s ease, padding 0.3s ease;
+  }
+
+  .container {
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+    background: var(--surface);
+    padding: 30px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    min-width: 0;
+  }
+
+  /* ACTIVITY HEADER & DROPDOWN */
+  .activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .activity-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .activity-header h2 {
+    font-size: 21px;
+    color: var(--primary-dark);
+    font-weight: 700;
+    margin: 0;
+    word-break: break-word;
+    line-height: 1.3;
+  }
+
+  .type-badge {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .menu-container {
+    position: relative;
+  }
+
+  .three-dots-btn {
+    background: transparent;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: var(--muted);
+    min-width: 38px;
+    min-height: 38px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .three-dots-btn:hover {
+    background: #f1f5f9;
+    color: var(--text);
+  }
+
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 42px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+    min-width: 160px;
+    overflow: hidden;
+  }
+
+  .dropdown-menu.show {
+    display: block;
+  }
+
+  .dropdown-item {
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 14px;
+    border: none;
+    background: #ffffff;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .dropdown-item:hover {
+    background: #f8fafc;
+  }
+
+  .dropdown-item.clear {
+    color: var(--danger);
+  }
+
+  /* FORM STYLES */
+  label {
+    display: block;
+    margin-top: 16px;
+    margin-bottom: 6px;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .required {
+    color: var(--danger);
+  }
+
+  input[type="text"],
+  input[type="date"],
+  input[type="time"],
+  input[type="number"],
+  input[type="url"],
+  input[type="file"],
+  select,
+  textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    margin-top: 6px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    background: #f8fafc;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  textarea {
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.55;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--primary);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  }
+
+  .note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  .picker-btn {
+    background: #f1f5f9;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 0 14px;
+    cursor: pointer;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease;
+  }
+
+  .picker-btn:hover {
+    background: #e2e8f0;
+  }
+
+  /* ACTION BUTTONS */
+  .buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .buttons button,
+  .buttons a {
+    min-height: 44px;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.2s ease, transform 0.1s ease;
+    white-space: nowrap;
+  }
+
+  .buttons .cancel {
+    background: #64748b;
+    color: #ffffff;
+    border: none;
+  }
+
+  .buttons .cancel:hover {
+    background: #475569;
+  }
+
+  .buttons .save {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+  }
+
+  .buttons .save:hover {
+    background: var(--primary-dark);
+  }
+
+  /* =========================================
+     RESPONSIVE BREAKPOINTS (RWD)
+  ========================================= */
+  /* Tablets and Standard Mobile Screens */
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+    }
+
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+      max-width: 100vw;
+      padding: 18px;
+      padding-top: 74px;
+    }
+
+    .container {
+      padding: 24px 20px;
+    }
+
+    /* iOS auto-zoom prevention */
+    input[type="text"],
+    input[type="date"],
+    input[type="time"],
+    input[type="number"],
+    input[type="url"],
+    input[type="file"],
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+
+  /* Compact Smartphones (320px - 480px) */
+  @media (max-width: 480px) {
+    .main-content {
+      padding: 12px;
+      padding-top: 68px;
+    }
+
+    .container {
+      padding: 20px 16px;
+      border-radius: 12px;
+    }
+
+    .activity-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .activity-header h2 {
+      font-size: 18px;
+    }
+
+    .buttons {
+      flex-direction: column-reverse;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .buttons button,
+    .buttons a {
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+
+    <!-- USER PROFILE & ROLE BADGE -->
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">TEACHER</div>
+    </div>
+
+    <!-- DYNAMIC SIDEBAR LINKS -->
+    <div id="sidebarMenu"></div>
+
+    <!-- MY CLASSES -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <!-- MY GROUPS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <!-- LOGOUT BUTTON -->
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="main-content">
+    <div class="container">
+      <div class="activity-header">
+        <h2 id="pageTitle">✏️ Update Content</h2>
+        <span class="type-badge" id="modeBadge">Lesson / Activity</span>
+
+        <!-- 3-DOTS MENU -->
+        <div class="menu-container">
+          <button class="three-dots-btn" id="threeDotsBtn" onclick="toggleDropdown(event)">⋮</button>
+          <div class="dropdown-menu" id="dropdownMenu">
+            <button class="dropdown-item clear" onclick="resetForm()"><i class="fa-solid fa-rotate-left"></i> Reset Fields</button>
+            <a href="{{ url_for('class_page') }}" class="dropdown-item" style="text-decoration:none;"><i class="fa-solid fa-xmark"></i> Cancel</a>
+          </div>
+        </div>
+      </div>
+
+      <form id="updateForm">
+        <!-- TITLE FIELD -->
+        <label for="title">Title <span class="required">*</span></label>
+        <input type="text" id="title" required placeholder="Enter title">
+
+        <!-- DESCRIPTION FIELD -->
+        <label for="description">Description / Content Overview:</label>
+        <textarea id="description" rows="5" placeholder="Explain details or instructions"></textarea>
+
+        <!-- RESOURCE LINK FIELD -->
+        <label for="link">Resource Link / External URL:</label>
+        <input type="url" id="link" placeholder="https://example.com or Google Drive Link">
+
+        <!-- ATTACHMENT FILE FIELD -->
+        <label for="lessonFiles">Replace or Add Attachment File:</label>
+        <input type="file" id="lessonFiles" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.zip">
+        <div class="note" id="currentFileNote">Upload a new document or worksheet if replacing the current file.</div>
+
+        <!-- ACTIVITY-SPECIFIC FIELDS (DYNAMICALLY TOGGLED) -->
+        <div id="activityFields" style="display: none;">
+          <label for="date">Due Date <span class="required">*</span></label>
+          <div style="display:flex; align-items:stretch; gap:8px;">
+            <input type="date" id="date" style="flex:1;">
+            <button type="button" class="picker-btn" onclick="document.getElementById('date').showPicker()">📅</button>
+          </div>
+
+          <label for="time">Due Time <span class="required">*</span></label>
+          <div style="display:flex; align-items:stretch; gap:8px;">
+            <input type="time" id="time" style="flex:1;">
+            <button type="button" class="picker-btn" onclick="document.getElementById('time').showPicker()">⏰</button>
+          </div>
+
+          <label for="score">Total Score Points:</label>
+          <input type="number" id="score" min="0" max="500" placeholder="e.g. 100">
+        </div>
+
+        <div class="buttons">
+          <a href="{{ url_for('class_page') }}" class="cancel">Cancel</a>
+          <button type="submit" class="save" id="submitBtn"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+<script>
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  /* =====================================================
+     0. TYPE-SAFE ID HELPERS & ESCAPE UTILITIES
+  ===================================================== */
+  function parseDbId(idVal) {
+    if (!idVal) return idVal;
+    if (typeof idVal === 'number') return idVal;
+    const str = String(idVal).trim();
+    if (/^\d+$/.test(str)) {
+      return parseInt(str, 10);
+    }
+    return str;
+  }
+
+  function getDualTypeIds(idArray) {
+    const result = new Set();
+    (idArray || []).forEach(id => {
+      if (id !== null && id !== undefined && id !== '') {
+        result.add(String(id));
+        const num = parseDbId(id);
+        if (typeof num === 'number' && !isNaN(num)) {
+          result.add(num);
+        }
+      }
+    });
+    return Array.from(result);
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  /* =====================================================
+     1. USER SESSION & ROLE PROTECTION
+  ===================================================== */
+  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
+  const userRole = rawRole.toUpperCase();
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+  if (userRole === "STUDENT") {
+    alert("Access restricted: Updating course material is only available for Teachers and Admins.");
+    window.location.replace("{{ url_for('landpage') }}");
+  }
+
+  const badgeEl = document.getElementById("userRoleBadge");
+  const sidebarNameEl = document.getElementById("sidebarUserName");
+  if (badgeEl) badgeEl.textContent = userRole;
+  if (sidebarNameEl) sidebarNameEl.textContent = userName;
+
+  const homeUrl = "{{ url_for('landpage') }}";
+  const createUrl = "{{ url_for('create_page') }}";
+  const calendarUrl = "{{ url_for('calendar_page') }}";
+  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+  const gradesUrl = "{{ url_for('grades_page') }}";
+  const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const archiveUrl = "{{ url_for('archive_page') }}";
+  const notifyUrl = "{{ url_for('notify_page') }}";
+  const accountUrl = "{{ url_for('account_page') }}";
+  const classPageUrl = "{{ url_for('class_page') }}";
+  const groupPageUrl = "{{ url_for('group_page') }}";
+  const lessonsPageUrl = "{{ url_for('lessons_page') }}";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+
+  const sidebarMenu = document.getElementById("sidebarMenu");
+
+  if (sidebarMenu) {
+    if (userRole === "ADMIN") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}">➕ Create Class/Group</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${gradesUrl}">💯 Master Grades</a>
+        <a href="${archiveUrl}">📦 Institutional Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    } else {
+      // TEACHER POV
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}">➕ Create Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${gradesUrl}">💯 Grades</a>
+        <a href="${submissionsUrl}">📝 Submissions</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    }
+  }
+
+  /* MOBILE SIDEBAR TOGGLE */
+  const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+  const sidebar = document.getElementById("sidebar");
+
+  if (mobileMenuBtn && sidebar) {
+    mobileMenuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle("active");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.remove("active");
+      }
+    });
+  }
+
+  function logoutUser() {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("{{ url_for('logout') }}");
+  }
+
+  /* 3-DOTS DROPDOWN LOGIC */
+  window.toggleDropdown = function (e) {
+    e.stopPropagation();
+    const menu = document.getElementById("dropdownMenu");
+    if (menu) menu.classList.toggle("show");
+  };
+
+  document.addEventListener("click", () => {
+    const menu = document.getElementById("dropdownMenu");
+    if (menu) menu.classList.remove("show");
+  });
+
+  /* =====================================================
+     2. SUPABASE INITIALIZATION & CONSTANTS
+  ===================================================== */
+  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+  function getSupabaseClient() {
+    if (window._supabase) return window._supabase;
+    const supabaseLib = window.supabase || window.Supabase;
+    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+      return window._supabase;
+    }
+    return null;
+  }
+
+  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB limit
+  const dangerousExtensions = new Set([
+    "exe", "bat", "cmd", "sh", "vbs", "vbe", "js", "jse", "wsf", "wsh",
+    "scr", "msi", "com", "pif", "hta", "cpl", "jar", "apk", "bin",
+    "ps1", "py", "php", "asp", "aspx", "jsp", "cgi", "zip", "rar", "7z", "tar", "gz", "iso", "dll"
+  ]);
+
+  let currentRecord = null;
+  let updateType = null;
+  let activeRecordId = null;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      initUpdateForm();
+      loadSidebarClasses();
+      loadSidebarGroups();
+    }, 100);
+  });
+
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function formatUrl(url) {
+    if (!url) return null;
+    let trimmed = url.trim();
+    if (!trimmed) return null;
+    if (!/^https?:\/\//i.test(trimmed)) {
+      return 'https://' + trimmed;
+    }
+    return trimmed;
+  }
+
+  /* =====================================================
+     3. FETCH & PRE-FILL LESSON OR ACTIVITY
+  ===================================================== */
+  async function initUpdateForm() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const pageTitle = document.getElementById("pageTitle");
+    const modeBadge = document.getElementById("modeBadge");
+    const activityFields = document.getElementById("activityFields");
+
+    const rawType = localStorage.getItem("updateType");
+    const selectedActivityId = localStorage.getItem("selectedActivityId");
+    const selectedLessonId = localStorage.getItem("selectedLessonId");
+
+    if (rawType === "activity" && selectedActivityId) {
+      updateType = "activity";
+      activeRecordId = selectedActivityId;
+    } else if (rawType === "lesson" && selectedLessonId) {
+      updateType = "lesson";
+      activeRecordId = selectedLessonId;
+    } else if (selectedActivityId) {
+      updateType = "activity";
+      activeRecordId = selectedActivityId;
+    } else if (selectedLessonId) {
+      updateType = "lesson";
+      activeRecordId = selectedLessonId;
+    } else {
+      alert("No lesson or activity selected for editing. Returning to classroom workspace.");
+      window.location.href = classPageUrl;
+      return;
+    }
+
+    const searchIds = getDualTypeIds([activeRecordId]);
+
+    if (updateType === "activity") {
+      if (pageTitle) pageTitle.innerHTML = '✏️ Update Activity';
+      if (modeBadge) modeBadge.textContent = 'Activity Mode';
+      if (activityFields) activityFields.style.display = "block";
+
+      const { data: activity, error } = await client
+        .from('activities')
+        .select('*')
+        .in('id', searchIds)
+        .maybeSingle();
+
+      if (activity && !error) {
+        currentRecord = activity;
+        document.getElementById('title').value = activity.title || "";
+        document.getElementById('description').value = activity.description || "";
+        document.getElementById('link').value = activity.link_url || "";
+        document.getElementById('score').value = activity.total_points || 100;
+
+        // Pre-fill Late Deadline Policy Toggles if elements exist
+        const allowLateEl = document.getElementById('allowLateCheckbox');
+        const markLateEl = document.getElementById('markLateCheckbox');
+        if (allowLateEl) allowLateEl.checked = activity.allow_late ?? true;
+        if (markLateEl) markLateEl.checked = activity.mark_late ?? true;
+
+        if (activity.file_url) {
+          const noteEl = document.getElementById('currentFileNote');
+          if (noteEl) noteEl.textContent = "Current file attached. Select a new file to replace it.";
+        }
+
+        const deadlineVal = activity.deadline || activity.due_date;
+        if (deadlineVal) {
+          const dt = new Date(deadlineVal);
+          const year = dt.getFullYear();
+          const month = String(dt.getMonth() + 1).padStart(2, '0');
+          const day = String(dt.getDate()).padStart(2, '0');
+          const hours = String(dt.getHours()).padStart(2, '0');
+          const minutes = String(dt.getMinutes()).padStart(2, '0');
+          document.getElementById('date').value = `${year}-${month}-${day}`;
+          document.getElementById('time').value = `${hours}:${minutes}`;
+        }
+      } else {
+        alert("Could not load activity details from database.");
+      }
+
+    } else if (updateType === "lesson") {
+      if (pageTitle) pageTitle.innerHTML = '✏️ Update Lesson';
+      if (modeBadge) modeBadge.textContent = 'Lesson Mode';
+      if (activityFields) activityFields.style.display = "none";
+
+      const { data: lesson, error } = await client
+        .from('lessons')
+        .select('*')
+        .in('id', searchIds)
+        .maybeSingle();
+
+      if (lesson && !error) {
+        currentRecord = lesson;
+        document.getElementById('title').value = lesson.title || "";
+        document.getElementById('description').value = lesson.content || lesson.description || "";
+        document.getElementById('link').value = lesson.link_url || "";
+        if (lesson.file_url) {
+          const noteEl = document.getElementById('currentFileNote');
+          if (noteEl) noteEl.textContent = "Current file attached. Select a new file to replace it.";
+        }
+      } else {
+        alert("Could not load lesson details from database.");
+      }
+    }
+  }
+
+  window.resetForm = function () {
+    if (confirm("Reset fields back to original database values?")) {
+      initUpdateForm();
+    }
+  };
+
+  /* =====================================================
+     4. SUBMIT UPDATED DATA WITH AI SAFETY & VALIDATION
+  ===================================================== */
+  const updateForm = document.getElementById('updateForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  if (updateForm) {
+    updateForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const client = getSupabaseClient();
+      if (!client || !activeRecordId) {
+        alert("Database error or record ID missing.");
+        return;
+      }
+
+      const title = document.getElementById('title').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const linkInput = document.getElementById('link').value.trim();
+      const fileInput = document.getElementById('lessonFiles');
+
+      // 1. Local AI Content Pre-flight Moderation Check
+      try {
+        const aiResponse = await fetch('/api/ai-moderate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: `${title} ${description}` })
+        });
+        if (aiResponse.ok) {
+          const aiData = await aiResponse.json();
+          if (!aiData.allowed) {
+            alert(`🛑 Blocked by AI Safety Filter: ${aiData.reason || 'Prohibited language detected.'}`);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("AI moderation check bypassed due to network issue:", err);
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving Changes & Notifying Students...';
+
+      let updatedFileUrl = currentRecord ? (currentRecord.file_url || null) : null;
+
+      if (fileInput && fileInput.files && fileInput.files.length > 0) {
+        const pickedFile = fileInput.files[0];
+
+        // 2. File size verification (25MB Limit)
+        if (pickedFile.size > MAX_FILE_SIZE) {
+          alert("🛑 File Limit Exceeded: Maximum attachment size is 25MB.");
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
+          return;
+        }
+
+        // 3. Extension Block & Whitelisting
+        const fileExt = pickedFile.name.split('.').pop().toLowerCase();
+        if (dangerousExtensions.has(fileExt)) {
+          alert(`🛑 Security Alert: The file extension (.${fileExt}) is prohibited.`);
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
+          return;
+        }
+
+        try {
+          const fileName = `update_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          const filePath = `updates/${fileName}`;
+
+          const { data: uploadData, error: uploadError } = await client.storage
+            .from('lesson-files')
+            .upload(filePath, pickedFile);
+
+          if (!uploadError && uploadData) {
+            const { data: urlData } = client.storage.from('lesson-files').getPublicUrl(filePath);
+            updatedFileUrl = urlData.publicUrl;
+          } else {
+            updatedFileUrl = await readFileAsDataURL(pickedFile);
+          }
+        } catch (err) {
+          updatedFileUrl = await readFileAsDataURL(pickedFile);
+        }
+      }
+
+      const searchIds = getDualTypeIds([activeRecordId]);
+      const classId = currentRecord?.class_id || localStorage.getItem("selectedClassId");
+
+      if (updateType === "activity") {
+        const dateVal = document.getElementById('date').value;
+        const timeVal = document.getElementById('time').value || "23:59";
+        const scoreVal = parseInt(document.getElementById('score').value, 10) || 100;
+        
+        const allowLateVal = document.getElementById('allowLateCheckbox')?.checked ?? true;
+        const markLateVal = document.getElementById('markLateCheckbox')?.checked ?? true;
+
+        let deadlineIso = null;
+        if (dateVal) {
+          deadlineIso = new Date(`${dateVal}T${timeVal}:00`).toISOString();
+        }
+
+        const { error } = await client
+          .from('activities')
+          .update({
+            title: title,
+            description: description,
+            deadline: deadlineIso,
+            due_date: deadlineIso,
+            total_points: scoreVal,
+            link_url: formatUrl(linkInput),
+            file_url: updatedFileUrl,
+            allow_late: allowLateVal,
+            mark_late: markLateVal,
+            notification_log: {}
+          })
+          .in('id', searchIds);
+
+        if (error) {
+          alert("Error updating activity: " + error.message);
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
+          return;
+        }
+
+        await dispatchUpdateNotifications({
+          client: client,
+          classId: classId,
+          title: title,
+          notifType: 'updated_activity',
+          detailsText: `Updated Deadline: ${dateVal} at ${timeVal} | Points: ${scoreVal}`,
+          activityId: activeRecordId
+        });
+
+        alert("🎉 Activity updated successfully! Reminders have recalibrated and students have been alerted.");
+        window.location.href = classPageUrl;
+
+      } else if (updateType === "lesson") {
+        const { error } = await client
+          .from('lessons')
+          .update({
+            title: title,
+            content: description,
+            link_url: formatUrl(linkInput),
+            file_url: updatedFileUrl
+          })
+          .in('id', searchIds);
+
+        if (error) {
+          alert("Error updating lesson: " + error.message);
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
+          return;
+        }
+
+        await dispatchUpdateNotifications({
+          client: client,
+          classId: classId,
+          title: title,
+          notifType: 'updated_lesson',
+          detailsText: "Lesson materials have been modified. Please review the updated content in your portal.",
+          activityId: null
+        });
+
+        alert("🎉 Lesson updated successfully! Students have been notified.");
+        window.location.href = lessonsPageUrl;
+      }
+    });
+  }
+
+  /* =====================================================
+     5. NOTIFICATION DISPATCH HELPER (PUSH + EMAIL + IN-APP)
+  ===================================================== */
+  async function dispatchUpdateNotifications({ client, classId, title, notifType, detailsText, activityId }) {
+    if (!classId) return;
+
+    try {
+      let className = "Regis Marie College Class";
+      const { data: clsData } = await client
+        .from('classes')
+        .select('subject')
+        .in('id', getDualTypeIds([classId]))
+        .maybeSingle();
+      if (clsData?.subject) className = clsData.subject;
+
+      const userIdsFormatted = getDualTypeIds([currentUserId]).map(id => `"${id}"`).join(',');
+      const { data: enrolledMembers } = await client
+        .from('class_memberships')
+        .select('user_id')
+        .in('class_id', getDualTypeIds([classId]));
+
+      if (!enrolledMembers || enrolledMembers.length === 0) return;
+
+      const studentUserIds = getDualTypeIds(enrolledMembers.map(m => m.user_id));
+
+      const notifHeader = notifType === 'updated_activity' ? `✏️ Activity Updated: ${title}` : `📖 Lesson Updated: ${title}`;
+      const inAppRecords = enrolledMembers.map(m => ({
+        user_id: parseDbId(m.user_id),
+        title: notifHeader,
+        message: `${title} in ${className} was modified. ${detailsText}`,
+        is_read: false,
+        activity_id: activityId ? parseDbId(activityId) : null
+      }));
+      await client.from('notifications').insert(inAppRecords);
+
+      const { data: studentUsers } = await client
+        .from('users')
+        .select('id, email')
+        .in('id', studentUserIds);
+
+      const studentEmails = (studentUsers || []).map(u => u.email).filter(Boolean);
+      const studentIdStrings = (studentUsers || []).map(u => String(u.id));
+
+      if (studentEmails.length > 0 || studentIdStrings.length > 0) {
+        await fetch('/api/notify-users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            class_title: className,
+            title: title,
+            type: notifType,
+            student_emails: studentEmails,
+            student_ids: studentIdStrings,
+            details: detailsText
+          })
+        });
+      }
+    } catch (err) {
+      console.warn("Update notification dispatch error:", err);
+    }
+  }
+
+  /* =====================================================
+     6. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA)
+  ===================================================== */
+  async function loadSidebarClasses() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarClassList = document.getElementById("sidebarClassList");
+    if (!sidebarClassList) return;
+    sidebarClassList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myClasses = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      } else {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar classes error:", err);
+    }
+
+    myClasses = myClasses.filter(c => c && c.status !== 'archived');
+
+    if (myClasses.length > 0) {
+      myClasses.forEach(c => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        sideLink.textContent = `📘 ${c.subject}`;
+        sideLink.href = classPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.setItem("selectedClass", c.code);
+          localStorage.setItem("selectedClassId", String(c.id));
+          window.location.href = classPageUrl;
+        };
+        sidebarClassList.appendChild(sideLink);
+      });
+    } else {
+      sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
+    }
+  }
+
+  async function loadSidebarGroups() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarGroupList = document.getElementById("sidebarGroupList");
+    if (!sidebarGroupList) return;
+    sidebarGroupList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myGroups = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      } else {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar groups error:", err);
+    }
+
+    myGroups = myGroups.filter(g => g && g.status !== 'archived');
+
+    if (myGroups.length > 0) {
+      myGroups.forEach(g => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        sideLink.textContent = `👥 ${g.name}`;
+        sideLink.href = groupPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.setItem("selectedGroup", g.code);
+          localStorage.setItem("selectedGroupId", String(g.id));
+          window.location.href = groupPageUrl;
+        };
+        sidebarGroupList.appendChild(sideLink);
+      });
+    } else {
+      sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
+    }
+  }
+</script>

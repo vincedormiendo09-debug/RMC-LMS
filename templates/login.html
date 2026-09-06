@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regis Marie College | Portal Login</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+   
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+   
+<style>
+  /* =========================================
+     GLOBAL RESET & BRAND DESIGN SYSTEM
+  ========================================= */
+  :root {
+    --primary: #0284c7;
+    --primary-dark: #0369a1;
+    --primary-light: #e0f2fe;
+    --accent: #38bdf8;
+    --dark: #0f172a;
+    --dark-surface: #1e293b;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --border: #cbd5e1;
+    --danger: #dc2626;
+    --danger-bg: #fef2f2;
+    --danger-border: #fecaca;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', Arial, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s ease;
+  }
+
+  /* =========================================
+     NAVIGATION BAR
+  ========================================= */
+  .navbar {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 40px;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+  }
+
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .brand-logo img {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    object-fit: contain;
+  }
+
+  .brand-logo span {
+    color: #ffffff;
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-links {
+    display: flex;
+    list-style: none;
+    gap: 16px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .nav-links a {
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 0.92rem;
+    transition: color 0.2s ease;
+  }
+
+  .nav-links a:hover {
+    color: var(--accent);
+  }
+
+  .register-btn {
+    background-color: var(--primary);
+    color: #ffffff !important;
+    min-height: 40px;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-weight: 600 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease !important;
+    white-space: nowrap;
+  }
+
+  .register-btn:hover {
+    background-color: var(--primary-dark) !important;
+  }
+
+  /* =========================================
+     LOGIN CONTAINER & CARD
+  ========================================= */
+  .login-wrapper {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px 16px;
+    width: 100%;
+  }
+
+  .login-card {
+    background-color: #ffffff;
+    width: 100%;
+    max-width: 440px;
+    border-radius: 16px;
+    padding: 36px 32px;
+    box-shadow: var(--shadow);
+    border-top: 6px solid var(--primary);
+    min-width: 0;
+  }
+
+  .card-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  .card-header img {
+    width: 65px;
+    height: 65px;
+    margin-bottom: 10px;
+    object-fit: contain;
+  }
+
+  .card-header h2 {
+    font-size: 1.65rem;
+    color: var(--dark);
+    font-weight: 700;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  .card-header p {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  /* =========================================
+     FORM CONTROLS & INPUTS
+  ========================================= */
+  .form-group {
+    margin-bottom: 18px;
+    min-width: 0;
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    color: #334155;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input[type="text"],
+  input[type="password"],
+  input[type="email"] {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--dark);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    background-color: #f8fafc;
+  }
+
+  input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    background-color: #ffffff;
+  }
+
+  .submit-btn {
+    width: 100%;
+    min-height: 46px;
+    background-color: var(--primary);
+    color: #ffffff;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 0.98rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .submit-btn:hover {
+    background-color: var(--primary-dark);
+  }
+
+  .submit-btn:active {
+    transform: scale(0.99);
+  }
+
+  /* =========================================
+     ERROR ALERT & FOOTER
+  ========================================= */
+  .error-message {
+    background-color: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    color: var(--danger);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-bottom: 18px;
+    text-align: center;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .form-footer {
+    text-align: center;
+    margin-top: 22px;
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  .form-footer a {
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  .form-footer a:hover {
+    text-decoration: underline;
+  }
+
+  /* =========================================
+     RESPONSIVE BREAKPOINTS (RWD)
+  ========================================= */
+  /* Tablets and Standard Mobile Screens */
+  @media (max-width: 768px) {
+    .navbar {
+      padding: 12px 20px;
+    }
+
+    .brand-logo span {
+      font-size: 1.05rem;
+    }
+
+    .brand-logo img {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+    }
+
+    /* iOS auto-zoom prevention */
+    input[type="text"],
+    input[type="password"],
+    input[type="email"] {
+      font-size: 16px;
+    }
+  }
+
+  /* Compact Smartphones (320px - 480px) */
+  @media (max-width: 480px) {
+    .navbar {
+      padding: 10px 14px;
+    }
+
+    .brand-logo span {
+      font-size: 0.95rem;
+    }
+
+    .register-btn {
+      min-height: 36px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+    }
+
+    .login-wrapper {
+      padding: 20px 12px;
+    }
+
+    .login-card {
+      padding: 24px 18px;
+      border-radius: 14px;
+    }
+
+    .card-header {
+      margin-bottom: 18px;
+    }
+
+    .card-header img {
+      width: 55px;
+      height: 55px;
+    }
+
+    .card-header h2 {
+      font-size: 1.45rem;
+    }
+
+    .card-header p {
+      font-size: 0.82rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- TOP NAVIGATION BAR -->
+  <nav class="navbar">
+    <a href="{{ url_for('home') }}" class="brand-logo">
+      <img src="{{ url_for('static', filename='rmc.png') }}" alt="Regis Marie College Logo">
+      <span>REGIS MARIE COLLEGE</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="{{ url_for('home') }}">Home</a></li>
+    </ul>
+  </nav>
+
+  <!-- MAIN LOGIN CONTAINER -->
+  <div class="login-wrapper">
+    <div class="login-card">
+      
+      <div class="card-header">
+        <img src="{{ url_for('static', filename='rmc.png') }}" alt="RMC Logo">
+        <h2>Portal Sign In</h2>
+        <p>Enter your registered credentials to access your dashboard.</p>
+      </div>
+
+      <!-- FLASHED ALERT MESSAGES (VALIDATOR-SAFE, NO VS CODE WARNINGS) -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            {% if category == 'success' %}
+              <div style="display: block; text-align: center; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13.5px; font-weight: 500; background-color: #dcfce7; color: #166534; border: 1px solid #86efac;">
+                ✅ {{ message }}
+              </div>
+            {% elif category == 'warning' %}
+              <div style="display: block; text-align: center; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13.5px; font-weight: 500; background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a;">
+                ⚠️ {{ message }}
+              </div>
+            {% elif category == 'info' %}
+              <div style="display: block; text-align: center; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13.5px; font-weight: 500; background-color: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;">
+                ℹ️ {{ message }}
+              </div>
+            {% else %}
+              <div style="display: block; text-align: center; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13.5px; font-weight: 500; background-color: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;">
+                ❌ {{ message }}
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form action="{{ url_for('login') }}" method="POST">
+
+        <div class="form-group">
+          <label for="loginEmail">Email Address</label>
+          <input type="email" id="loginEmail" name="email" placeholder="e.g., user@example.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" name="password" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" class="submit-btn">Sign In to Dashboard</button>
+
+      </form>
+
+      <div class="form-footer">
+        Need an account? 
+        <a href="https://www.facebook.com/janbert.clent.nunez" 
+           target="_blank" 
+           rel="noopener noreferrer" 
+           onclick="handleRegistrationNotice(event)">
+          Submit Registration
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- REGISTRATION NOTICE SCRIPT -->
+  <script>
+    function handleRegistrationNotice(event) {
+      const noticeMessage = 
+        "Kindly message this person about registration so you can fill up online and wait for your account to be processed. You will receive an email within 24hrs - 72hrs.\n\nClick OK to proceed to Facebook.";
+      
+      const userConfirmed = confirm(noticeMessage);
+
+      if (!userConfirmed) {
+        event.preventDefault();
+      }
+    }
+  </script>
+
+</body>
+</html>

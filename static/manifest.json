@@ -1,0 +1,43 @@
+{
+  "id": "/",
+  "name": "Regis Marie College Portal",
+  "short_name": "RMC Portal",
+  "description": "Official Academic Portal and Learning Management System of Regis Marie College",
+  "start_url": "/landpage",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffffff",
+  "theme_color": "#1e3a8a",
+  "icons": [
+    {
+      "src": "/static/rmc.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "My Dashboard",
+      "short_name": "Dashboard",
+      "description": "View grades and academic overview",
+      "url": "/dashboard",
+      "icons": [{ "src": "/static/rmc.jpg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Academic Calendar",
+      "short_name": "Calendar",
+      "description": "View upcoming deadlines and activities",
+      "url": "/calendar",
+      "icons": [{ "src": "/static/rmc.jpg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Private Messages",
+      "short_name": "Messages",
+      "description": "Open private consultation inbox",
+      "url": "/private-message",
+      "icons": [{ "src": "/static/rmc.jpg", "sizes": "192x192" }]
+    }
+  ]
+}

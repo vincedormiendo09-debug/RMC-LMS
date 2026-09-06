@@ -1,0 +1,1265 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications - Smart Learning Platform</title>
+
+  <!-- SUPABASE JS CLIENT -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- FONT AWESOME ICONS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+  /* =========================================
+     GLOBAL RESET & BRAND DESIGN SYSTEM
+  ========================================= */
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #eff6ff;
+    --background: #f4f7fb;
+    --surface: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --danger: #dc2626;
+    --danger-light: #fef2f2;
+    --shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    position: relative;
+  }
+
+  /* =========================================
+     SIDEBAR NAVIGATION RAIL & OVERLAY
+  ========================================= */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e40af, #1e3a8a);
+    color: #ffffff;
+    padding: 22px 15px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .user-profile-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .user-badge {
+    display: inline-block;
+    background: #fbbf24;
+    color: #1e3a8a;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar a,
+  #sidebarMenu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 14.5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .sidebar a:hover,
+  #sidebarMenu a:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: translateX(2px);
+    color: #ffffff !important;
+  }
+
+  .sidebar a.active,
+  #sidebarMenu a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    font-weight: bold;
+    color: #ffffff !important;
+  }
+
+  .sidebar-logout-btn {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffffff !important;
+    margin-top: 18px !important;
+    cursor: pointer;
+  }
+
+  .sidebar-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.45) !important;
+  }
+
+  .sidebar-section {
+    margin-top: 24px;
+  }
+
+  .sidebar-section-title {
+    padding: 0 10px 8px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    margin-bottom: 6px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* =========================================
+     MAIN CONTENT AREA
+  ========================================= */
+  .main-content {
+    margin-left: 240px;
+    flex: 1 1 auto;
+    min-height: 100vh;
+    padding: 28px;
+    width: calc(100% - 240px);
+    max-width: 100%;
+    min-width: 0;
+    transition: margin-left 0.3s ease, width 0.3s ease, padding 0.3s ease;
+  }
+
+  .container {
+    max-width: 820px;
+    width: 100%;
+    margin: 0 auto;
+    background: var(--surface);
+    padding: 32px 30px;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    min-width: 0;
+  }
+
+  /* HEADER & THREE DOTS */
+  .notify-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--border);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    position: relative;
+    gap: 12px;
+  }
+
+  .notify-header h2 {
+    color: var(--primary-dark);
+    font-size: 22px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    word-break: break-word;
+  }
+
+  .badge-count {
+    background: var(--danger);
+    color: #ffffff;
+    font-size: 11.5px;
+    font-weight: bold;
+    padding: 3px 9px;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+
+  .menu-container {
+    position: relative;
+  }
+
+  .three-dots-btn {
+    background: transparent;
+    border: none;
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--muted);
+    cursor: pointer;
+    min-width: 40px;
+    min-height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .three-dots-btn:hover {
+    background: #f1f5f9;
+    color: var(--text);
+  }
+
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 45px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+    min-width: 175px;
+    overflow: hidden;
+  }
+
+  .dropdown-menu.show {
+    display: block;
+  }
+
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    min-height: 40px;
+    padding: 10px 15px;
+    border: none;
+    background: none;
+    font-size: 13.5px;
+    cursor: pointer;
+    color: #334155;
+    transition: background 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .dropdown-item:hover {
+    background: #f8fafc;
+  }
+
+  .dropdown-item.clear-all {
+    color: var(--danger);
+    font-weight: 600;
+  }
+
+  .dropdown-item.clear-all:hover {
+    background: var(--danger-light);
+  }
+
+  /* FILTER TABS */
+  .filter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    min-height: 38px;
+    padding: 7px 16px;
+    border: 1px solid var(--border);
+    background: #f8fafc;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .tab-btn:hover {
+    border-color: #cbd5e1;
+    color: var(--text);
+  }
+
+  .tab-btn.active {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+  }
+
+  /* NOTIFICATION CARDS */
+  .notif-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .notif-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    position: relative;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .notif-card:hover {
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    border-color: #bfdbfe;
+  }
+
+  .notif-card.unread {
+    background: #eff6ff;
+    border-left: 4px solid var(--primary);
+  }
+
+  .notif-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .notif-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+
+  .notif-type-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .notif-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .unread-dot {
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .notif-message {
+    font-size: 13.5px;
+    color: #475569;
+    line-height: 1.45;
+    margin-bottom: 8px;
+    word-break: break-word;
+  }
+
+  .notif-time {
+    font-size: 12px;
+    color: #94a3b8;
+  }
+
+  .notif-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .delete-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 16px;
+    cursor: pointer;
+    min-width: 38px;
+    min-height: 38px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+
+  .delete-btn:hover {
+    color: var(--danger);
+    background: var(--danger-light);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  .empty-state div {
+    font-size: 38px;
+    margin-bottom: 10px;
+  }
+
+  /* =========================================
+     RESPONSIVE BREAKPOINTS (RWD)
+  ========================================= */
+  /* Tablets and Standard Mobile Screens */
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+    }
+
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+      max-width: 100vw;
+      padding: 18px;
+      padding-top: 74px;
+    }
+
+    .container {
+      padding: 24px 20px;
+    }
+  }
+
+  /* Compact Smartphones (320px - 480px) */
+  @media (max-width: 480px) {
+    .main-content {
+      padding: 12px;
+      padding-top: 68px;
+    }
+
+    .container {
+      padding: 18px 14px;
+      border-radius: 12px;
+    }
+
+    .notify-header h2 {
+      font-size: 19px;
+    }
+
+    .notif-card {
+      padding: 14px 12px;
+      gap: 8px;
+    }
+
+    .notif-title {
+      font-size: 14px;
+    }
+
+    .notif-message {
+      font-size: 13px;
+    }
+
+    .delete-btn {
+      min-width: 32px;
+      min-height: 32px;
+      font-size: 14px;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+
+    <!-- USER PROFILE & ROLE BADGE -->
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">STUDENT</div>
+    </div>
+
+    <!-- DYNAMIC SIDEBAR LINKS -->
+    <div id="sidebarMenu"></div>
+
+    <!-- MY CLASSES -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <!-- MY GROUPS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <!-- LOGOUT BUTTON -->
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="main-content">
+    <div class="container">
+      <!-- HEADER -->
+      <div class="notify-header">
+        <div>
+          <h2 style="display: flex; align-items: center; gap: 10px;">
+            🔔 Notifications & Activity Feed
+            <span class="badge-count" id="unreadBadge">0</span>
+          </h2>
+          <p id="notifyHeaderSubtext" style="font-size: 13px; color: var(--muted); margin-top: 4px;">
+            Stay updated with class submissions, posted grades, and announcements.
+          </p>
+        </div>
+
+        <!-- 3-DOTS MENU -->
+        <div class="menu-container">
+          <button class="three-dots-btn" id="threeDotsBtn" onclick="toggleDropdown(event)" title="Options">⋮</button>
+          <div class="dropdown-menu" id="dropdownMenu">
+            <button class="dropdown-item" onclick="markAllAsRead()"><i class="fa-solid fa-check"></i> Mark All as Read</button>
+            <button class="dropdown-item clear-all" onclick="clearAllNotifications()"><i class="fa-solid fa-trash"></i> Clear All</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER TABS -->
+      <div class="filter-tabs">
+        <button class="tab-btn active" id="tabAll" onclick="filterNotifications('all')">All Notifications</button>
+        <button class="tab-btn" id="tabUnread" onclick="filterNotifications('unread')">Unread</button>
+      </div>
+
+      <!-- NOTIFICATIONS LIST -->
+      <div class="notif-list" id="notifList">
+        <div class="empty-state">
+          <div><i class="fa-solid fa-spinner fa-spin"></i></div>
+          <p>Loading notifications from database...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+<script>
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  /* =====================================================
+      0. TYPE-SAFE ID HELPERS
+  ===================================================== */
+  function parseDbId(idVal) {
+    if (!idVal) return idVal;
+    if (typeof idVal === 'number') return idVal;
+    const str = String(idVal).trim();
+    return /^\d+$/.test(str) ? parseInt(str, 10) : str;
+  }
+
+  function getDualTypeIds(idArray) {
+    const result = new Set();
+    (idArray || []).forEach(id => {
+      if (id !== null && id !== undefined && id !== '') {
+        result.add(String(id));
+        const num = parseDbId(id);
+        if (typeof num === 'number' && !isNaN(num)) {
+          result.add(num);
+        }
+      }
+    });
+    return Array.from(result);
+  }
+
+  /* =====================================================
+      1. USER SESSION & ROLE SETUP
+  ===================================================== */
+  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "STUDENT";
+  const userRole = rawRole.toUpperCase();
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+  const badgeElem = document.getElementById("userRoleBadge");
+  const nameElem = document.getElementById("sidebarUserName");
+  if (badgeElem) badgeElem.textContent = userRole;
+  if (nameElem) nameElem.textContent = userName;
+
+  // Flask Route URLs
+  const homeUrl = "{{ url_for('landpage') }}";
+  const createUrl = "{{ url_for('create_page') }}";
+  const joinUrl = "{{ url_for('join_page') }}";
+  const calendarUrl = "{{ url_for('calendar_page') }}";
+  const myDashboardUrl = "{{ url_for('dashboard_page') }}";
+  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+  const gradesUrl = "{{ url_for('grades_page') }}";
+  const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
+  const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const studentWorkUrl = "{{ url_for('studentwork_page') }}";
+  const activitySubmitUrl = "{{ url_for('activitysubmit_page') }}";
+  const lessonsUrl = "{{ url_for('lessons_page') }}";
+  const reviewUrl = "{{ url_for('review_page') }}";
+  const archiveUrl = "{{ url_for('archive_page') }}";
+  const notifyUrl = "{{ url_for('notify_page') }}";
+  const accountUrl = "{{ url_for('account_page') }}";
+  const classPageUrl = "{{ url_for('class_page') }}";
+  const groupPageUrl = "{{ url_for('group_page') }}";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+
+  const sidebarMenu = document.getElementById("sidebarMenu");
+  const subtextEl = document.getElementById("notifyHeaderSubtext");
+
+  if (userRole === "ADMIN") {
+    sidebarMenu.innerHTML = `
+      <a href="${homeUrl}">🏠 Institutional Hub</a>
+      <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
+      <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
+      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+      <a href="${gradesUrl}">💯 Master Gradebook</a>
+      <a href="${archiveUrl}">📦 Archival Vault</a>
+      <a href="${notifyUrl}" class="active">🔔 System Alerts</a>
+      <a href="${accountUrl}">👤 Account Profile</a>
+    `;
+    if (subtextEl) subtextEl.textContent = "Institutional system alerts, course creation notices, and compliance updates.";
+  } else if (userRole === "TEACHER") {
+    sidebarMenu.innerHTML = `
+      <a href="${homeUrl}">🏠 Home</a>
+      <a href="${createUrl}">➕ Create Class/Group</a>
+      <a href="${calendarUrl}">📅 Calendar</a>
+      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+      <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+      <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+      <a href="${gradesUrl}">💯 Grades</a>
+      <a href="${submissionsUrl}">📝 Submissions</a>
+      <a href="${archiveUrl}">📦 Archive</a>
+      <a href="${notifyUrl}" class="active">🔔 Notifications</a>
+      <a href="${accountUrl}">👤 Account</a>
+    `;
+    if (subtextEl) subtextEl.textContent = "Track student assignment turn-ins, course enrollments, and grading updates.";
+  } else {
+    // STUDENT POV
+    sidebarMenu.innerHTML = `
+      <a href="${homeUrl}">🏠 Home</a>
+      <a href="${joinUrl}">🔑 Join Class/Group</a>
+      <a href="${calendarUrl}">📅 Calendar</a>
+      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+      <a href="${myDashboardUrl}">📊 My Dashboard</a>
+      <a href="${studentGradesUrl}">💯 My Grades</a>
+      <a href="${notifyUrl}" class="active">🔔 Notifications</a>
+      <a href="${archiveUrl}">📦 Archive</a>
+      <a href="${accountUrl}">👤 Account</a>
+    `;
+    if (subtextEl) subtextEl.textContent = "View countdown reminders, penalty warnings, assignment guidelines, and teacher remarks.";
+  }
+
+  /* MOBILE SIDEBAR TOGGLE */
+  const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+  const sidebar = document.getElementById("sidebar");
+
+  if (mobileMenuBtn && sidebar) {
+    mobileMenuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle("active");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.remove("active");
+      }
+    });
+  }
+
+  function logoutUser() {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("{{ url_for('logout') }}");
+  }
+
+  /* DROPDOWN TOGGLE */
+  window.toggleDropdown = function (e) {
+    e.stopPropagation();
+    const menu = document.getElementById("dropdownMenu");
+    if (menu) menu.classList.toggle("show");
+  };
+
+  document.addEventListener("click", () => {
+    const menu = document.getElementById("dropdownMenu");
+    if (menu) menu.classList.remove("show");
+  });
+
+  /* =====================================================
+      2. SUPABASE INITIALIZATION & REALTIME LISTENER
+  ===================================================== */
+  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+  function getSupabaseClient() {
+    if (window._supabase) return window._supabase;
+    const supabaseLib = window.supabase || window.Supabase;
+    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+      return window._supabase;
+    }
+    return null;
+  }
+
+  let notificationsList = [];
+  let currentFilter = 'all';
+  let notifRealtimeChannel = null;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      fetchNotifications();
+      loadSidebarClasses();
+      loadSidebarGroups();
+      initNotificationsRealtime();
+    }, 100);
+  });
+
+  window.addEventListener('beforeunload', () => {
+    const client = getSupabaseClient();
+    if (client && notifRealtimeChannel) {
+      client.removeChannel(notifRealtimeChannel);
+    }
+  });
+
+  function initNotificationsRealtime() {
+    const client = getSupabaseClient();
+    if (!client || !currentUserId) return;
+
+    if (notifRealtimeChannel) {
+      client.removeChannel(notifRealtimeChannel);
+    }
+
+    const parsedUid = parseDbId(currentUserId);
+    notifRealtimeChannel = client.channel(`user_notifs_${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${parsedUid}`
+        },
+        payload => {
+          if (payload.new) {
+            notificationsList.unshift(payload.new);
+            renderNotifications();
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications'
+        },
+        payload => {
+          if (payload.old && payload.old.id) {
+            notificationsList = notificationsList.filter(n => parseDbId(n.id) !== parseDbId(payload.old.id));
+            renderNotifications();
+          }
+        }
+      )
+      .subscribe();
+  }
+
+  /* SMART ICON RESOLVER (COUNTDOWNS, WARNINGS & MILESTONES) */
+  function getIcon(title = '', type = '') {
+    const lower = String(title).toLowerCase();
+    if (lower.includes('penalty') || lower.includes('critical') || lower.includes('missed')) return '🚨';
+    if (lower.includes('left') || lower.includes('warning') || lower.includes('deadline') || lower.includes('minutes') || lower.includes('hours')) return '⏰';
+    if (lower.includes('submission') || lower.includes('turned in') || lower.includes('submitted')) return '📥';
+    if (type === 'activity' || lower.includes('activity') || lower.includes('assignment') || lower.includes('quiz')) return '📝';
+    if (type === 'lesson' || lower.includes('lesson') || lower.includes('material')) return '📚';
+    if (type === 'grade' || lower.includes('grade') || lower.includes('score') || lower.includes('evaluated')) return '💯';
+    if (lower.includes('joined') || lower.includes('enrolled')) return '👥';
+    return '🔔';
+  }
+
+  /* =====================================================
+      3. FETCH NOTIFICATIONS FROM SUPABASE
+  ===================================================== */
+  async function fetchNotifications() {
+    const client = getSupabaseClient();
+    const listContainer = document.getElementById('notifList');
+
+    if (!client || !currentUserId) {
+      if (listContainer) {
+        listContainer.innerHTML = `
+          <div class="empty-state">
+            <div>🔕</div>
+            <p>Please log in to view your notifications.</p>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+
+    const { data: dbNotifs, error } = await client
+      .from('notifications')
+      .select('*')
+      .in('user_id', userSearchIds)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching notifications:", error);
+    }
+
+    notificationsList = dbNotifs || [];
+    renderNotifications();
+  }
+
+  function renderNotifications() {
+    const listContainer = document.getElementById('notifList');
+    const unreadBadge = document.getElementById('unreadBadge');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    const unreadCount = notificationsList.filter(n => !(n.is_read || n.read)).length;
+    if (unreadBadge) unreadBadge.textContent = unreadCount;
+
+    let filtered = notificationsList;
+    if (currentFilter === 'unread') {
+      filtered = notificationsList.filter(n => !(n.is_read || n.read));
+    }
+
+    if (filtered.length === 0) {
+      listContainer.innerHTML = `
+        <div class="empty-state">
+          <div>🔕</div>
+          <p>No ${currentFilter === 'unread' ? 'unread ' : ''}notifications right now.</p>
+        </div>
+      `;
+      return;
+    }
+
+    filtered.forEach(notif => {
+      const isRead = notif.is_read || notif.read || false;
+      const timeAgo = notif.created_at ? new Date(notif.created_at).toLocaleDateString(undefined, {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      }) : 'Recently';
+
+      const card = document.createElement('div');
+      card.className = `notif-card ${!isRead ? 'unread' : ''}`;
+
+      const lowerTitle = String(notif.title || '').toLowerCase();
+      let defaultLink = homeUrl;
+
+      if (userRole === "TEACHER" || userRole === "ADMIN") {
+        if (lowerTitle.includes('submission') || lowerTitle.includes('turned in')) {
+          defaultLink = submissionsUrl;
+        } else if (lowerTitle.includes('grade') || lowerTitle.includes('score')) {
+          defaultLink = gradesUrl;
+        } else {
+          defaultLink = submissionsUrl;
+        }
+      } else {
+        // STUDENT POV
+        if (lowerTitle.includes('grade') || lowerTitle.includes('score')) {
+          defaultLink = reviewUrl;
+        } else if (lowerTitle.includes('lesson')) {
+          defaultLink = lessonsUrl;
+        } else if (notif.activity_id || lowerTitle.includes('activity') || lowerTitle.includes('deadline') || lowerTitle.includes('penalty') || lowerTitle.includes('left')) {
+          defaultLink = activitySubmitUrl;
+        } else {
+          defaultLink = studentGradesUrl;
+        }
+      }
+
+      const targetLink = notif.link || defaultLink;
+      const actId = notif.activity_id || notif.target_id || '';
+      const subId = notif.submission_id || '';
+      const classCode = notif.class_code || '';
+
+      card.innerHTML = `
+        <div class="notif-content" onclick="handleNotificationClick(${notif.id}, '${targetLink}', ${isRead}, '${actId}', '${subId}', '${classCode}')">
+          <div class="notif-title-row">
+            <span class="notif-type-icon">${getIcon(notif.title, notif.type)}</span>
+            <span class="notif-title">${escapeHtml(notif.title || 'Notification')}</span>
+            ${!isRead ? '<span class="unread-dot"></span>' : ''}
+          </div>
+          <div class="notif-message">${escapeHtml(notif.message || '')}</div>
+          <div class="notif-time"><i class="fa-regular fa-clock"></i> ${timeAgo}</div>
+        </div>
+        <div class="notif-actions">
+          <button class="delete-btn" onclick="deleteNotification(event, ${notif.id})" title="Delete Notification">&times;</button>
+        </div>
+      `;
+
+      listContainer.appendChild(card);
+    });
+  }
+
+  /* =====================================================
+      4. NOTIFICATION USER ACTIONS
+  ===================================================== */
+  window.filterNotifications = function (filter) {
+    currentFilter = filter;
+    const tabAll = document.getElementById('tabAll');
+    const tabUnread = document.getElementById('tabUnread');
+    if (tabAll) tabAll.classList.toggle('active', filter === 'all');
+    if (tabUnread) tabUnread.classList.toggle('active', filter === 'unread');
+    renderNotifications();
+  };
+
+  window.handleNotificationClick = async function (id, targetLink, isAlreadyRead, activityId, submissionId, classCode) {
+    const client = getSupabaseClient();
+    if (client && !isAlreadyRead) {
+      const notifSearchIds = getDualTypeIds([id]);
+      await client
+        .from('notifications')
+        .update({ is_read: true })
+        .in('id', notifSearchIds);
+    }
+
+    if (activityId && activityId !== 'undefined' && activityId !== 'null' && activityId !== '') {
+      localStorage.setItem("selectedActivityId", String(activityId));
+    }
+    if (submissionId && submissionId !== 'undefined' && submissionId !== 'null' && submissionId !== '') {
+      localStorage.setItem("selectedSubmissionId", String(submissionId));
+    }
+    if (classCode && classCode !== 'undefined' && classCode !== 'null' && classCode !== '') {
+      localStorage.setItem("selectedClass", classCode);
+    }
+    localStorage.removeItem("isArchivedView");
+
+    window.location.href = targetLink;
+  };
+
+  window.deleteNotification = async function (e, id) {
+    e.stopPropagation();
+    const client = getSupabaseClient();
+    if (client) {
+      const notifSearchIds = getDualTypeIds([id]);
+      await client
+        .from('notifications')
+        .delete()
+        .in('id', notifSearchIds);
+    }
+    notificationsList = notificationsList.filter(n => parseDbId(n.id) !== parseDbId(id));
+    renderNotifications();
+  };
+
+  window.markAllAsRead = async function () {
+    const client = getSupabaseClient();
+    const userSearchIds = getDualTypeIds([currentUserId]);
+
+    if (client && userSearchIds.length > 0) {
+      await client
+        .from('notifications')
+        .update({ is_read: true })
+        .in('user_id', userSearchIds);
+    }
+
+    notificationsList.forEach(n => {
+      n.is_read = true;
+      n.read = true;
+    });
+
+    renderNotifications();
+  };
+
+  window.clearAllNotifications = async function () {
+    if (confirm("Are you sure you want to clear all notifications?")) {
+      const client = getSupabaseClient();
+      const userSearchIds = getDualTypeIds([currentUserId]);
+
+      if (client && userSearchIds.length > 0) {
+        await client
+          .from('notifications')
+          .delete()
+          .in('user_id', userSearchIds);
+      }
+
+      notificationsList = [];
+      renderNotifications();
+    }
+  };
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  /* =====================================================
+      5. LOAD SIDEBAR CLASSES & GROUPS
+  ===================================================== */
+  async function loadSidebarClasses() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarClassList = document.getElementById("sidebarClassList");
+    if (!sidebarClassList) return;
+    sidebarClassList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myClasses = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const { data: mems, error: memErr } = await client
+          .from('class_memberships')
+          .select('class_id')
+          .in('user_id', userSearchIds);
+
+        if (!memErr && mems && mems.length > 0) {
+          const classSearchIds = getDualTypeIds(mems.map(m => m.class_id));
+          if (classSearchIds.length > 0) {
+            const { data: fetchedClasses } = await client
+              .from('classes')
+              .select('id, subject, code, status')
+              .in('id', classSearchIds);
+            myClasses = fetchedClasses || [];
+          }
+        } else {
+          const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
+          if (joinedClasses.length > 0) {
+            const { data: fallbackData } = await client
+              .from('classes')
+              .select('id, subject, code, status')
+              .in('code', joinedClasses);
+            myClasses = fallbackData || [];
+          }
+        }
+      } else {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar classes error:", err);
+    }
+
+    myClasses = myClasses.filter(c => c && c.status !== 'archived');
+
+    if (myClasses.length > 0) {
+      const currentSelectedCode = localStorage.getItem("selectedClass");
+      myClasses.forEach(c => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `📘 ${c.subject}`;
+        sideLink.href = classPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedClass", c.code);
+          localStorage.setItem("selectedClassId", String(c.id));
+          window.location.href = classPageUrl;
+        };
+        sidebarClassList.appendChild(sideLink);
+      });
+    } else {
+      sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
+    }
+  }
+
+  async function loadSidebarGroups() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarGroupList = document.getElementById("sidebarGroupList");
+    if (!sidebarGroupList) return;
+    sidebarGroupList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myGroups = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const { data: mems, error: memErr } = await client
+          .from('group_memberships')
+          .select('group_id')
+          .in('user_id', userSearchIds);
+
+        if (!memErr && mems && mems.length > 0) {
+          const groupSearchIds = getDualTypeIds(mems.map(m => m.group_id));
+          if (groupSearchIds.length > 0) {
+            const { data: fetchedGroups } = await client
+              .from('groups')
+              .select('id, name, code, status')
+              .in('id', groupSearchIds);
+            myGroups = fetchedGroups || [];
+          }
+        } else {
+          const joinedGroups = JSON.parse(localStorage.getItem("joinedGroups") || "[]");
+          if (joinedGroups.length > 0) {
+            const { data: fallbackData } = await client
+              .from('groups')
+              .select('id, name, code, status')
+              .in('code', joinedGroups);
+            myGroups = fallbackData || [];
+          }
+        }
+      } else {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar groups error:", err);
+    }
+
+    myGroups = myGroups.filter(g => g && g.status !== 'archived');
+
+    if (myGroups.length > 0) {
+      const currentSelectedGroup = localStorage.getItem("selectedGroup");
+      myGroups.forEach(g => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `👥 ${g.name}`;
+        sideLink.href = groupPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedGroup", g.code);
+          localStorage.setItem("selectedGroupId", String(g.id));
+          window.location.href = groupPageUrl;
+        };
+        sidebarGroupList.appendChild(sideLink);
+      });
+    } else {
+      sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
+    }
+  }
+</script>

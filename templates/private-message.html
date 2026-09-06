@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- 🔒 PREVENT BROWSER CACHING AFTER LOGOUT -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <title>Regis Marie College | Private Messages Inbox</title>
+
+  <!-- FAVICON -->
+  <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='rmc.jpg') }}">
+
+  <!-- GOOGLE FONTS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- FONT AWESOME 6 ICONS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <!-- SUPABASE JS SDK (v2) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- APPLICATION STYLESHEET -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='group.css') }}">
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+  /* =========================================
+     GLOBAL RESET & BRAND DESIGN SYSTEM
+  ========================================= */
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #eff6ff;
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --online-green: #16a34a;
+    --danger: #ef4444;
+    --danger-light: #fee2e2;
+    --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    position: relative;
+  }
+
+  /* =========================================
+     SIDEBAR NAVIGATION RAIL & OVERLAY
+  ========================================= */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e40af, #1e3a8a);
+    color: #ffffff;
+    padding: 22px 15px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .user-profile-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .user-badge {
+    display: inline-block;
+    background: #fbbf24;
+    color: #1e3a8a;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar a,
+  #sidebarMenu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 14.5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .sidebar a:hover,
+  #sidebarMenu a:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: translateX(2px);
+    color: #ffffff !important;
+  }
+
+  .sidebar a.active,
+  #sidebarMenu a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    font-weight: bold;
+    color: #ffffff !important;
+  }
+
+  .sidebar-logout-btn {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffffff !important;
+    margin-top: 18px !important;
+    cursor: pointer;
+  }
+
+  .sidebar-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.45) !important;
+  }
+
+  .sidebar-section {
+    margin-top: 24px;
+  }
+
+  .sidebar-section-title {
+    padding: 0 10px 8px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    margin-bottom: 6px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* =========================================
+     MAIN CONTENT AREA
+  ========================================= */
+  .main-content {
+    margin-left: 240px;
+    flex: 1 1 auto;
+    min-height: 100vh;
+    padding: 28px;
+    width: calc(100% - 240px);
+    max-width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.3s ease, width 0.3s ease, padding 0.3s ease;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    background: var(--surface);
+    padding: 20px 24px;
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 22px;
+    gap: 16px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .header-title-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    min-width: 0;
+    flex: 1 1 240px;
+  }
+
+  .rmc-logo-badge {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    border: 1.5px solid #bfdbfe;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    flex-shrink: 0;
+  }
+
+  .rmc-logo-badge img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .header-title-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .page-header h1 {
+    font-size: 20px;
+    color: var(--text);
+    font-weight: 700;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+
+  .page-header p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+
+  .stats-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--primary-dark);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: var(--shadow-sm);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* THREADS LIST */
+  .threads-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .thread-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    position: relative;
+    min-width: 0;
+  }
+
+  .thread-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+    border-color: #bfdbfe;
+  }
+
+  .thread-main {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .thread-avatar {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .thread-info {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .thread-info-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 3px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .thread-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.35;
+  }
+
+  .role-tag {
+    font-size: 10px;
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .role-tag.teacher {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fde68a;
+  }
+
+  .role-tag.student {
+    background: #dbeafe;
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+  }
+
+  .thread-snippet {
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    max-width: 100%;
+    display: block;
+    line-height: 1.45;
+  }
+
+  .thread-snippet strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .thread-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .thread-time {
+    font-size: 11.5px;
+    color: #94a3b8;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .action-btn-chat {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    min-height: 38px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .action-btn-chat:hover {
+    background: var(--primary-dark);
+  }
+
+  /* 3-DOTS MENU CONTAINER */
+  .menu-container {
+    position: relative;
+  }
+
+  .dots-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .dots-btn:hover {
+    background: #f1f5f9;
+    color: var(--text);
+  }
+
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 42px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+    min-width: 160px;
+    overflow: hidden;
+    animation: fadeIn 0.15s ease-out;
+  }
+
+  .dropdown-menu.show {
+    display: block;
+  }
+
+  .dropdown-item {
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 14px;
+    border: none;
+    background: none;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--danger);
+    font-weight: 500;
+    transition: background 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .dropdown-item:hover {
+    background: var(--danger-light);
+  }
+
+  /* EMPTY INBOX STATE */
+  .empty-state {
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--muted);
+    width: 100%;
+  }
+
+  .empty-state i {
+    font-size: 42px;
+    color: #94a3b8;
+    margin-bottom: 14px;
+  }
+
+  .empty-state h3 {
+    font-size: 16px;
+    color: var(--text);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .empty-state p {
+    font-size: 13px;
+    max-width: 450px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  /* =========================================
+     RESPONSIVE BREAKPOINTS (RWD)
+  ========================================= */
+  /* Tablets and Standard Mobile Screens */
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+    }
+
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+      max-width: 100vw;
+      padding: 18px;
+      padding-top: 74px;
+    }
+
+    .page-header {
+      padding: 18px;
+      gap: 12px;
+    }
+
+    .stats-pill {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .thread-right {
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+  }
+
+  /* Compact Smartphones (320px - 480px) */
+  @media (max-width: 480px) {
+    .main-content {
+      padding: 12px;
+      padding-top: 68px;
+    }
+
+    .page-header {
+      padding: 14px 16px;
+      border-radius: 12px;
+    }
+
+    .page-header h1 {
+      font-size: 18px;
+    }
+
+    .rmc-logo-badge {
+      display: none; /* Hide crest badge to conserve horizontal space */
+    }
+
+    .thread-card {
+      padding: 14px 12px;
+      gap: 10px;
+    }
+
+    .thread-avatar {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      font-size: 18px;
+    }
+
+    .thread-name {
+      font-size: 14px;
+    }
+
+    .thread-snippet {
+      font-size: 12.5px;
+    }
+
+    .action-btn-chat {
+      padding: 6px 12px;
+      font-size: 12px;
+      min-height: 34px;
+    }
+
+    .thread-time {
+      font-size: 10.5px;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">STUDENT</div>
+    </div>
+
+    <div id="sidebarMenu"></div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <a onclick="logoutUser()" class="sidebar-logout-btn">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="main-content">
+    
+    <!-- PAGE HEADER -->
+    <header class="page-header">
+      <div class="header-title-group">
+        <div class="rmc-logo-badge" title="Regis Marie College">
+          <img src="{{ url_for('static', filename='rmc.jpg') }}" alt="RMC Logo" onerror="this.src='/static/rmc.png'">
+        </div>
+        <div>
+          <h1 id="inboxTitle">Private Message Vault</h1>
+          <p id="inboxSub">Manage and review your confidential one-on-one consultations.</p>
+        </div>
+      </div>
+      <div class="stats-pill" id="statsPill">
+        <i class="fa-solid fa-comments"></i> <span id="threadCountDisplay">0 Conversations</span>
+      </div>
+    </header>
+
+    <!-- CONVERSATION THREADS VAULT -->
+    <div class="threads-container" id="threadsContainer">
+      <div class="empty-state">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <h3>Loading your message vault...</h3>
+        <p>Fetching your direct consultation threads from the database.</p>
+      </div>
+    </div>
+
+  </main>
+
+ <script>
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  /* =====================================================
+     0. TYPE-SAFE ID HELPERS & STRING ESCAPERS
+  ===================================================== */
+  function parseDbId(idVal) {
+    if (!idVal) return idVal;
+    if (typeof idVal === 'number') return idVal;
+    const str = String(idVal).trim();
+    return /^\d+$/.test(str) ? parseInt(str, 10) : str;
+  }
+
+  function getDualTypeIds(idArray) {
+    const result = new Set();
+    (idArray || []).forEach(id => {
+      if (id !== null && id !== undefined && id !== '') {
+        result.add(String(id));
+        const num = parseDbId(id);
+        if (typeof num === 'number' && !isNaN(num)) {
+          result.add(num);
+        }
+      }
+    });
+    return Array.from(result);
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeJsString(str) {
+    if (!str) return "";
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+  }
+
+  /* =====================================================
+     1. USER SESSION & ROLE SETUP
+  ===================================================== */
+  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "STUDENT";
+  const userRole = rawRole.toUpperCase();
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+  const badgeEl = document.getElementById("userRoleBadge");
+  const nameEl = document.getElementById("sidebarUserName");
+  if (badgeEl) badgeEl.textContent = userRole;
+  if (nameEl) nameEl.textContent = userName;
+
+  // Flask Route URLs
+  const homeUrl = "{{ url_for('landpage') }}";
+  const createUrl = "{{ url_for('create_page') }}";
+  const joinUrl = "{{ url_for('join_page') }}";
+  const calendarUrl = "{{ url_for('calendar_page') }}";
+  const myDashboardUrl = "{{ url_for('dashboard_page') }}";
+  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+  const gradesUrl = "{{ url_for('grades_page') }}";
+  const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
+  const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const archiveUrl = "{{ url_for('archive_page') }}";
+  const notifyUrl = "{{ url_for('notify_page') }}";
+  const accountUrl = "{{ url_for('account_page') }}";
+  const classPageUrl = "{{ url_for('class_page') }}";
+  const groupPageUrl = "{{ url_for('group_page') }}";
+  const messageTeacherUrl = "{{ url_for('message_teacher_page') }}";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+
+  const sidebarMenu = document.getElementById("sidebarMenu");
+
+  if (userRole === "ADMIN") {
+    sidebarMenu.innerHTML = `
+      <a href="${homeUrl}">🏠 Institutional Hub</a>
+      <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
+      <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
+      <a href="${privateMessageInboxUrl}" class="active">💬 Private Messages</a>
+      <a href="${gradesUrl}">💯 Master Gradebook</a>
+      <a href="${archiveUrl}">📦 Archival Vault</a>
+      <a href="${notifyUrl}">🔔 System Alerts</a>
+      <a href="${accountUrl}">👤 Account Profile</a>
+    `;
+  } else if (userRole === "TEACHER") {
+    sidebarMenu.innerHTML = `
+      <a href="${homeUrl}">🏠 Home</a>
+      <a href="${createUrl}">➕ Create Class/Group</a>
+      <a href="${calendarUrl}">📅 Calendar</a>
+      <a href="${privateMessageInboxUrl}" class="active">💬 Private Messages</a>
+      <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+      <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+      <a href="${gradesUrl}">💯 Grades</a>
+      <a href="${submissionsUrl}">📝 Submissions</a>
+      <a href="${archiveUrl}">📦 Archive</a>
+      <a href="${notifyUrl}">🔔 Notifications</a>
+      <a href="${accountUrl}">👤 Account</a>
+    `;
+  } else {
+    sidebarMenu.innerHTML = `
+      <a href="${homeUrl}">🏠 Home</a>
+      <a href="${joinUrl}">🔑 Join Class/Group</a>
+      <a href="${calendarUrl}">📅 Calendar</a>
+      <a href="${privateMessageInboxUrl}" class="active">💬 Private Messages</a>
+      <a href="${myDashboardUrl}">📊 My Dashboard</a>
+      <a href="${studentGradesUrl}">💯 My Grades</a>
+      <a href="${notifyUrl}">🔔 Notifications</a>
+      <a href="${archiveUrl}">📦 Archive</a>
+      <a href="${accountUrl}">👤 Account</a>
+    `;
+  }
+
+  /* MOBILE SIDEBAR TOGGLE */
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const sidebar = document.getElementById('sidebar');
+
+  if (mobileMenuBtn && sidebar) {
+    mobileMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle('active');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.remove('active');
+      }
+    });
+  }
+
+  function logoutUser() {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("{{ url_for('logout') }}");
+  }
+
+  /* =====================================================
+     2. SUPABASE INITIALIZATION & REALTIME INBOX
+  ===================================================== */
+  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+  function getSupabaseClient() {
+    if (window._supabase) return window._supabase;
+    const supabaseLib = window.supabase || window.Supabase;
+    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+      return window._supabase;
+    }
+    return null;
+  }
+
+  let inboxRealtimeChannel = null;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      loadPrivateMessageVault();
+      loadSidebarClasses();
+      loadSidebarGroups();
+      connectInboxRealtime();
+    }, 100);
+  });
+
+  window.addEventListener('beforeunload', () => {
+    const client = getSupabaseClient();
+    if (client && inboxRealtimeChannel) {
+      client.removeChannel(inboxRealtimeChannel);
+    }
+  });
+
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.dropdown-menu').forEach(menu => menu.classList.remove('show'));
+  });
+
+  function connectInboxRealtime() {
+    const client = getSupabaseClient();
+    if (!client || !currentUserId) return;
+
+    if (inboxRealtimeChannel) {
+      client.removeChannel(inboxRealtimeChannel);
+    }
+
+    inboxRealtimeChannel = client.channel(`realtime_inbox_${currentUserId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'private_messages'
+        },
+        payload => {
+          const row = payload.new || payload.old;
+          const myIds = getDualTypeIds([currentUserId]).map(String);
+          if (row && (myIds.includes(String(row.student_id)) || myIds.includes(String(row.teacher_id)))) {
+            loadPrivateMessageVault();
+          }
+        }
+      )
+      .subscribe();
+  }
+
+  /* =====================================================
+     3. FETCH AND AGGREGATE THREADS (BIDIRECTIONAL)
+  ===================================================== */
+  async function loadPrivateMessageVault() {
+    const client = getSupabaseClient();
+    const container = document.getElementById("threadsContainer");
+    if (!client || !container) return;
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
+
+    // Fetch messages where current user is either student_id or teacher_id
+    const { data: rawMessages, error } = await client
+      .from('private_messages')
+      .select('*')
+      .or(`student_id.in.(${userIdsFormatted}),teacher_id.in.(${userIdsFormatted})`)
+      .order('created_at', { ascending: false });
+
+    if (error || !rawMessages || rawMessages.length === 0) {
+      renderEmptyVaultState();
+      return;
+    }
+
+    const threadMap = {};
+    const partnerIds = new Set();
+    const myIdStrings = new Set(userSearchIds.map(String));
+
+    rawMessages.forEach(msg => {
+      // Determine conversation partner regardless of who is in student_id vs teacher_id
+      const isStudentSlot = myIdStrings.has(String(msg.student_id));
+      const partnerId = isStudentSlot ? String(msg.teacher_id) : String(msg.student_id);
+
+      if (!partnerId || partnerId === "null" || partnerId === "undefined") return;
+      partnerIds.add(partnerId);
+
+      let snippetText = msg.message || "";
+      if (!snippetText && msg.media_type === "image") snippetText = "📷 Shared an image";
+      if (!snippetText && msg.media_type === "file") snippetText = `📎 Shared a file: ${msg.file_name || ""}`;
+
+      if (!threadMap[partnerId]) {
+        threadMap[partnerId] = {
+          partnerId: partnerId,
+          latestMessage: snippetText,
+          latestSenderName: msg.sender_name,
+          latestTime: msg.created_at,
+          messageCount: 1,
+          partnerName: "Loading...",
+          partnerRole: isStudentSlot ? "TEACHER" : "STUDENT"
+        };
+      } else {
+        threadMap[partnerId].messageCount++;
+      }
+    });
+
+    const partnerSearchIds = getDualTypeIds(Array.from(partnerIds));
+    if (partnerSearchIds.length > 0) {
+      const { data: userProfiles } = await client
+        .from('users')
+        .select('id, full_name, role, email')
+        .in('id', partnerSearchIds);
+
+      (userProfiles || []).forEach(u => {
+        const key = String(u.id);
+        if (threadMap[key]) {
+          threadMap[key].partnerName = u.full_name || "Consultation Partner";
+          threadMap[key].partnerRole = u.role || threadMap[key].partnerRole;
+        }
+      });
+    }
+
+    renderThreads(Object.values(threadMap));
+  }
+
+  /* =====================================================
+     4. RENDER CONVERSATION CARDS
+  ===================================================== */
+  function renderThreads(threads) {
+    const container = document.getElementById("threadsContainer");
+    const countDisplay = document.getElementById("threadCountDisplay");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (countDisplay) {
+      countDisplay.textContent = `${threads.length} Conversation${threads.length === 1 ? '' : 's'}`;
+    }
+
+    if (threads.length === 0) {
+      renderEmptyVaultState();
+      return;
+    }
+
+    threads.forEach(t => {
+      const card = document.createElement("div");
+      card.className = "thread-card";
+
+      const roleUpper = String(t.partnerRole || '').toUpperCase();
+      let avatarEmoji = "🎓";
+      let roleTagClass = "student";
+      let roleLabel = "Student";
+
+      if (roleUpper === "TEACHER") {
+        avatarEmoji = "👨‍🏫";
+        roleTagClass = "teacher";
+        roleLabel = "Instructor";
+      } else if (roleUpper === "ADMIN") {
+        avatarEmoji = "🛡️";
+        roleTagClass = "admin";
+        roleLabel = "Administrator";
+      }
+
+      const dt = t.latestTime ? new Date(t.latestTime) : new Date();
+      const timeFormatted = !isNaN(dt.getTime())
+        ? dt.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' · ' + dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '';
+
+      card.innerHTML = `
+        <div class="thread-main" onclick="openThreadConversation('${escapeJsString(t.partnerId)}', '${escapeJsString(t.partnerName)}')">
+          <div class="thread-avatar">
+            ${avatarEmoji}
+          </div>
+          <div class="thread-info">
+            <div class="thread-info-top">
+              <span class="thread-name">${escapeHtml(t.partnerName)}</span>
+              <span class="role-tag ${roleTagClass}">${roleLabel}</span>
+            </div>
+            <div class="thread-snippet">
+              <strong>${escapeHtml(t.latestSenderName || 'User')}:</strong> ${escapeHtml(t.latestMessage || '')}
+            </div>
+          </div>
+        </div>
+
+        <div class="thread-right">
+          <span class="thread-time">${timeFormatted}</span>
+          <button class="action-btn-chat" onclick="openThreadConversation('${escapeJsString(t.partnerId)}', '${escapeJsString(t.partnerName)}')">
+            <i class="fa-solid fa-comment-dots"></i> Open Chat
+          </button>
+
+          <!-- 3-DOTS DELETE MENU -->
+          <div class="menu-container">
+            <button class="dots-btn" onclick="toggleMenu(event, '${escapeJsString(t.partnerId)}')" title="More options">
+              <i class="fa-solid fa-ellipsis-vertical"></i>
+            </button>
+            <div class="dropdown-menu" id="menu_${escapeHtml(t.partnerId)}">
+              <button class="dropdown-item" onclick="deleteConversationThread('${escapeJsString(t.partnerId)}', '${escapeJsString(t.partnerName)}')">
+                <i class="fa-solid fa-trash"></i> Delete Thread
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      container.appendChild(card);
+    });
+  }
+
+  function renderEmptyVaultState() {
+    const container = document.getElementById("threadsContainer");
+    const countDisplay = document.getElementById("threadCountDisplay");
+    if (countDisplay) countDisplay.textContent = "0 Conversations";
+
+    if (container) {
+      const guidanceText = userRole === "ADMIN" 
+        ? "You have not started any confidential consultations with faculty instructors yet. Visit any course roster to message an instructor directly."
+        : "You have not started any confidential one-on-one consultations yet. Go to your class or group roster to start a conversation.";
+
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="fa-solid fa-envelope-open-text"></i>
+          <h3>No direct messages found</h3>
+          <p>${guidanceText}</p>
+        </div>
+      `;
+    }
+  }
+
+  /* =====================================================
+     5. OPEN THREAD CONVERSATION
+  ===================================================== */
+  function openThreadConversation(partnerId, partnerName) {
+    if (userRole === "STUDENT" || userRole === "ADMIN") {
+      localStorage.setItem("chatTargetTeacherId", String(partnerId));
+      localStorage.setItem("chatTargetTeacherName", partnerName);
+      localStorage.setItem("chatTargetStudentId", String(currentUserId));
+      localStorage.setItem("chatTargetStudentName", userName);
+    } else {
+      localStorage.setItem("chatTargetStudentId", String(partnerId));
+      localStorage.setItem("chatTargetStudentName", partnerName);
+      localStorage.setItem("chatTargetTeacherId", String(currentUserId));
+      localStorage.setItem("chatTargetTeacherName", userName);
+    }
+    localStorage.setItem("updateType", "private-chat");
+    window.location.href = messageTeacherUrl;
+  }
+
+  /* =====================================================
+     6. DELETE CONVERSATION THREAD (BIDIRECTIONAL PURGE)
+  ===================================================== */
+  function toggleMenu(event, partnerId) {
+    event.stopPropagation();
+    document.querySelectorAll('.dropdown-menu').forEach(m => {
+      if (m.id !== `menu_${partnerId}`) m.classList.remove('show');
+    });
+    const menu = document.getElementById(`menu_${partnerId}`);
+    if (menu) menu.classList.toggle('show');
+  }
+
+  async function deleteConversationThread(partnerId, partnerName) {
+    if (confirm(`Do you want to delete your conversation history with ${partnerName}?`)) {
+      if (confirm("⚠️ WARNING: This will permanently erase all direct messages in this consultation thread.")) {
+        const client = getSupabaseClient();
+        if (!client) return;
+
+        const mySearchIds = getDualTypeIds([currentUserId]);
+        const partnerSearchIds = getDualTypeIds([partnerId]);
+
+        // Clean deletion in both directions
+        const deleteForward = client
+          .from('private_messages')
+          .delete()
+          .in('student_id', mySearchIds)
+          .in('teacher_id', partnerSearchIds);
+
+        const deleteBackward = client
+          .from('private_messages')
+          .delete()
+          .in('student_id', partnerSearchIds)
+          .in('teacher_id', mySearchIds);
+
+        const [{ error: err1 }, { error: err2 }] = await Promise.all([deleteForward, deleteBackward]);
+
+        if (err1 || err2) {
+          alert("Error deleting conversation: " + (err1?.message || err2?.message));
+        } else {
+          alert(`Conversation with ${partnerName} has been permanently deleted.`);
+          await loadPrivateMessageVault();
+        }
+      }
+    }
+  }
+
+  /* =====================================================
+     7. LOAD SIDEBAR CLASSES & GROUPS
+  ===================================================== */
+  async function loadSidebarClasses() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarClassList = document.getElementById("sidebarClassList");
+    if (!sidebarClassList) return;
+    sidebarClassList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myClasses = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const { data: mems, error: memErr } = await client
+          .from('class_memberships')
+          .select('class_id')
+          .in('user_id', userSearchIds);
+
+        if (!memErr && mems && mems.length > 0) {
+          const classSearchIds = getDualTypeIds(mems.map(m => m.class_id));
+          if (classSearchIds.length > 0) {
+            const { data: fetchedClasses } = await client
+              .from('classes')
+              .select('id, subject, code, status')
+              .in('id', classSearchIds);
+            myClasses = fetchedClasses || [];
+          }
+        } else {
+          const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
+          if (joinedClasses.length > 0) {
+            const { data: fallbackData } = await client
+              .from('classes')
+              .select('id, subject, code, status')
+              .in('code', joinedClasses);
+            myClasses = fallbackData || [];
+          }
+        }
+      } else {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar classes error:", err);
+    }
+
+    myClasses = myClasses.filter(c => c && c.status !== 'archived');
+
+    if (myClasses.length > 0) {
+      const currentSelectedCode = localStorage.getItem("selectedClass");
+      myClasses.forEach(c => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `📘 ${c.subject}`;
+        sideLink.href = classPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedClass", c.code);
+          localStorage.setItem("selectedClassId", String(c.id));
+          window.location.href = classPageUrl;
+        };
+        sidebarClassList.appendChild(sideLink);
+      });
+    } else {
+      sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
+    }
+  }
+
+  async function loadSidebarGroups() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarGroupList = document.getElementById("sidebarGroupList");
+    if (!sidebarGroupList) return;
+    sidebarGroupList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myGroups = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const { data: mems, error: memErr } = await client
+          .from('group_memberships')
+          .select('group_id')
+          .in('user_id', userSearchIds);
+
+        if (!memErr && mems && mems.length > 0) {
+          const groupSearchIds = getDualTypeIds(mems.map(m => m.group_id));
+          if (groupSearchIds.length > 0) {
+            const { data: fetchedGroups } = await client
+              .from('groups')
+              .select('id, name, code, status')
+              .in('id', groupSearchIds);
+            myGroups = fetchedGroups || [];
+          }
+        } else {
+          const joinedGroups = JSON.parse(localStorage.getItem("joinedGroups") || "[]");
+          if (joinedGroups.length > 0) {
+            const { data: fallbackData } = await client
+              .from('groups')
+              .select('id, name, code, status')
+              .in('code', joinedGroups);
+            myGroups = fallbackData || [];
+          }
+        }
+      } else {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar groups error:", err);
+    }
+
+    myGroups = myGroups.filter(g => g && g.status !== 'archived');
+
+    if (myGroups.length > 0) {
+      const currentSelectedGroup = localStorage.getItem("selectedGroup");
+      myGroups.forEach(g => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `👥 ${g.name}`;
+        sideLink.href = groupPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedGroup", g.code);
+          localStorage.setItem("selectedGroupId", String(g.id));
+          window.location.href = groupPageUrl;
+        };
+        sidebarGroupList.appendChild(sideLink);
+      });
+    } else {
+      sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
+    }
+  }
+</script>

@@ -1,0 +1,1072 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Activity - Smart Learning Platform</title>
+
+  <!-- SUPABASE JS CLIENT -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- FONT AWESOME -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+  /* =========================================
+     GLOBAL RESET & BRAND DESIGN SYSTEM
+  ========================================= */
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #dbeafe;
+    --background: #f5f7fb;
+    --surface: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #cbd5e1;
+    --danger: #dc2626;
+    --success: #16a34a;
+    --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    overflow-x: hidden;
+  }
+
+  /* =========================================
+     SIDEBAR NAVIGATION RAIL
+  ========================================= */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e40af, #1e3a8a);
+    color: #ffffff;
+    padding: 22px 15px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .user-profile-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .user-badge {
+    display: inline-block;
+    background: #fbbf24;
+    color: #1e3a8a;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar a,
+  .sidebar a:link,
+  .sidebar a:visited,
+  #sidebarMenu a,
+  #sidebarMenu a:link,
+  #sidebarMenu a:visited {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 14.5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .sidebar a:hover,
+  #sidebarMenu a:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: translateX(2px);
+    color: #ffffff !important;
+  }
+
+  .sidebar a.active,
+  #sidebarMenu a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    font-weight: bold;
+    color: #ffffff !important;
+  }
+
+  .sidebar-logout-btn {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffffff !important;
+    margin-top: 18px !important;
+    cursor: pointer;
+  }
+
+  .sidebar-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.45) !important;
+  }
+
+  /* SIDEBAR SECTIONS */
+  .sidebar-section {
+    margin-top: 24px;
+  }
+
+  .sidebar-section-title {
+    padding: 0 10px 8px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item,
+  .sidebar-item:link,
+  .sidebar-item:visited {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    margin-bottom: 6px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 9px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 21px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  }
+
+  /* =========================================
+     MAIN FORM & WORKSPACE
+  ========================================= */
+  .main-content {
+    margin-left: 240px;
+    flex: 1;
+    min-height: 100vh;
+    padding: 28px;
+    width: calc(100% - 240px);
+    transition: margin-left 0.3s ease, padding 0.3s ease;
+  }
+
+  .container {
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+    background: var(--surface);
+    padding: 35px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    border: 1px solid #e2e8f0;
+  }
+
+  h2 {
+    color: var(--primary-dark);
+    margin-bottom: 20px;
+    font-size: 24px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    word-break: break-word;
+  }
+
+  label {
+    display: block;
+    margin-top: 18px;
+    font-weight: bold;
+    font-size: 13px;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input[type="text"],
+  input[type="url"],
+  input[type="date"],
+  input[type="time"],
+  input[type="number"],
+  input[type="file"],
+  select,
+  textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    margin-top: 6px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text);
+    background: #f8fafc;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    outline: none;
+  }
+
+  textarea {
+    min-height: 110px;
+    resize: vertical;
+    line-height: 1.45;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  }
+
+  .required {
+    color: var(--danger);
+  }
+
+  .note {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 5px;
+    line-height: 1.4;
+  }
+
+  .picker-btn {
+    background: #e2e8f0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-height: 44px;
+    padding: 0 16px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    color: #334155;
+    margin-top: 6px;
+    transition: background 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .picker-btn:hover {
+    background: #cbd5e1;
+  }
+
+  /* =========================================
+     ACTION BUTTON CONTROLS
+  ========================================= */
+  .buttons {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 2px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .back {
+    background: #64748b;
+    color: #ffffff;
+    min-height: 44px;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .back:hover {
+    background: #475569;
+  }
+
+  .upload {
+    background: var(--primary);
+    color: #ffffff;
+    min-height: 44px;
+    padding: 10px 26px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .upload:hover {
+    background: var(--primary-dark);
+  }
+
+  /* =========================================
+     RESPONSIVE MEDIA QUERIES (RWD)
+  ========================================= */
+  /* Tablets and Mobile Devices */
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+      padding: 18px;
+      padding-top: 76px;
+    }
+
+    .container {
+      padding: 24px 20px;
+    }
+
+    /* iOS auto-zoom prevention */
+    input[type="text"],
+    input[type="url"],
+    input[type="date"],
+    input[type="time"],
+    input[type="number"],
+    input[type="file"],
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+
+  /* Narrow Smartphone Screens */
+  @media (max-width: 480px) {
+    .main-content {
+      padding: 12px;
+      padding-top: 72px;
+    }
+
+    .container {
+      padding: 20px 15px;
+      border-radius: 10px;
+    }
+
+    h2 {
+      font-size: 20px;
+    }
+
+    .buttons {
+      flex-direction: column-reverse;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .back,
+    .upload {
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+
+    <!-- USER PROFILE & ROLE BADGE -->
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">TEACHER</div>
+    </div>
+
+    <!-- DYNAMIC SIDEBAR LINKS -->
+    <div id="sidebarMenu"></div>
+
+    <!-- MY CLASSES -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <!-- MY GROUPS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <!-- LOGOUT BUTTON -->
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="main-content">
+    <div class="container">
+      <h2><i class="fa-solid fa-pen-to-square"></i> Create New Activity</h2>
+      <p style="font-size: 14px; color: #64748b; margin-bottom: 20px;">
+        Publish assignments or quizzes for <strong id="currentClassName">Selected Class</strong>.
+      </p>
+
+      <form id="activityForm">
+        <label for="title">Activity Title <span class="required">*</span></label>
+        <input type="text" id="title" required placeholder="e.g. Assignment 1: Web Architecture Analysis">
+        <div class="note">*Required field</div>
+
+        <label for="description">Description / Instructions:</label>
+        <textarea id="description" rows="5" placeholder="Explain requirements, submission guidelines, or rubrics..."></textarea>
+
+        <!-- ATTACHMENT FILE -->
+        <label for="lessonFiles"><i class="fa-solid fa-paperclip"></i> Upload Reference Files / Worksheets:</label>
+        <input type="file" id="lessonFiles" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.zip">
+        <div class="note">Attach worksheets, PDF rubrics, or reference guidelines.</div>
+
+        <!-- EXTERNAL RESOURCE LINK -->
+        <label for="link"><i class="fa-solid fa-link"></i> External Resource Link / Google Drive URL:</label>
+        <input type="url" id="link" placeholder="https://example.com or Google Drive link">
+
+        <!-- DUE DATE AND TIME -->
+        <label for="date">Due Date <span class="required">*</span></label>
+        <div style="display:flex; align-items:stretch; gap:8px;">
+          <input type="date" id="date" required style="flex:1;">
+          <button type="button" class="picker-btn" onclick="document.getElementById('date').showPicker()">📅</button>
+        </div>
+
+        <label for="time">Due Time <span class="required">*</span></label>
+        <div style="display:flex; align-items:stretch; gap:8px;">
+          <input type="time" id="time" required style="flex:1;">
+          <button type="button" class="picker-btn" onclick="document.getElementById('time').showPicker()">⏰</button>
+        </div>
+
+        <!-- SCORE POINTS -->
+        <label for="score">Total Score Points <span class="required">*</span></label>
+        <input type="number" id="score" min="1" max="500" value="100" required placeholder="e.g. 100">
+
+        <div class="buttons">
+          <a href="{{ url_for('class_page') }}" class="back">← Back to Classroom</a>
+          <button type="submit" class="upload" id="submitBtn">
+            <i class="fa-solid fa-paper-plane"></i> Publish Activity
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <script>
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  /* =====================================================
+     0. TYPE-SAFE ID HELPERS
+  ===================================================== */
+  function parseDbId(idVal) {
+    if (!idVal) return idVal;
+    if (typeof idVal === 'number') return idVal;
+    const str = String(idVal).trim();
+    if (/^\d+$/.test(str)) {
+      return parseInt(str, 10);
+    }
+    return str;
+  }
+
+  function getDualTypeIds(idArray) {
+    const result = new Set();
+    (idArray || []).forEach(id => {
+      if (id !== null && id !== undefined && id !== '') {
+        result.add(String(id));
+        const num = parseDbId(id);
+        if (typeof num === 'number' && !isNaN(num)) {
+          result.add(num);
+        }
+      }
+    });
+    return Array.from(result);
+  }
+
+  /* =====================================================
+     1. USER SESSION & ROLE PROTECTION
+  ===================================================== */
+  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
+  const userRole = rawRole.toUpperCase();
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+  if (userRole === "STUDENT") {
+    alert("Access restricted: Only teachers and administrators can create class activities.");
+    window.location.replace("{{ url_for('landpage') }}");
+  }
+
+  const badgeEl = document.getElementById("userRoleBadge");
+  const sidebarNameEl = document.getElementById("sidebarUserName");
+  if (badgeEl) badgeEl.textContent = userRole;
+  if (sidebarNameEl) sidebarNameEl.textContent = userName;
+
+  // Flask Route URLs
+  const homeUrl = "{{ url_for('landpage') }}";
+  const createUrl = "{{ url_for('create_page') }}";
+  const calendarUrl = "{{ url_for('calendar_page') }}";
+  const classUrl = "{{ url_for('class_page') }}";
+  const groupPageUrl = "{{ url_for('group_page') }}";
+
+  // Dashboard URLs
+  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+  const gradesUrl = "{{ url_for('grades_page') }}";
+  const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const archiveUrl = "{{ url_for('archive_page') }}";
+  const notifyUrl = "{{ url_for('notify_page') }}";
+  const accountUrl = "{{ url_for('account_page') }}";
+
+  const sidebarMenu = document.getElementById("sidebarMenu");
+
+  if (sidebarMenu) {
+    if (userRole === "ADMIN") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}">➕ Create Class/Group</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${gradesUrl}">💯 Master Grades</a>
+        <a href="${archiveUrl}">📦 Institutional Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    } else {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}">➕ Create Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${gradesUrl}">💯 Grades</a>
+        <a href="${submissionsUrl}">📝 Submissions</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    }
+  }
+
+  /* MOBILE SIDEBAR TOGGLE */
+  const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+  const sidebar = document.getElementById("sidebar");
+
+  if (mobileMenuBtn && sidebar) {
+    mobileMenuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle("active");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.remove("active");
+      }
+    });
+  }
+
+  function logoutUser() {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("{{ url_for('logout') }}");
+  }
+
+  /* =====================================================
+     2. SUPABASE INITIALIZATION & CONSTANTS
+  ===================================================== */
+  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+  function getSupabaseClient() {
+    if (window._supabase) return window._supabase;
+    const supabaseLib = window.supabase || window.Supabase;
+    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+      return window._supabase;
+    }
+    return null;
+  }
+
+  // Security Guards for Teacher Reference Materials
+  const ALLOWED_EXTENSIONS = new Set([
+    'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'csv',
+    'png', 'jpg', 'jpeg', 'webp'
+  ]);
+
+  const BLOCKED_EXTENSIONS = new Set([
+    'exe', 'bat', 'cmd', 'sh', 'vbs', 'vbe', 'js', 'jse', 'wsf', 'wsh',
+    'scr', 'msi', 'com', 'pif', 'hta', 'cpl', 'jar', 'apk', 'bin',
+    'ps1', 'py', 'php', 'asp', 'aspx', 'jsp', 'cgi', 'zip', 'rar', '7z', 'tar', 'gz', 'iso', 'dll'
+  ]);
+
+  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB Limit
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      initPageDetails();
+      loadSidebarClasses();
+      loadSidebarGroups();
+    }, 100);
+  });
+
+  let currentClassId = localStorage.getItem("selectedClassId");
+  const selectedCode = localStorage.getItem("selectedClass");
+  let currentClassName = "";
+
+  async function initPageDetails() {
+    const client = getSupabaseClient();
+    if (!selectedCode && !currentClassId) {
+      alert("No class selected! Redirecting to home dashboard.");
+      window.location.href = homeUrl;
+      return;
+    }
+
+    if (client) {
+      let query = client.from('classes').select('id, subject, code');
+
+      if (currentClassId) {
+        const classSearchIds = getDualTypeIds([currentClassId]);
+        query = query.in('id', classSearchIds);
+      } else if (selectedCode) {
+        query = query.eq('code', selectedCode);
+      }
+
+      const { data: currentClass } = await query.maybeSingle();
+
+      if (currentClass) {
+        currentClassId = currentClass.id;
+        currentClassName = currentClass.subject;
+        localStorage.setItem("selectedClassId", currentClass.id);
+        if (currentClass.code) localStorage.setItem("selectedClass", currentClass.code);
+
+        const classNameEl = document.getElementById("currentClassName");
+        if (classNameEl) classNameEl.textContent = currentClass.subject;
+      }
+    }
+  }
+
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function formatUrl(url) {
+    if (!url) return null;
+    let trimmed = url.trim();
+    if (!trimmed) return null;
+    if (!/^https?:\/\//i.test(trimmed)) {
+      return 'https://' + trimmed;
+    }
+    return trimmed;
+  }
+
+  /* =====================================================
+     3. SUBMIT ACTIVITY (WITH SECURITY & AI MODERATION)
+  ===================================================== */
+  const activityForm = document.getElementById('activityForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  if (activityForm) {
+    activityForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const client = getSupabaseClient();
+      if (!client) {
+        alert("Supabase client is not initialized. Please try again.");
+        return;
+      }
+
+      if (!currentClassId) {
+        alert("Could not identify active class ID. Please return to dashboard and re-select the class.");
+        return;
+      }
+
+      const titleEl = document.getElementById('title');
+      const descEl = document.getElementById('description');
+      const linkEl = document.getElementById('link');
+      const dateEl = document.getElementById('date');
+      const timeEl = document.getElementById('time');
+      const scoreEl = document.getElementById('score');
+      const fileInput = document.getElementById('lessonFiles');
+
+      const title = titleEl ? titleEl.value.trim() : "";
+      const description = descEl ? descEl.value.trim() : "";
+      const linkInput = linkEl ? linkEl.value.trim() : "";
+      const dateVal = dateEl ? dateEl.value : "";
+      const timeVal = (timeEl && timeEl.value) ? timeEl.value : "23:59";
+      const scoreVal = scoreEl ? (parseInt(scoreEl.value, 10) || 100) : 100;
+
+      if (!title || !dateVal) {
+        alert("Title and Due Date are required fields.");
+        return;
+      }
+
+      // 1. Multilingual AI Content Safety Check on Title & Instructions
+      try {
+        const textToCheck = `${title} ${description}`.trim();
+        const aiResp = await fetch('/api/ai-moderate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: textToCheck })
+        });
+        if (aiResp.ok) {
+          const aiData = await aiResp.json();
+          if (!aiData.allowed) {
+            alert(`🛑 Activity Publishing Blocked: ${aiData.reason || 'Inappropriate language detected in activity guidelines.'}`);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("AI text moderation check warning:", err);
+      }
+
+      // 2. Reference File Validation (Anti-Malware & File Whitelist)
+      let pickedFile = null;
+      if (fileInput && fileInput.files && fileInput.files.length > 0) {
+        pickedFile = fileInput.files[0];
+        const ext = pickedFile.name.split('.').pop().toLowerCase();
+
+        if (BLOCKED_EXTENSIONS.has(ext)) {
+          alert(`🛑 Restricted File Format: The file type (.${ext}) is prohibited to prevent malware and protect school infrastructure.`);
+          fileInput.value = "";
+          return;
+        }
+
+        if (!ALLOWED_EXTENSIONS.has(ext)) {
+          alert(`🛑 Format Denied: Reference worksheets must be academic documents (PDF, Word, PPT, Excel, Text) or valid images.`);
+          fileInput.value = "";
+          return;
+        }
+
+        if (pickedFile.size > MAX_FILE_SIZE) {
+          alert("🛑 File Limit Exceeded: Maximum allowed reference material upload size is 25MB.");
+          return;
+        }
+
+        // Server-Side Extension & Malware Check
+        try {
+          const fileCheckResp = await fetch('/api/ai-moderate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file_name: pickedFile.name })
+          });
+          if (fileCheckResp.ok) {
+            const checkData = await fileCheckResp.json();
+            if (!checkData.allowed) {
+              alert(`🛑 File Check Failed: ${checkData.reason}`);
+              fileInput.value = "";
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn("Server file check warning:", err);
+        }
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publishing Activity & Alerting Students...';
+      }
+
+      const deadlineIso = new Date(`${dateVal}T${timeVal}:00`).toISOString();
+
+      // 3. Upload Reference File to Supabase Storage
+      let uploadedFileUrl = null;
+      if (pickedFile) {
+        try {
+          const fileExt = pickedFile.name.split('.').pop().toLowerCase();
+          const fileName = `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+          const filePath = `${currentClassId}/${fileName}`;
+
+          const { data: uploadData, error: uploadError } = await client.storage
+            .from('lesson-files')
+            .upload(filePath, pickedFile);
+
+          if (!uploadError && uploadData) {
+            const { data: urlData } = client.storage.from('lesson-files').getPublicUrl(filePath);
+            uploadedFileUrl = urlData.publicUrl;
+          } else {
+            uploadedFileUrl = await readFileAsDataURL(pickedFile);
+          }
+        } catch (err) {
+          uploadedFileUrl = await readFileAsDataURL(pickedFile);
+        }
+      }
+
+      const parsedClassId = parseDbId(currentClassId);
+
+      // 4. Insert Activity into Database
+      const { data: newActivity, error: actError } = await client
+        .from('activities')
+        .insert([
+          {
+            class_id: parsedClassId,
+            title: title,
+            description: description,
+            deadline: deadlineIso,
+            due_date: deadlineIso,
+            total_points: scoreVal,
+            link_url: formatUrl(linkInput),
+            file_url: uploadedFileUrl,
+            notification_log: {}
+          }
+        ])
+        .select()
+        .maybeSingle();
+
+      if (actError) {
+        alert("Error publishing activity: " + actError.message);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Publish Activity';
+        }
+        return;
+      }
+
+      // 5. Trigger Multi-Channel Notifications (Portal, Email, and Mobile Push)
+      const classSearchIds = getDualTypeIds([currentClassId]);
+
+      const { data: enrolledStudents } = await client
+        .from('class_memberships')
+        .select('user_id')
+        .in('class_id', classSearchIds);
+
+      if (enrolledStudents && enrolledStudents.length > 0) {
+        const formattedDeadline = `${dateVal} at ${timeVal}`;
+        const studentUserIds = getDualTypeIds(enrolledStudents.map(s => s.user_id));
+
+        // Insert in-app notifications
+        const notificationRecords = enrolledStudents.map(student => ({
+          user_id: parseDbId(student.user_id),
+          title: `📝 New Activity: ${title}`,
+          message: `A new assignment "${title}" has been posted in ${currentClassName || 'your class'}. Due: ${formattedDeadline}.`,
+          is_read: false,
+          activity_id: parseDbId(newActivity?.id),
+          created_at: new Date().toISOString()
+        }));
+
+        await client.from('notifications').insert(notificationRecords);
+
+        // Multi-Channel Dispatch via Flask Endpoint
+        if (studentUserIds.length > 0) {
+          const { data: studentUsers } = await client
+            .from('users')
+            .select('id, email')
+            .in('id', studentUserIds);
+
+          const studentEmails = (studentUsers || [])
+            .map(s => s.email)
+            .filter(email => email !== null && email !== undefined && email !== '');
+
+          const studentIdStrings = (studentUsers || [])
+            .map(s => String(s.id));
+
+          try {
+            await fetch('/api/notify-users', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                class_title: currentClassName || 'Regis Marie College Class',
+                title: title,
+                type: 'new_activity',
+                student_emails: studentEmails,
+                student_ids: studentIdStrings,
+                details: `Due Date: ${formattedDeadline} | Max Points: ${scoreVal}`
+              })
+            });
+          } catch (notifErr) {
+            console.warn("Could not dispatch automated notifications:", notifErr);
+          }
+        }
+      }
+
+      alert("🎉 Activity published successfully! Enrolled students have been notified via email, push alerts, and their portal dashboard.");
+      window.location.href = classUrl;
+    });
+  }
+
+  /* =====================================================
+     4. LOAD SIDEBAR CLASSES & GROUPS
+  ===================================================== */
+  async function loadSidebarClasses() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarClassList = document.getElementById("sidebarClassList");
+    if (!sidebarClassList) return;
+    sidebarClassList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myClasses = [];
+
+    if (userRole === "TEACHER" && userSearchIds.length > 0) {
+      const { data } = await client
+        .from('classes')
+        .select('subject, code, status')
+        .eq('status', 'active')
+        .in('teacher_id', userSearchIds)
+        .order('created_at', { ascending: false });
+      myClasses = data || [];
+    } else {
+      const { data } = await client
+        .from('classes')
+        .select('subject, code, status')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+      myClasses = data || [];
+    }
+
+    if (myClasses.length > 0) {
+      myClasses.forEach(c => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (c.code === selectedCode) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `📘 ${c.subject}`;
+        sideLink.href = classUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.setItem("selectedClass", c.code);
+          window.location.href = classUrl;
+        };
+        sidebarClassList.appendChild(sideLink);
+      });
+    } else {
+      sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
+    }
+  }
+
+  async function loadSidebarGroups() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarGroupList = document.getElementById("sidebarGroupList");
+    if (!sidebarGroupList) return;
+    sidebarGroupList.innerHTML = "";
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+    let myGroups = [];
+
+    if (userRole === "TEACHER" && userSearchIds.length > 0) {
+      const { data } = await client
+        .from('groups')
+        .select('name, code, status')
+        .eq('status', 'active')
+        .in('teacher_id', userSearchIds)
+        .order('created_at', { ascending: false });
+      myGroups = data || [];
+    } else {
+      const { data } = await client
+        .from('groups')
+        .select('name, code, status')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+      myGroups = data || [];
+    }
+
+    if (myGroups.length > 0) {
+      myGroups.forEach(g => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        sideLink.textContent = `👥 ${g.name}`;
+        sideLink.href = groupPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.setItem("selectedGroup", g.code);
+          window.location.href = groupPageUrl;
+        };
+        sidebarGroupList.appendChild(sideLink);
+      });
+    } else {
+      sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
+    }
+  }
+</script>

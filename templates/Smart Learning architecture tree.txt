@@ -1,0 +1,981 @@
+things i have to do when xampp MySQL crash
+
+
+when the app.py cant locate i must put this in terminal
+
+cd C:\xampp\htdocs\smart
+python app.py
+
+
+homepage.html (Public Gateway & Institutional Portal)
+│
+├── login.html (Auth Context / Portal Sign In & Role Router)
+├── register.html (External Registration Guide & Social Admin Contact)
+├── account.html (User Profile, Security & Academic Details Editor) [GLOBAL]
+└── logout.html (Session Termination & Storage Cleanup) [GLOBAL]
+
+├─► ADMINISTRATOR PORTAL (1: Institutional Oversight Engine - Global Audit)
+│   │
+│   │ 🔒 BOUNDARY RULE: Administrator is strictly restricted from creating or joining
+│   │    classes/groups. All teacher-created entities automatically propagate to Admin.
+│   │
+│   ├── landpage.html (Master Institutional Hub: Real-Time Audit of ALL Classes & Groups)
+│   ├── class.html (Audit View: Inspect Class Feed, Lessons, Streams & Member Rosters)
+│   ├── group.html (Audit View: Inspect Group Collaboration & Shared Resources)
+│   ├── classdashboard.html (System-Wide Analytics: Detects Inactive Classes [1D / 120D Modes])
+│   ├── studentdashboard.html (System-Wide Analytics: Cross-Institutional Student Risk Monitor)
+│   ├── grades.html (Master Institutional Ledger: Audit All Student Class Averages & Rosters)
+│   │   └── studentgrades.html (Official Grade Registry: Detailed Transcript View via Student Name Click)
+│   └── archive.html (Institutional Vault: Audit, Restore / Unarchive, or Purge Archived Spaces)
+│
+├─► TEACHER PORTAL (2: Course Management & Instruction Engine)
+│   │
+│   ├── landpage.html (Teacher Command Center: Active Created Classes & Groups Cards)
+│   │   ├── create.html (Class & Group Creation Hub: Auto-Enrolls Teacher & Reflects to Admin)
+│   │   └── update1.html (Class & Group Entity Editor: Subject Details, Section & Archival)
+│   │
+│   ├── class.html (Teacher Classroom Workspace Hub)
+│   │   ├── lesson.html (Publish Lecture Form: Multi-Format Uploads to Supabase Storage)
+│   │   ├── lessons.html (Published Lessons Viewer Feed)
+│   │   │   └── update.html (Editor: Modify Published Lesson Text, Files & Drive Links)
+│   │   ├── activity.html (Assignment Publisher: Sets Points, Rubrics & Deadlines)
+│   │   │   ├── update.html (Editor: Modify Published Activity Guidelines & Extensions)
+│   │   │   ├── submissions.html (Grading Queue: View Turned-In Student Submissions)
+│   │   │   │   ├── studentwork.html (Scoring Workspace: Evaluate File, Score & Send Feedback)
+│   │   │   │   └── studentgrades.html (Grade Profile: Direct Link via Student Name Click)
+│   │   │   └── (Database Trigger: Auto-Dispatches In-App & Email Notifications to Enrolled Students)
+│   │   └── group.html (Project Group Workspace Monitor)
+│   │
+│   ├── classdashboard.html (Course Analytics: Class-Wide Turn-In Trends & Engagement Tracker)
+│   ├── grades.html (Teacher Gradebook: Class Roster, Score Summaries & Performance Matrix)
+│   │   └── studentdashboard.html (Class Performance Matrix: Navigated via "View Breakdown")
+│   ├── studentdashboard.html (Comparative Student Analytics: Compare Progress Across All Created Classes)
+│   ├── studentgrades.html (Individual Student Breakdown: Activity-Level Scores & Remarks)
+│   ├── calendar.html (Course Schedule Planner: Interactive Grid with Direct Activity Creator Form)
+│   └── archive.html (Teacher Vault: Manage Archived Classes/Groups with 1-Click Restore)
+│
+└─► STUDENT PORTAL (3: Learner Workspace & Self-Service Hub)
+    │
+    ├── landpage.html (Student Overview: Enrolled Active Classes & Groups Workspace Cards)
+    │   ├── join.html (Enrollment Engine: Code Validation, RLS Check & Membership Insertion)
+    │   │   ├── class.html (Enrolled Student Workspace)
+    │   │   │   ├── lessons.html (Student Lesson Viewer: Download Files & Access Drive Links)
+    │   │   │   └── activitysubmit.html (Assignment Turn-In: Upload Work, Link & Unsubmit Option)
+    │   │   │       └── (Database Trigger: Sends Real-Time Turn-In Alert to Class Teacher)
+    │   │   └── group.html (Project Group Collaboration Hub: Code-Protected Access)
+    │   └── class.html (Direct Workspace Entry from Enrolled Class Cards)
+    │
+    ├── dashboard.html (My Progress Hub: Personal Stats, Submitted Scores, Lacking Work & Class List)
+    ├── studentgrades.html (My Report Card & Transcript: Philippine GPA Conversion)
+    │   └── review.html (Feedback Viewer: Inspect Submitted File, Score & Teacher Remarks)
+    ├── notify.html (Student Alerts Engine: Activity Due Reminders, Deadlines & Grade Alerts)
+    │   │  ⚡ AUTOMATION TRIGGERS:
+    │   │  ├── Trigger A: New Activity Posted -> Dispatches Date, Time & Deadline Details
+    │   │  └── Trigger B: Deadline Approaching -> Auto-Alerts Student 8 Hours Before Due Date
+    │   └── activitysubmit.html (Direct Smart-Routing from Notification Item)
+    ├── calendar.html (Personal Deadline Planner: Visual Deadline Badges & Due Activity Badges)
+    └── archive.html (Student Vault: Access Archived/Completed Past Enrolled Spaces)
+
+
+
+
+
+Database Schema Blueprint
+To support all pages in your hierarchy, your relational database requires the following core schema structure:
+
+Users (id, name, email, password_hash, role)
+  │
+  ├──► Classes (id, teacher_id, title, join_code, status, created_at)
+  │      │
+  │      ├──► ClassMemberships (id, class_id, user_id, joined_at)
+  │      ├──► Lessons (id, class_id, title, content_url, created_at)
+  │      ├──► Groups (id, class_id, title, group_code)
+  │      └──► Activities (id, class_id, title, requirements, deadline, total_points)
+  │             │
+  │             └──► Submissions (id, activity_id, student_id, submission_file, status, submitted_at)
+  │                    │
+  │                    └──► Grades (id, submission_id, score, feedback, graded_at)
+  │
+  └──► Notifications (id, user_id, title, message, is_read, trigger_time)
+
+
+
+
+Loop 1: The Activity, Submission, Grading & Review Loop (Main Feedback Loop)
+This is the most critical loop in your platform. When a teacher posts an activity, it travels through student submission, teacher grading, grade reflect, and student review.
+
+[TEACHER] activity.html ──► [STUDENT] notify.html & activitysubmit.html
+
+[STUDENT] review.html   ◄── [TEACHER] studentwork.html & submissions.html & studentgrades.html
+
+
+
+
+
+HTML Files to Connect:
+TEACHER/activity.html (Trigger): Sends a POST /api/activities request when a teacher creates an assignment.
+
+STUDENT/notify.html & STUDENT/activitysubmit.html (Reaction 1):
+notify.html fetches unread activity notifications (GET /api/notifications).
+activitysubmit.html fetches assignment details and submits student work (POST /api/submissions).
+
+TEACHER/submissions.html & studentwork.html (Reaction 2):
+submissions.html lists pending submissions.
+studentwork.html sends the grade and feedback to the backend (POST /api/grades).
+
+STUDENT/studentgrades.html & STUDENT/review.html (Reflection):
+studentgrades.html automatically reflects the updated overall grade.
+review.html fetches score and teacher comments (GET /api/submissions/:id/review).
+
+ADMIN/studentgrades.html & TEACHER/grades.html (Audit Reflection):
+Both pages fetch from the exact same /api/grades database table, updating their respective gradebooks instantly.
+
+
+
+
+
+Loop 2: Class Creation & Automatic Admin Oversight Loop
+Admin needs to view all classes without ever joining them, while teachers manage their own created classes.
+[TEACHER] create.html ──► Database (Classes Table)
+                              │
+            ┌─────────────────┴─────────────────┐
+            ▼                                   ▼
+[TEACHER] landpage.html              [ADMIN] landpage.html
+(Where teacher_id = me)              (ALL classes in DB)
+
+HTML Files to Connect:
+TEACHER/create.html (Trigger): Sends POST /api/classes with class details and teacher ID.
+TEACHER/landpage.html (Filtered Reflection):
+Uses JavaScript: fetch('/api/classes?teacher_id=' + currentUserId) to show only the classes that teacher created.
+ADMIN/landpage.html (Global Reflection):
+Uses JavaScript: fetch('/api/admin/classes') to show ALL classes system-wide automatically, without needing an admin enrollment record.
+
+
+
+
+
+Loop 3: Join Code & Roster Expansion Loop
+When a student joins a class, their enrollment must instantly reflect in the teacher's and admin's roster views.
+
+[TEACHER] class.html (Generates Join Code)
+       │
+[STUDENT] join.html (Submits Join Code)
+       │
+       ▼
+Database (ClassMemberships Table)
+       │
+       ├──► [STUDENT] landpage.html (Class appears in joined list)
+       ├──► [TEACHER] grades.html (Student appears in class roster)
+       └──► [ADMIN] grades.html (Student appears in global roster)
+
+HTML Files to Connect:
+TEACHER/class.html: Displays the dynamic join_code generated during class creation.
+STUDENT/join.html: Submits code via POST /api/classes/join.
+STUDENT/landpage.html: Calls GET /api/student/classes so the new class immediately appears on their dashboard.
+TEACHER/grades.html & ADMIN/grades.html: Re-fetches the roster list so the newly joined student is visible for grading and monitoring.
+
+
+
+
+
+Loop 4: Inactivity Audit & Urgency Alert Loop
+This background loop tracks student activity and alerts both students (for impending deadlines) and admins (for inactive classes).
+
+User Actions (Submissions / Content Uploads)
+       │
+       ▼
+Background Cron / API Timestamp
+       │
+       ├──► [STUDENT] notify.html (If deadline <= 8 hours remaining)
+       └──► [ADMIN] classdashboard.html (If no class activity for > 14 days)
+
+HTML Files to Connect:
+STUDENT/notify.html: Runs a periodic check or fetches /api/notifications/urgent. If an unsubmitted activity deadline is within 8 hours, it renders a high-priority alert banner.
+ADMIN/classdashboard.html: Queries GET /api/admin/analytics/inactivity. If a class has 0 submissions or lesson uploads over 14 days, JS marks the class card with an "INACTIVE" flag.
+
+HTML File,Primary JavaScript Task,Loop Connection
+TEACHER/create.html,POST class data to API,Triggers Loop 2
+STUDENT/join.html,POST join code to API,Triggers Loop 3
+TEACHER/activity.html,POST activity data & trigger notification API,Triggers Loop 1 & 4
+STUDENT/activitysubmit.html,POST student work file/text,Triggers Loop 1
+TEACHER/studentwork.html,POST score & feedback,Updates Loop 1 gradebooks
+STUDENT/review.html,GET graded work & feedback,Completes Loop 1
+STUDENT/notify.html,GET unread alerts & 8-hr deadline alerts,Completes Loop 4
+ADMIN/classdashboard.html,GET inactivity metrics,Completes Loop 4
+
+
+
+
+
+Here is the complete **Master Action Blueprint** for your Regis Marie College LMS.
+
+This blueprint maps out the exact technical contracts—**database queries, `localStorage` key contracts, form submission payloads, and navigation routes**—to guarantee that data loops smoothly across **Teacher, Student, and Admin** points of view without breaking state or dropping context.
+## 🏛️ Core Architectural Protocols
+
+Before diving into role-specific blue-prints, all pages MUST enforce these three non-negotiable data contracts:
+
+1. **Type-Safe Dual ID Resolution (`getDualTypeIds`)**: Supabase queries matching user IDs, class IDs, or activity IDs must query against both String and Integer forms (`.in('user_id', getDualTypeIds([currentUserId]))`) to prevent `TEXT` vs. `BIGINT` database schema type-mismatch crashes.
+2. **Flat Query Aggregation**: Never execute deep nested PostgREST joins like `.select('*, users(*), activities(*), classes(*)')`. Execute flat 2-to-4 step queries in JS and build in-memory lookup maps.
+3. **Session Cache Contract**: `localStorage` acts as the cross-page bridge. Never redirect to a workspace page without first committing its primary key into `localStorage`.
+
+
+
+## 👨‍🏫 1. Teacher Point of View (POV) Blueprint
+Teachers manage subjects, post activities/materials, track student turn-ins, assign scores, and monitor class performance analytics.
+[Create Class] ➔ [Calendar/Workspace] ➔ [Student Submits] ➔ [Submissions Inbox] ➔ [Student Work / Grade] ➔ [Class/Student Dashboard]
+
+### Page-by-Page Configuration Matrix
+
+| HTML File | Primary Actions & Form Submissions | Database Query / Payload | `localStorage` State Contract | Next Route / Loop |
+| **`landpage.html`** | View created classes/groups; Card 3-dots action menu (Update, Archive, Delete). | Query `classes` & `groups` where `teacher_id IN getDualTypeIds([currentUserId])` & `status = 'active'`. | Reads: `role`, `user_id` 
+
+ Sets: `selectedClass`, `selectedClassId`, `selectedGroup` | `class.html` 
+
+ `group.html` 
+
+ `update1.html` |
+| **`create.html`** | Submits **Create Class** or **Create Group** forms. | `INSERT` into `classes` or `groups` with `teacher_id = parseDbId(currentUserId)`. Auto `INSERT` into `class_memberships` / `group_memberships`. | Sets: `selectedClass`, `selectedClassId`, `selectedGroup` | `class.html` 
+
+ `group.html` |
+| **`calendar.html`** | Submits **Add Activity Form**. Clicking a calendar date auto-fills form date and scrolls down. | `INSERT` into `activities` with `class_id`, `deadline`, `total_points`, `file_url` (uploaded to `lesson-files` bucket). Auto `INSERT` into `notifications` for enrolled students. | Reads: `selectedClass` 
+
+ Sets: `selectedActivityId`, `selectedClass` | `submissions.html` (on activity click) |
+| **`classdashboard.html`** | Analytics overview (Every Day `1D` vs. 120 Days `120D`). Inactive class alerts. | Query teacher's `classes` -> fetch `class_memberships` count -> fetch `activities` -> aggregate `submissions`. | Reads: `role`, `user_id` 
+
+ Sets: `selectedClass`, `selectedClassId` | `grades.html` |
+| **`studentdashboard.html`** | Individual student performance monitoring. At-risk score warnings. | Fetch `submissions` for teacher's classes -> map `users` profile -> calculate average GPA equivalent. | Reads: `selectedStudentId`, `selectedStudentName` 
+
+ Sets: `selectedStudentId`, `searchStudentFilter` | `studentgrades.html` |
+| **`grades.html`** | Master gradebook ledger. Displays student score matrix per assignment. | Flat fetch: Teacher's `classes` -> `activities` -> `class_memberships` -> `submissions`. | Sets: `selectedStudentId`, `selectedStudentName`, `searchStudentFilter` | `studentdashboard.html` 
+
+ `studentgrades.html` |
+| **`submissions.html`** | Grading Inbox. Grade input form (`saveGrade`). | Query `submissions` where `activity_id IN classActivities`. Update `submissions` with `grade`, `score`, `status = 'graded'`. Auto `INSERT` student `notifications`. | Reads: `selectedClass`, `selectedActivityId` 
+
+ Sets: `selectedSubmissionId`, `selectedStudentId` | `studentwork.html` 
+
+ `studentgrades.html` |
+| **`studentwork.html`** | Inspect individual turned-in work notes, links, and uploaded files. Assigns/updates grade. | Read `submissions` by `selectedSubmissionId`. `UPDATE` `grade`, `score`, `comments`, `status = 'graded'`. | Reads: `selectedSubmissionId` 
+
+ Sets: `selectedActivityId` | `submissions.html` |
+| **`archive.html`** | View archived subjects. Unarchive / Restore or permanently delete. | Query `classes`/`groups` where `status = 'archived'` & `teacher_id IN getDualTypeIds([currentUserId])`. `UPDATE status = 'active'` on restore. | Reads: `role`, `user_id` | Refreshes vault and sidebar |
+| **`notify.html`** | Activity feed. Receive alerts when students submit work. | Query `notifications` where `user_id IN getDualTypeIds([currentUserId])`. Mark as read / delete. | Reads: `user_id` 
+
+ Sets: `selectedActivityId`, `selectedSubmissionId` | `submissions.html` 
+
+ `studentwork.html` |
+| **`account.html`** | Profile view. Locked academic fields. | Read `users` where `id IN getDualTypeIds([currentUserId])`. | Reads: `user_id`, `role` | — |
+
+
+
+
+
+
+
+## 🎓 2. Student Point of View (POV) Blueprint
+Students join classes/groups using access codes, track upcoming activity deadlines, turn in assignments (with file uploads), and review graded feedback.
+[Join Subject] ➔ [Classroom Feed] ➔ [Calendar / Dashboard] ➔ [Turn-In Activity] ➔ [View Review / Grades]
+
+### Page-by-Page Configuration Matrix
+
+| HTML File | Primary Actions & Form Submissions | Database Query / Payload | `localStorage` State Contract | Next Route / Loop |
+
+| **`landpage.html`** | View joined classes/groups; Quick navigation buttons. | 2-Step Fetch: Query `class_memberships` / `group_memberships` where `user_id IN userSearchIds` -> fetch `classes` / `groups`. | Reads: `role`, `user_id` 
+
+ Sets: `selectedClass`, `selectedClassId`, `selectedGroup` | `class.html` 
+
+ `group.html` 
+
+ `join.html` |
+| **`join.html`** | Submits Access Code Form (**Join Class / Group**). | Validate code in `classes` or `groups`. `INSERT` into `class_memberships` or `group_memberships` with `user_id = parseDbId(currentUserId)`. | Sets: `selectedClass`, `selectedClassId`, `selectedGroup` | `class.html` 
+
+ `group.html` |
+| **`calendar.html`** | Read-only deadline calendar with interactive activity badges. | Fetch `class_memberships` -> fetch `activities` for enrolled `class_id` list -> plot badges on dates. | Reads: `user_id` 
+
+ Sets: `selectedActivityId`, `selectedClass` | `activitysubmit.html` |
+| **`dashboard.html`** | Student personal dashboard (`myDashboardUrl`). Active tasks and grade summary. | Fetch enrolled `class_memberships` -> query pending `activities` -> fetch student's `submissions`. | Reads: `user_id` 
+
+ Sets: `selectedActivityId`, `selectedClass` | `activitysubmit.html` 
+
+ `studentgrades.html` |
+| **`activitysubmit.html`** | Turn-In Hub. Upload assignment file, paste link, add notes. **Unsubmit Work** toggle. | Upload file to Supabase `lesson-files` (`submissions/` path). `UPSERT` `submissions` (`status = 'submitted'`). Auto `INSERT` teacher `notifications`. | Reads: `selectedActivityId`, `selectedClass` 
+
+ Sets: `selectedActivityId` | `review.html` 
+
+ `class.html` |
+| **`review.html`** | Post-evaluation review. Displays score, remarks, submitted work. Hides resubmit if graded. | Query `submissions` by `selectedActivityId` + `currentUserId` -> query `activities` for max points. | Reads: `selectedActivityId`, `currentUserId` | `studentgrades.html` 
+
+ `class.html` |
+| **`studentgrades.html`** | Individual Report Card view across all assignments in subject. | Fetch `class_memberships` -> fetch `activities` -> fetch student's `submissions` -> compute subject GPA. | Reads: `selectedClass`, `selectedClassId`, `currentUserId` | `review.html` |
+| **`archive.html`** | Read-only vault of enrolled classes/groups that were archived by teacher. | 2-Step Fetch: `class_memberships` / `group_memberships` -> `classes` / `groups` where `status = 'archived'`. | Reads: `user_id` | — |
+| **`notify.html`** | Student notification inbox. | Query `notifications` where `user_id IN getDualTypeIds([currentUserId])`. Mark read / delete. | Reads: `user_id` 
+
+ Sets: `selectedActivityId` | `review.html` 
+
+ `studentgrades.html` 
+
+ `activitysubmit.html` |
+| **`account.html`** | View/Edit profile. Editable Course, Year Level, and Section fields. | Query `users` by `currentUserId`. `UPDATE` `users` with `course`, `year_level`, `section`. | Reads: `user_id` 
+
+ Sets: `full_name`, `role` | Refreshes user session |
+
+
+
+
+
+
+
+
+
+
+
+## 🛡️ 3. Admin Point of View (POV) Blueprint
+Administrators possess master institutional access to audit active classes, inspect system-wide analytics, manage archives, and review master gradebooks.
+[System Dashboard] ➔ [Institutional Classes] ➔ [Master Grades Audit] ➔ [Institutional Archive Vault]
+
+### Page-by-Page Configuration Matrix
+
+| HTML File | Primary Actions & Scope | Database Query / Payload | `localStorage` State Contract | Next Route / Loop 
+| **`landpage.html`** | Full institutional audit view of all college classes and groups. | Query **ALL** `classes` & `groups` (`status = 'active'`) regardless of `teacher_id`. | Sets: `selectedClass`, `selectedClassId`, `selectedGroup` | `class.html` 
+
+ `group.html` |
+| **`create.html`** | Institutional Class/Group Creation. | `INSERT` into `classes`/`groups` with `teacher_id = parseDbId(currentUserId)`. | Sets: `selectedClass`, `selectedClassId` | `class.html` |
+| **`classdashboard.html`** | System-Wide Analytics Engine. Monitored class activity and completion. | Query **ALL** `classes` -> fetch all `activities` -> aggregate system-wide `submissions`. | Sets: `selectedClass`, `selectedClassId` | `grades.html` |
+| **`studentdashboard.html`** | System-wide student performance tracking and grade progression. | Fetch **ALL** `submissions` across system -> aggregate `users` performance. | Sets: `selectedStudentId`, `searchStudentFilter` | `studentgrades.html` |
+| **`grades.html`** | Master Institutional Grade Ledger. Audit overall student marks across all subjects. | Query **ALL** `classes` -> `activities` -> `submissions` -> `users`. | Sets: `selectedStudentId`, `selectedStudentName` | `studentgrades.html` |
+| **`archive.html`** | Institutional Archive Vault. Restore or permanently purge any archived entity. | Query **ALL** `classes` & `groups` where `status = 'archived'`. `UPDATE` or `DELETE`. | Reads: `role` | Refreshes vault list |
+| **`notify.html`** | System alerts & administrative dispatches. | Query `notifications` where `user_id IN getDualTypeIds([currentUserId])`. | Reads: `user_id` | `classdashboard.html` |
+
+
+
+
+
+
+
+
+
+
+## 🔐 4. Universal `localStorage` Key Contract Matrix
+
+To avoid key collisions or `undefined` redirects across pages, strictly adhere to these standard key names:
+
+| `localStorage` Key Name | Data Type | Expected Content Example | Set By (Source Pages) | Read By (Target Pages) |
+| --- | --- | --- | --- | --- |
+| **`role`** | `String` | `"TEACHER"`, `"STUDENT"`, `"ADMIN"` | `login.html` | All 20 HTML Pages |
+| **`user_id`** | `String` / `Number` | `"12"`, `12` | `login.html` | All 20 HTML Pages |
+| **`full_name`** | `String` | `"Prof. Juan Cruz"` | `login.html`, `account.html` | All 20 HTML Pages |
+| **`selectedClass`** | `String` (Code) | `"RMC-A8X92"` | `landpage.html`, `create.html`, `join.html`, `classdashboard.html` | `class.html`, `submissions.html`, `calendar.html` |
+| **`selectedClassId`** | `Number` / `String` | `105` | `landpage.html`, `create.html`, `join.html` | `class.html`, `grades.html`, `submissions.html` |
+| **`selectedGroup`** | `String` (Code) | `"GRP-K3P21"` | `landpage.html`, `create.html`, `join.html` | `group.html` |
+| **`selectedActivityId`** | `Number` / `String` | `42` | `class.html`, `calendar.html`, `notify.html`, `dashboard.html` | `activitysubmit.html`, `review.html`, `submissions.html` |
+| **`selectedSubmissionId`** | `Number` / `String` | `301` | `submissions.html`, `notify.html` | `studentwork.html`, `review.html` |
+| **`selectedStudentId`** | `Number` / `String` | `88` | `grades.html`, `submissions.html`, `studentdashboard.html` | `studentgrades.html`, `studentdashboard.html` |
+| **`selectedStudentName`** | `String` | `"Maria Santos"` | `grades.html`, `submissions.html` | `studentgrades.html`, `studentdashboard.html` |
+| **`searchStudentFilter`** | `String` | `"Maria Santos"` | `grades.html`, `studentdashboard.html` | `submissions.html` |
+| **`updateType`** | `String` | `"class"`, `"group"`, `"activity"` | `landpage.html`, `class.html`, `activitysubmit.html` | `update1.html` |
+
+
+
+
+
+
+
+
+
+
+Here is your **Comprehensive System Health & Audit Matrix**. This gives you an exact overview of all 20 HTML modules in your LMS platform, highlighting what is fully **🟢 Production Ready** and what is ready for our final audit phase.
+## 📊 System Health & Audit Matrix
+| # | File Name | Role / Scope | Current Status | Operational Link & Description |
+| --- | --- | --- | --- | --- |
+| **1** | `review.html` | Student Feedback & Review Hub | 🟢 Production Ready | Displays score, teacher remarks, lesson resources, and submitted work. Automatically hides the resubmit button once graded. |
+| **2** | `studentwork.html` | Teacher Submission Evaluation | 🟢 Production Ready | Allows teachers to inspect turned-in work, preview media/files, assign scores, write remarks, and update Supabase. |
+| **3** | `class.html` | Classroom Workspace Hub | 🟢 Production Ready | 3-tab workspace (Feed, Classwork, People). Displays green "Finished" badges for turned-in activities and links directly to submission routes. |
+| **4** | `grades.html` | Master Gradebook & Ledger | 🟢 Production Ready | Role-aware grade ledger. Aggregates student class averages using dual-type queries and links directly to individual student report cards. |
+| **5** | `join.html` | Student Enrollment Engine | 🟢 Production Ready | Validates class/group codes, inserts records into `class_memberships` / `group_memberships`, and blocks duplicate enrollments. |
+| **6** | `create.html` | Class & Group Creation Hub | 🟢 Production Ready | Stores `teacher_id` properly in Supabase, auto-enrolls creating teachers in membership tables, and includes student dashboard links. |
+| **7** | `studentdashboard.html` | Student Analytics (Teacher/Admin) | 🟢 Production Ready | Renders performance charts, grade progression, and at-risk student warnings using flat 4-step dual-type queries. |
+| **8** | `landpage.html` | Main System Homepage | 🟢 Production Ready | Primary landing hub for all roles. Renders active joined/created subjects, teacher card action menus, and dynamic header counters. |
+| **9** | `notify.html` | System Notification Engine | 🟢 Production Ready | Universal inbox for all roles. Handles grade alerts, submission notifications, mark as read, clear inbox, and role-based smart routing. |
+| **10** | `calendar.html` | Interactive Learning Calendar | 🟢 Production Ready | Renders monthly grids with activity deadline badges. Clicking dates auto-fills submission forms; teacher sidebar synced with Student Dashboard. |
+| **11** | `classdashboard.html` | Class Activity Analytics | 🟢 Production Ready | Course analytics featuring **Every Day (1D)** vs. **120 Past Days (120D)** timeline modes and inactive class detection alerts. |
+| **12** | `account.html` | Profile & Security Settings | 🟢 Production Ready | Dynamically fetches user profile data from Supabase `users`. Supports student academic info edits while locking restricted fields. |
+| **13** | `archive.html` | Institutional Archival Vault | 🟢 Production Ready | Isolates archived classes/groups from active views. Features 1-click **Unarchive / Restore** functionality back to active status. |
+| **14** | `submissions.html` | Teacher Grading Inbox | 🟢 Production Ready | Central queue for turned-in student work. Integrates dual-type searches and routes directly to `studentwork.html`. |
+| **15** | `activitysubmit.html` | Student Assignment Turn-In | 🟢 Production Ready | Direct Supabase Storage uploads, Turn-In / Unsubmit toggling, and automatic teacher in-app notification dispatches. |
+| **16** | `dashboard.html` | Student Personal Dashboard | 🟡 Needs Final Audit | Student main dashboard view (`myDashboardUrl`). Needs verification for student task completion widgets and grade summary cards. |
+| **17** | `studentgrades.html` | Student Grade Breakdown | 🟡 Needs Final Audit | Individual student report card view. Needs verification for `selectedStudentId` query handling and teacher feedback rendering. |
+| **18** | `group.html` | Group Workspace Hub | 🟡 Needs Final Audit | Collaboration space counterpart to `class.html`. Needs verification for team roster and group resource sharing. |
+| **19** | `lessons.html` | Lesson Material Viewer | 🟡 Needs Final Audit | Detailed lecture and worksheet view. Needs verification for `selectedLessonId` rendering and file download attachments. |
+| **20** | `update1.html` | Entity Update Engine | 🟡 Needs Final Audit | Edit modal/form page for classes, groups, and activities. Needs verification for Supabase update payloads. |
+21 activity.html where teacher create a activity  🟢 Production Ready
+22 homepage.html is our frong its only welcome page nothing special no data base nbothing all its just a design and its already 🟢 Production Ready
+23 lesson.html where teacher create a lesson  🟢 Production Ready
+24 login.html its already  🟢 Production Ready
+25 register.html is laready  🟢 Production Ready
+26 update.html where teacher update the lesson or activity  🟢 Production Ready
+
+
+
+
+
+
+
+
+
+
+
+DATA SCHEMA SQL Supabase
+-- 1. DYNAMICALLY DROP ALL FOREIGN KEYS TARGETING THE users TABLE
+DO $$ 
+DECLARE 
+    r RECORD;
+BEGIN
+    FOR r IN (
+        SELECT tc.table_schema, tc.table_name, tc.constraint_name
+        FROM information_schema.table_constraints AS tc
+        JOIN information_schema.key_column_usage AS kcu
+          ON tc.constraint_name = kcu.constraint_name
+          AND tc.table_schema = kcu.table_schema
+        JOIN information_schema.constraint_column_usage AS ccu
+          ON ccu.constraint_name = tc.constraint_name
+          AND ccu.table_schema = tc.table_schema
+        WHERE tc.constraint_type = 'FOREIGN KEY' 
+          AND ccu.table_name = 'users'
+    ) LOOP
+        EXECUTE format('ALTER TABLE %I.%I DROP CONSTRAINT IF EXISTS %I;', r.table_schema, r.table_name, r.constraint_name);
+    END LOOP;
+END $$;
+
+-- 2. CONVERT users.id PRIMARY KEY TO TEXT
+ALTER TABLE users ALTER COLUMN id TYPE TEXT USING id::text;
+
+-- 3. DYNAMICALLY CONVERT ALL USER REFERENCE COLUMNS TO TEXT ACROSS ALL TABLES
+DO $$ 
+DECLARE 
+    r RECORD;
+BEGIN
+    FOR r IN (
+        SELECT table_schema, table_name, column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND column_name IN ('user_id', 'teacher_id', 'creator_id', 'sender_id', 'receiver_id', 'student_id')
+          AND data_type != 'text'
+    ) LOOP
+        EXECUTE format('ALTER TABLE %I.%I ALTER COLUMN %I TYPE TEXT USING %I::text;', r.table_schema, r.table_name, r.column_name, r.column_name);
+    END LOOP;
+END $$;
+
+-- 4. DISABLE ROW LEVEL SECURITY (RLS) ON ALL PUBLIC TABLES
+DO $$ 
+DECLARE 
+    r RECORD;
+BEGIN
+    FOR r IN (
+        SELECT table_schema, table_name
+        FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+    ) LOOP
+        EXECUTE format('ALTER TABLE %I.%I DISABLE ROW LEVEL SECURITY;', r.table_schema, r.table_name);
+    END LOOP;
+END $$;
+
+-- 5. RE-ESTABLISH CORE FOREIGN KEYS
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='submissions' AND column_name='user_id') THEN
+        ALTER TABLE submissions ADD CONSTRAINT fk_submissions_users FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='classes' AND column_name='teacher_id') THEN
+        ALTER TABLE classes ADD CONSTRAINT classes_teacher_id_fkey FOREIGN KEY (teacher_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='chat_messages' AND column_name='sender_id') THEN
+        ALTER TABLE chat_messages ADD CONSTRAINT chat_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
+
+-- 6. RELOAD SUPABASE API SCHEMA CACHE
+NOTIFY pgrst, 'reload schema';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- ========================================================
+-- REGIS MARIE COLLEGE - DATABASE SCHEMA & FOREIGN KEY REPAIR
+-- Run this in Supabase -> SQL Editor -> Run
+-- ========================================================
+
+-- 1. USERS TABLE
+CREATE TABLE IF NOT EXISTS public.users (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'STUDENT',
+    student_id TEXT,
+    course TEXT,
+    year_level TEXT,
+    section TEXT,
+    position TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. CLASSES TABLE
+CREATE TABLE IF NOT EXISTS public.classes (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    subject TEXT NOT NULL,
+    code TEXT UNIQUE NOT NULL,
+    course TEXT,
+    year_level TEXT,
+    section TEXT,
+    teacher_id BIGINT,
+    status TEXT DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Add Foreign Key for Classes -> Users (Teacher)
+ALTER TABLE public.classes 
+DROP CONSTRAINT IF EXISTS fk_classes_teacher;
+
+ALTER TABLE public.classes
+ADD CONSTRAINT fk_classes_teacher 
+FOREIGN KEY (teacher_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+-- 3. CLASS MEMBERSHIPS TABLE
+CREATE TABLE IF NOT EXISTS public.class_memberships (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    class_id BIGINT,
+    user_id BIGINT,
+    joined_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(class_id, user_id)
+);
+
+ALTER TABLE public.class_memberships 
+DROP CONSTRAINT IF EXISTS fk_cm_class,
+DROP CONSTRAINT IF EXISTS fk_cm_user;
+
+ALTER TABLE public.class_memberships
+ADD CONSTRAINT fk_cm_class FOREIGN KEY (class_id) REFERENCES public.classes(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_cm_user FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+-- 4. GROUPS TABLE
+CREATE TABLE IF NOT EXISTS public.groups (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    name TEXT NOT NULL,
+    code TEXT UNIQUE NOT NULL,
+    course TEXT,
+    year_level TEXT,
+    section TEXT,
+    teacher_id BIGINT,
+    status TEXT DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.groups 
+DROP CONSTRAINT IF EXISTS fk_groups_teacher;
+
+ALTER TABLE public.groups
+ADD CONSTRAINT fk_groups_teacher FOREIGN KEY (teacher_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+-- 5. GROUP MEMBERSHIPS TABLE
+CREATE TABLE IF NOT EXISTS public.group_memberships (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    group_id BIGINT,
+    user_id BIGINT,
+    joined_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(group_id, user_id)
+);
+
+ALTER TABLE public.group_memberships 
+DROP CONSTRAINT IF EXISTS fk_gm_group,
+DROP CONSTRAINT IF EXISTS fk_gm_user;
+
+ALTER TABLE public.group_memberships
+ADD CONSTRAINT fk_gm_group FOREIGN KEY (group_id) REFERENCES public.groups(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_gm_user FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+-- 6. LESSONS TABLE
+CREATE TABLE IF NOT EXISTS public.lessons (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    class_id BIGINT,
+    title TEXT NOT NULL,
+    content TEXT,
+    file_url TEXT,
+    link_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.lessons 
+DROP CONSTRAINT IF EXISTS fk_lessons_class;
+
+ALTER TABLE public.lessons
+ADD CONSTRAINT fk_lessons_class FOREIGN KEY (class_id) REFERENCES public.classes(id) ON DELETE CASCADE;
+
+-- 7. ACTIVITIES TABLE
+CREATE TABLE IF NOT EXISTS public.activities (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    class_id BIGINT,
+    teacher_id BIGINT,
+    title TEXT NOT NULL,
+    description TEXT,
+    total_points INT DEFAULT 100,
+    due_date TIMESTAMPTZ,
+    deadline TIMESTAMPTZ,
+    file_url TEXT,
+    link_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.activities 
+DROP CONSTRAINT IF EXISTS fk_activities_class,
+DROP CONSTRAINT IF EXISTS fk_activities_teacher;
+
+ALTER TABLE public.activities
+ADD CONSTRAINT fk_activities_class FOREIGN KEY (class_id) REFERENCES public.classes(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_activities_teacher FOREIGN KEY (teacher_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+-- 8. SUBMISSIONS TABLE (CRITICAL FOREIGN KEYS FOR EMBEDDED JOINS)
+CREATE TABLE IF NOT EXISTS public.submissions (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    activity_id BIGINT,
+    user_id BIGINT,
+    comments TEXT,
+    link_url TEXT,
+    file_url TEXT,
+    status TEXT DEFAULT 'submitted',
+    score NUMERIC,
+    grade NUMERIC,
+    submitted_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.submissions 
+DROP CONSTRAINT IF EXISTS fk_submissions_activity,
+DROP CONSTRAINT IF EXISTS fk_submissions_user;
+
+ALTER TABLE public.submissions
+ADD CONSTRAINT fk_submissions_activity FOREIGN KEY (activity_id) REFERENCES public.activities(id) ON DELETE CASCADE,
+ADD CONSTRAINT fk_submissions_user FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+-- 9. NOTIFICATIONS TABLE
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    user_id BIGINT,
+    title TEXT NOT NULL,
+    message TEXT,
+    type TEXT DEFAULT 'general',
+    link TEXT,
+    is_read BOOLEAN DEFAULT FALSE,
+    read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.notifications 
+DROP CONSTRAINT IF EXISTS fk_notifications_user;
+
+ALTER TABLE public.notifications
+ADD CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+-- ========================================================
+-- DISABLE ROW LEVEL SECURITY (RLS) FOR FULL ACCESS
+-- ========================================================
+ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.classes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_memberships DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.groups DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.group_memberships DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lessons DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.activities DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.submissions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications DISABLE ROW LEVEL SECURITY;
+
+-- GRANT ALL PERMISSIONS TO ANON AND AUTHENTICATED ROLES
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+
+
+
+
+
+-- ========================================================
+-- 10. STORAGE BUCKET & PUBLIC ACCESS SETUP
+-- ========================================================
+
+-- Insert storage bucket if not exists
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('lesson-files', 'lesson-files', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Drop existing storage policies to avoid duplicates
+DROP POLICY IF EXISTS "Public Access" ON storage.objects;
+DROP POLICY IF EXISTS "Allow All Uploads" ON storage.objects;
+DROP POLICY IF EXISTS "Allow All Updates" ON storage.objects;
+DROP POLICY IF EXISTS "Allow All Deletes" ON storage.objects;
+
+-- Allow unrestricted read/write/update access for demo/thesis testing
+CREATE POLICY "Public Access" 
+ON storage.objects FOR SELECT 
+USING (bucket_id = 'lesson-files');
+
+CREATE POLICY "Allow All Uploads" 
+ON storage.objects FOR INSERT 
+WITH CHECK (bucket_id = 'lesson-files');
+
+CREATE POLICY "Allow All Updates" 
+ON storage.objects FOR UPDATE 
+USING (bucket_id = 'lesson-files');
+
+CREATE POLICY "Allow All Deletes" 
+ON storage.objects FOR DELETE 
+USING (bucket_id = 'lesson-files');
+
+-- ========================================================
+-- 11. ENABLE SUPABASE REALTIME REPLICATION
+-- ========================================================
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.submissions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.activities;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@"
+-- ========================================================
+-- REGIS MARIE COLLEGE - DATABASE SCHEMA & STORAGE SETUP
+-- ========================================================
+
+-- 1. USERS TABLE
+CREATE TABLE IF NOT EXISTS public.users (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    full_name TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'STUDENT',
+    student_id TEXT,
+    course TEXT,
+    year_level TEXT,
+    section TEXT,
+    position TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. CLASSES TABLE
+CREATE TABLE IF NOT EXISTS public.classes (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    subject TEXT NOT NULL,
+    code TEXT UNIQUE NOT NULL,
+    course TEXT,
+    year_level TEXT,
+    section TEXT,
+    teacher_id BIGINT REFERENCES public.users(id) ON DELETE SET NULL,
+    status TEXT DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. CLASS MEMBERSHIPS TABLE
+CREATE TABLE IF NOT EXISTS public.class_memberships (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    class_id BIGINT REFERENCES public.classes(id) ON DELETE CASCADE,
+    user_id BIGINT REFERENCES public.users(id) ON DELETE CASCADE,
+    joined_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(class_id, user_id)
+);
+
+-- 4. GROUPS TABLE
+CREATE TABLE IF NOT EXISTS public.groups (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    name TEXT NOT NULL,
+    code TEXT UNIQUE NOT NULL,
+    course TEXT,
+    year_level TEXT,
+    section TEXT,
+    teacher_id BIGINT REFERENCES public.users(id) ON DELETE SET NULL,
+    status TEXT DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. GROUP MEMBERSHIPS TABLE
+CREATE TABLE IF NOT EXISTS public.group_memberships (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    group_id BIGINT REFERENCES public.groups(id) ON DELETE CASCADE,
+    user_id BIGINT REFERENCES public.users(id) ON DELETE CASCADE,
+    joined_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(group_id, user_id)
+);
+
+-- 6. LESSONS TABLE
+CREATE TABLE IF NOT EXISTS public.lessons (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    class_id BIGINT REFERENCES public.classes(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    content TEXT,
+    file_url TEXT,
+    link_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7. ACTIVITIES TABLE
+CREATE TABLE IF NOT EXISTS public.activities (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    class_id BIGINT REFERENCES public.classes(id) ON DELETE CASCADE,
+    teacher_id BIGINT REFERENCES public.users(id) ON DELETE SET NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    total_points INT DEFAULT 100,
+    due_date TIMESTAMPTZ,
+    deadline TIMESTAMPTZ,
+    file_url TEXT,
+    link_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8. SUBMISSIONS TABLE
+CREATE TABLE IF NOT EXISTS public.submissions (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    activity_id BIGINT REFERENCES public.activities(id) ON DELETE CASCADE,
+    user_id BIGINT REFERENCES public.users(id) ON DELETE CASCADE,
+    comments TEXT,
+    link_url TEXT,
+    file_url TEXT,
+    status TEXT DEFAULT 'submitted',
+    score NUMERIC,
+    grade NUMERIC,
+    submitted_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(activity_id, user_id)
+);
+
+-- 9. NOTIFICATIONS TABLE
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id BIGINT GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+    user_id BIGINT REFERENCES public.users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    message TEXT,
+    type TEXT DEFAULT 'general',
+    link TEXT,
+    is_read BOOLEAN DEFAULT FALSE,
+    read BOOLEAN DEFAULT FALSE,
+    activity_id BIGINT REFERENCES public.activities(id) ON DELETE SET NULL,
+    submission_id BIGINT REFERENCES public.submissions(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 10. STORAGE BUCKET CONFIGURATION
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('lesson-files', 'lesson-files', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- 11. REALTIME REPLICATION
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.submissions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.activities;
+
+-- 12. PERMISSIONS
+ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.classes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.class_memberships DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.groups DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.group_memberships DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lessons DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.activities DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.submissions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications DISABLE ROW LEVEL SECURITY;
+
+GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
+"@ | Out-File -Encoding utf8 database/schema.sql
+
+git add database/schema.sql
+git commit -m "Add complete Supabase PostgreSQL schema and storage definitions"
+git push
+
+
+
+
+
+
+
+
+
+
+
+
+
+git remote set-url origin https://github.com/vincedormiendo09-debug/regis-marie-lms.git
+git add .
+git commit -m "Upload all templates, static assets, and LMS files"
+git push -u origin main
+
+git add .
+git commit -m "Describe your changes here"
+git push
+
+
+
+
+
+
+
+
+
+
+
+now how it work especially when we publish this all html in hosting public so everyone people can use it
+
+since our database are in supabase 
+
+if when we publish this and people use it did supabase still receive a data especially when they register, log in, join , create, etc 
+
+
+
+
+
+
+
+
+
+
+

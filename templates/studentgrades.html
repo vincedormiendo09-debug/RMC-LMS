@@ -1,0 +1,1675 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
+  <title>Student Grade Breakdown | Regis Marie College</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+  /* =========================================
+     GLOBAL RESET & BRAND DESIGN SYSTEM
+  ========================================= */
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1e40af;
+    --primary-light: #dbeafe;
+    --background: #f4f7fb;
+    --surface: #ffffff;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --warning: #f59e0b;
+    --warning-light: #fef3c7;
+    --danger: #ef4444;
+    --danger-light: #fee2e2;
+    --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', Arial, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background: var(--background);
+    color: var(--text);
+    min-height: 100vh;
+    width: 100%;
+    overflow-x: hidden;
+    display: flex;
+    position: relative;
+  }
+
+  /* =========================================
+     SIDEBAR NAVIGATION RAIL & OVERLAY
+  ========================================= */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 240px;
+    height: 100vh;
+    background: linear-gradient(180deg, #1e40af, #1e3a8a);
+    color: #ffffff;
+    padding: 22px 15px;
+    z-index: 1000;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar h2 {
+    text-align: center;
+    margin: 0 0 20px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ffffff;
+  }
+
+  .user-profile-box {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .user-badge {
+    display: inline-block;
+    background: #fbbf24;
+    color: #1e3a8a;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar a,
+  #sidebarMenu a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 42px;
+    margin-bottom: 8px;
+    padding: 10px 14px;
+    border-radius: 9px;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    font-size: 14.5px;
+    transition: background 0.2s ease, transform 0.2s ease;
+  }
+
+  .sidebar a:hover,
+  #sidebarMenu a:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    transform: translateX(2px);
+    color: #ffffff !important;
+  }
+
+  .sidebar a.active,
+  #sidebarMenu a.active {
+    background: rgba(255, 255, 255, 0.25) !important;
+    font-weight: bold;
+    color: #ffffff !important;
+  }
+
+  .sidebar-logout-btn {
+    background: rgba(239, 68, 68, 0.25) !important;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffffff !important;
+    margin-top: 18px !important;
+    cursor: pointer;
+  }
+
+  .sidebar-logout-btn:hover {
+    background: rgba(239, 68, 68, 0.45) !important;
+  }
+
+  .sidebar-section {
+    margin-top: 24px;
+  }
+
+  .sidebar-section-title {
+    padding: 0 10px 8px;
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-item {
+    display: block;
+    width: 100%;
+    min-height: 38px;
+    margin-bottom: 6px;
+    padding: 9px 12px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(255, 255, 255, 0.20) !important;
+  }
+
+  .mobile-menu-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1100;
+    width: 44px;
+    height: 44px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: #ffffff;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* =========================================
+     MAIN WORKSPACE CONTAINER
+  ========================================= */
+  .main-content {
+    margin-left: 240px;
+    flex: 1 1 auto;
+    min-height: 100vh;
+    padding: 28px;
+    width: calc(100% - 240px);
+    max-width: 100%;
+    min-width: 0;
+    transition: margin-left 0.3s ease, width 0.3s ease, padding 0.3s ease;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto 25px;
+    padding: 24px 30px;
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    color: #ffffff;
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .page-header-text {
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+
+  .page-header h1 {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 700;
+    word-break: break-word;
+    line-height: 1.3;
+  }
+
+  .page-header p {
+    margin: 0;
+    opacity: 0.92;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .container {
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    min-width: 0;
+  }
+
+  /* =========================================
+     ACTIVE CLASS SELECTOR CHIPS
+  ========================================= */
+  .class-selector-card {
+    background: var(--surface);
+    padding: 16px 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  }
+
+  .class-selector-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .class-chips-container {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .class-chip {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1.5px solid var(--border);
+    background: #f8fafc;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+  }
+
+  .class-chip:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    color: var(--primary-dark);
+  }
+
+  .class-chip.active {
+    background: var(--primary);
+    color: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+  }
+
+  /* STATS SUMMARY CARDS */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 18px;
+    width: 100%;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .stat-details {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .stat-details h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .stat-details p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* CARD & TABLE CONTAINER */
+  .card {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    min-width: 0;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .card-header h2 {
+    font-size: 18px;
+    color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    word-break: break-word;
+  }
+
+  .table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+
+  table {
+    width: 100%;
+    min-width: 650px;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13.5px;
+  }
+
+  th {
+    background: #f8fafc;
+    color: #334155;
+    font-weight: 600;
+    padding: 12px 14px;
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    font-size: 12.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    color: #334155;
+    vertical-align: middle;
+  }
+
+  tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  /* STATUS BADGES */
+  .badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .badge-graded {
+    background: var(--success-light);
+    color: var(--success);
+  }
+
+  .badge-pending {
+    background: var(--warning-light);
+    color: #b45309;
+  }
+
+  .badge-missing {
+    background: var(--danger-light);
+    color: var(--danger);
+    font-weight: 700;
+  }
+
+  .badge-late {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .btn-inspect {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    min-height: 36px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .btn-inspect:hover {
+    background: var(--primary-dark);
+  }
+
+  .btn-submit-work {
+    background: #16a34a;
+    color: #ffffff;
+    border: none;
+    min-height: 36px;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .btn-submit-work:hover {
+    background: #15803d;
+  }
+
+  .empty-state {
+    padding: 36px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+
+  /* BOTTOM BUTTON BAR */
+  .btn-bar {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .back-btn {
+    background: #64748b;
+    color: #ffffff;
+    min-height: 44px;
+    padding: 11px 26px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .back-btn:hover {
+    background: #475569;
+  }
+
+  @media print {
+    .sidebar, .mobile-menu-btn, .btn-bar, .sidebar-overlay, .btn-inspect, .btn-submit-work, .class-selector-card {
+      display: none !important;
+    }
+    .main-content {
+      margin-left: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+    }
+    .page-header {
+      background: none !important;
+      color: #000000 !important;
+      box-shadow: none !important;
+      padding: 0 0 15px 0 !important;
+      border-bottom: 2px solid #000000 !important;
+    }
+    .card {
+      box-shadow: none !important;
+      border: none !important;
+      padding: 0 !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+
+    .sidebar.active {
+      transform: translateX(0);
+    }
+
+    .mobile-menu-btn {
+      display: flex;
+    }
+
+    .main-content {
+      margin-left: 0;
+      width: 100%;
+      max-width: 100vw;
+      padding: 18px;
+      padding-top: 74px;
+    }
+
+    .page-header {
+      padding: 20px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+    }
+
+    .card {
+      padding: 20px 16px;
+      border-radius: 14px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .main-content {
+      padding: 12px;
+      padding-top: 68px;
+    }
+
+    .page-header {
+      padding: 16px 14px;
+      border-radius: 12px;
+    }
+
+    .page-header h1 {
+      font-size: 20px;
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .stat-card {
+      padding: 16px 14px;
+    }
+
+    .card {
+      padding: 16px 14px;
+      border-radius: 12px;
+    }
+
+    .card-header h2 {
+      font-size: 16.5px;
+    }
+
+    .back-btn {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>
+</head>
+
+<body>
+
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">STUDENT</div>
+    </div>
+
+    <div id="sidebarMenu"></div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <main class="main-content">
+
+    <section class="page-header">
+      <div class="page-header-text">
+        <h1 id="sgStudentTitle">Student Grade Breakdown</h1>
+        <p id="sgClassSub">Class Code: Loading... | All Class Deliverables & Evaluation Status</p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <button class="btn-header" onclick="window.print()" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;">
+          <i class="fa-solid fa-print"></i> Print
+        </button>
+        <button class="btn-header" id="exportStudentCsvBtn" onclick="exportStudentGradeReportToExcel()" style="background: #16a34a; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-file-excel"></i> Export Excel CSV
+        </button>
+      </div>
+    </section>
+
+    <div class="container">
+
+      <div class="class-selector-card">
+        <div class="class-selector-title">
+          <i class="fa-solid fa-layer-group" style="color: var(--primary);"></i> Select Active Subject / Class:
+        </div>
+        <div class="class-chips-container" id="classChipsContainer">
+          <span style="font-size: 12px; color: var(--muted);"><i class="fa-solid fa-spinner fa-spin"></i> Loading active classes...</span>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-square-check"></i></div>
+          <div class="stat-details">
+            <h3 id="statGradedCount">0 / 0</h3>
+            <p>Completed vs Total</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-bullseye"></i></div>
+          <div class="stat-details">
+            <h3 id="statTotalPoints">0 / 0</h3>
+            <p>Total Points Earned</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-chart-line"></i></div>
+          <div class="stat-details">
+            <h3 id="statStudentAvg">0%</h3>
+            <p>Current Average</p>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon"><i class="fa-solid fa-award"></i></div>
+          <div class="stat-details">
+            <h3 id="statFinalGrade">N/A</h3>
+            <p>Grade Equivalent</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 id="tableSectionTitle"><i class="fa-solid fa-list-check"></i> Class Work, Deliverables & Gradebook</h2>
+          <span style="font-size: 12px; color: var(--muted); font-weight: 500;">Philippine Grading Scale (1.00 - 5.00)</span>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Activity Title</th>
+                <th>Due / Submitted</th>
+                <th>Score Given</th>
+                <th>Percentage</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="studentGradesBody">
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 30px; color: var(--muted);">
+                  <i class="fa-solid fa-spinner fa-spin"></i> Loading records from database...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="btn-bar">
+        <a id="backBtn" href="{{ url_for('grades_page') }}" class="back-btn">← Back to Gradebook</a>
+      </div>
+
+    </div>
+  </main>
+
+<script>
+  /* PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  /* =====================================================
+     0. TYPE-SAFE ID HELPERS
+  ===================================================== */
+  function parseDbId(idVal) {
+    if (!idVal) return idVal;
+    if (typeof idVal === 'number') return idVal;
+    const str = String(idVal).trim();
+    return /^\d+$/.test(str) ? parseInt(str, 10) : str;
+  }
+
+  function getDualTypeIds(idArray) {
+    const result = new Set();
+    (idArray || []).forEach(id => {
+      if (id !== null && id !== undefined && id !== '') {
+        result.add(String(id));
+        const num = parseDbId(id);
+        if (typeof num === 'number' && !isNaN(num)) {
+          result.add(num);
+        }
+      }
+    });
+    return Array.from(result);
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  /* =====================================================
+     1. USER SESSION & ROLE PROTECTION
+  ===================================================== */
+  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "STUDENT";
+  const userRole = rawRole.toUpperCase();
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+  const userBadgeEl = document.getElementById("userRoleBadge");
+  const sidebarNameEl = document.getElementById("sidebarUserName");
+  if (userBadgeEl) userBadgeEl.textContent = userRole;
+  if (sidebarNameEl) sidebarNameEl.textContent = userName;
+
+  // Flask Route URLs
+  const homeUrl = "{{ url_for('landpage') }}";
+  const createUrl = "{{ url_for('create_page') }}";
+  const joinUrl = "{{ url_for('join_page') }}";
+  const calendarUrl = "{{ url_for('calendar_page') }}";
+  const myDashboardUrl = "{{ url_for('dashboard_page') }}";
+  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+  const gradesUrl = "{{ url_for('grades_page') }}";
+  const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
+  const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const studentWorkUrl = "{{ url_for('studentwork_page') }}";
+  const reviewUrl = "{{ url_for('review_page') }}";
+  const archiveUrl = "{{ url_for('archive_page') }}";
+  const notifyUrl = "{{ url_for('notify_page') }}";
+  const accountUrl = "{{ url_for('account_page') }}";
+  const classPageUrl = "{{ url_for('class_page') }}";
+  const groupPageUrl = "{{ url_for('group_page') }}";
+  const activitySubmitUrl = "{{ url_for('activitysubmit_page') }}";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+
+  const sidebarMenu = document.getElementById("sidebarMenu");
+
+  if (sidebarMenu) {
+    if (userRole === "ADMIN") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Institutional Hub</a>
+        <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
+        <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${gradesUrl}" class="active">💯 Master Gradebook</a>
+        <a href="${archiveUrl}">📦 Archival Vault</a>
+        <a href="${notifyUrl}">🔔 System Alerts</a>
+        <a href="${accountUrl}">👤 Account Profile</a>
+      `;
+    } else if (userRole === "TEACHER") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}">➕ Create Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${gradesUrl}" class="active">💯 Grades</a>
+        <a href="${submissionsUrl}">📝 Submissions</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    } else {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${joinUrl}">🔑 Join Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${myDashboardUrl}">📊 My Dashboard</a>
+        <a href="${studentGradesUrl}" class="active">💯 My Grades</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    }
+  }
+
+  /* MOBILE SIDEBAR TOGGLE */
+  const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+  const sidebar = document.getElementById("sidebar");
+  const sidebarOverlay = document.getElementById("sidebarOverlay");
+
+  if (mobileMenuBtn && sidebar) {
+    mobileMenuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      sidebar.classList.toggle("active");
+      if (sidebarOverlay) sidebarOverlay.classList.toggle("active");
+    });
+
+    if (sidebarOverlay) {
+      sidebarOverlay.addEventListener("click", () => {
+        sidebar.classList.remove("active");
+        sidebarOverlay.classList.remove("active");
+      });
+    }
+
+    document.addEventListener("click", (e) => {
+      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+        sidebar.classList.remove("active");
+        if (sidebarOverlay) sidebarOverlay.classList.remove("active");
+      }
+    });
+  }
+
+  function logoutUser() {
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace("{{ url_for('logout') }}");
+  }
+
+  /* PHILIPPINE COLLEGIATE GPA STANDARD (1.00 - 5.00, 75% PASSING) */
+  function getGpaEquivalent(pct) {
+    if (pct === null || pct === undefined || isNaN(pct)) return "N/A";
+    if (pct >= 97) return "1.00 (Excellent)";
+    if (pct >= 94) return "1.25 (Superior)";
+    if (pct >= 91) return "1.50 (Very Good)";
+    if (pct >= 88) return "1.75 (Good)";
+    if (pct >= 85) return "2.00 (Above Average)";
+    if (pct >= 82) return "2.25 (Average)";
+    if (pct >= 79) return "2.50 (Satisfactory)";
+    if (pct >= 76) return "2.75 (Fair)";
+    if (pct >= 75) return "3.00 (Passing)";
+    return "5.00 (Failed)";
+  }
+
+  /* =====================================================
+     2. SUPABASE INITIALIZATION
+  ===================================================== */
+  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+  function getSupabaseClient() {
+    if (window._supabase) return window._supabase;
+    const supabaseLib = window.supabase || window.Supabase;
+    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+      return window._supabase;
+    }
+    return null;
+  }
+
+  let enrolledClassesList = [];
+  let currentTargetStudentId = null;
+  let currentTargetStudentName = "";
+  let selectedClassCode = localStorage.getItem("selectedClass") || "";
+  if (selectedClassCode === "ALL") selectedClassCode = "";
+
+  let allClassWorkRows = [];
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      initStudentGradesHub();
+      loadSidebarClasses();
+      loadSidebarGroups();
+      injectAuditBanner();
+    }, 100);
+  });
+
+  function injectAuditBanner() {
+    if (userRole !== "ADMIN" || document.getElementById("adminStudentGradesAuditBanner")) return;
+    const banner = document.createElement("div");
+    banner.id = "adminStudentGradesAuditBanner";
+    banner.style.cssText = "background: #fef3c7; color: #92400e; padding: 12px 16px; font-size: 13px; border-left: 4px solid #f59e0b; margin-bottom: 18px; font-weight: 600; border-radius: 6px;";
+    banner.innerHTML = "🛡️ <strong>Institutional Audit Mode:</strong> You are reviewing student academic records, GPA metrics, and evaluated submissions in read-only observation mode.";
+
+    const container = document.querySelector(".container") || document.querySelector(".main-content");
+    if (container) {
+      container.insertBefore(banner, container.firstChild);
+    }
+  }
+
+  /* =====================================================
+     3. INITIALIZE ACTIVE CLASSES & STUDENT CONTEXT
+  ===================================================== */
+  async function initStudentGradesHub() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    // Determine target student ID based on viewing role
+    if (userRole === "ADMIN" || userRole === "TEACHER") {
+      currentTargetStudentId = localStorage.getItem("selectedStudentId") || currentUserId;
+      currentTargetStudentName = localStorage.getItem("selectedStudentName") || "Student";
+    } else {
+      currentTargetStudentId = currentUserId;
+      currentTargetStudentName = userName;
+    }
+
+    // Set Header titles
+    updateHeaderLabels();
+
+    // Fetch All Active Enrolled Classes for this student
+    await loadActiveClassesSelector();
+
+    // Fetch and render the full deliverables table (graded, late, and missing=0)
+    await fetchStudentGradesFromSupabase();
+  }
+
+  function updateHeaderLabels() {
+    const titleEl = document.getElementById("sgStudentTitle");
+    const subEl = document.getElementById("sgClassSub");
+    const secTitleEl = document.getElementById("tableSectionTitle");
+    const backBtnEl = document.getElementById("backBtn");
+
+    if (userRole === "ADMIN") {
+      if (titleEl) titleEl.textContent = `🏛️ System Grade Registry: ${currentTargetStudentName}`;
+      if (subEl) subEl.textContent = `Class: ${selectedClassCode || 'All Active Classes'} | Official Student Performance`;
+      if (secTitleEl) secTitleEl.innerHTML = `<i class="fa-solid fa-file-shield"></i> Institutional Grade & Deliverables Registry`;
+      if (backBtnEl) {
+        backBtnEl.textContent = "← Back to Master Gradebook";
+        backBtnEl.href = gradesUrl;
+      }
+    } else if (userRole === "TEACHER") {
+      if (titleEl) titleEl.textContent = `👤 ${currentTargetStudentName}'s Academic Work & Grades`;
+      if (subEl) subEl.textContent = `Class: ${selectedClassCode || 'All Subjects'} | Deliverables & Performance Summary`;
+      if (secTitleEl) secTitleEl.innerHTML = `<i class="fa-solid fa-list-check"></i> Student Deliverables, Evaluations & Missing Work`;
+      if (backBtnEl) {
+        backBtnEl.textContent = "← Back to Submissions";
+        backBtnEl.href = submissionsUrl;
+      }
+    } else {
+      if (titleEl) titleEl.textContent = "💯 My Grades & Course Work";
+      if (subEl) subEl.textContent = `Class: ${selectedClassCode || 'All Active Subjects'} | Deliverables & Performance Summary`;
+      if (secTitleEl) secTitleEl.innerHTML = `<i class="fa-solid fa-list-check"></i> My Class Work, Deliverables & Gradebook`;
+      if (backBtnEl) {
+        backBtnEl.textContent = "← Back to Dashboard";
+        backBtnEl.href = myDashboardUrl;
+      }
+    }
+  }
+
+  /* =====================================================
+     4. RENDER ACTIVE CLASS LIST SELECTOR BAR
+  ===================================================== */
+  async function loadActiveClassesSelector() {
+    const client = getSupabaseClient();
+    const container = document.getElementById("classChipsContainer");
+    if (!client || !container) return;
+
+    const studentSearchIds = [...new Set(getDualTypeIds([currentTargetStudentId]))];
+
+    try {
+      // 1. Query class memberships
+      const { data: mems } = await client
+        .from('class_memberships')
+        .select('class_id')
+        .in('user_id', studentSearchIds);
+
+      let classIds = (mems || []).map(m => m.class_id);
+
+      // Also grab classes if student was recorded via student_id
+      const { data: memsStudentId } = await client
+        .from('class_memberships')
+        .select('class_id')
+        .in('student_id', studentSearchIds);
+
+      if (memsStudentId && memsStudentId.length > 0) {
+        classIds = [...new Set([...classIds, ...memsStudentId.map(m => m.class_id)])];
+      }
+
+      const dualClassIds = getDualTypeIds(classIds);
+
+      if (dualClassIds.length > 0) {
+        const { data: classesData } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .in('id', dualClassIds)
+          .order('created_at', { ascending: false });
+
+        enrolledClassesList = classesData || [];
+      } else {
+        // Fallback for demo or localStorage classes
+        const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
+        if (joinedClasses.length > 0) {
+          const { data: fallbackData } = await client
+            .from('classes')
+            .select('id, subject, code, status')
+            .eq('status', 'active')
+            .in('code', joinedClasses);
+          enrolledClassesList = fallbackData || [];
+        }
+      }
+    } catch (err) {
+      console.error("Error loading active classes selector:", err);
+    }
+
+    container.innerHTML = "";
+
+    // "All Active Classes" chip
+    const allChip = document.createElement("button");
+    allChip.type = "button";
+    allChip.className = `class-chip ${!selectedClassCode ? 'active' : ''}`;
+    allChip.innerHTML = `<i class="fa-solid fa-border-all"></i> All Active Classes`;
+    allChip.onclick = () => selectClassFilter("");
+    container.appendChild(allChip);
+
+    if (enrolledClassesList.length > 0) {
+      enrolledClassesList.forEach(cls => {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        const isActive = cls.code === selectedClassCode;
+        chip.className = `class-chip ${isActive ? 'active' : ''}`;
+        chip.innerHTML = `📘 ${escapeHtml(cls.subject)} <small style="opacity:0.85;">(${cls.code})</small>`;
+        chip.onclick = () => selectClassFilter(cls.code);
+        container.appendChild(chip);
+      });
+    } else {
+      container.innerHTML += `<span style="font-size:12.5px; color:var(--muted); padding:4px 0;">No active classes found.</span>`;
+    }
+  }
+
+  function selectClassFilter(classCode) {
+    selectedClassCode = classCode;
+    localStorage.setItem("selectedClass", classCode);
+    updateHeaderLabels();
+
+    // Re-highlight active chip
+    const chips = document.querySelectorAll(".class-chip");
+    chips.forEach(chip => {
+      if (!classCode && chip.textContent.includes("All Active Classes")) {
+        chip.classList.add("active");
+      } else if (classCode && chip.textContent.includes(classCode)) {
+        chip.classList.add("active");
+      } else {
+        chip.classList.remove("active");
+      }
+    });
+
+    fetchStudentGradesFromSupabase();
+  }
+
+  /* =====================================================
+     5. FETCH WORK, LATE STATUS & AUTO-CALCULATE MISSING (0)
+  ===================================================== */
+  async function fetchStudentGradesFromSupabase() {
+    const client = getSupabaseClient();
+    const tbody = document.getElementById("studentGradesBody");
+    if (!client || !tbody) return;
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" style="text-align: center; padding: 30px; color: var(--muted);">
+          <i class="fa-solid fa-spinner fa-spin"></i> Loading academic work and grading records...
+        </td>
+      </tr>
+    `;
+
+    const userSearchIds = [...new Set(getDualTypeIds([currentTargetStudentId]))];
+
+    // Determine target classes to pull activities for
+    let targetClassIds = [];
+    if (selectedClassCode) {
+      const match = enrolledClassesList.find(c => c.code === selectedClassCode);
+      if (match) {
+        targetClassIds = getDualTypeIds([match.id]);
+      } else {
+        const { data: cData } = await client.from('classes').select('id').eq('code', selectedClassCode).maybeSingle();
+        if (cData) targetClassIds = getDualTypeIds([cData.id]);
+      }
+    } else {
+      targetClassIds = getDualTypeIds(enrolledClassesList.map(c => c.id));
+    }
+
+    // 1. Fetch All Activities across these classes
+    let activitiesQuery = client.from('activities').select('*');
+    if (targetClassIds.length > 0) {
+      activitiesQuery = activitiesQuery.in('class_id', targetClassIds);
+    }
+    const { data: allActivities, error: actErr } = await activitiesQuery.order('created_at', { ascending: false });
+
+    if (actErr) {
+      console.error("Error fetching activities:", actErr);
+    }
+
+    const activities = allActivities || [];
+
+    // 2. Fetch All Submissions for this Student
+    const { data: studentSubs, error: subErr } = await client
+      .from('submissions')
+      .select('*')
+      .or(`user_id.in.(${userSearchIds.map(id => `"${id}"`).join(',')}),student_id.in.(${userSearchIds.map(id => `"${id}"`).join(',')})`);
+
+    if (subErr) {
+      console.error("Error fetching student submissions:", subErr);
+    }
+
+    const submissions = studentSubs || [];
+
+    // Build Submissions Map by activity_id
+    const subMap = {};
+    submissions.forEach(sub => {
+      subMap[String(sub.activity_id)] = sub;
+      const parsedAid = parseDbId(sub.activity_id);
+      if (parsedAid) subMap[parsedAid] = sub;
+    });
+
+    // 3. Build Class Meta Map
+    const classMetaMap = {};
+    enrolledClassesList.forEach(c => {
+      classMetaMap[String(c.id)] = c;
+      const pId = parseDbId(c.id);
+      if (pId) classMetaMap[pId] = c;
+    });
+
+    const now = new Date().getTime();
+    allClassWorkRows = [];
+
+    // 4. Synthesize Every Activity into Evaluated, Late, or Missing (0)
+    activities.forEach(act => {
+      const sub = subMap[String(act.id)] || subMap[parseDbId(act.id)];
+      const maxPts = Number(act.total_points) || 100;
+      const classObj = classMetaMap[String(act.class_id)] || classMetaMap[parseDbId(act.class_id)] || {};
+
+      let deadlineTime = null;
+      if (act.deadline || act.due_date) {
+        const dt = new Date(act.deadline || act.due_date);
+        if (!isNaN(dt.getTime())) deadlineTime = dt.getTime();
+      }
+
+      let rowData = {
+        activityId: act.id,
+        activityTitle: act.title || "Class Activity",
+        subjectCode: classObj.code || selectedClassCode || "Class",
+        maxPoints: maxPts,
+        deadlineStr: act.deadline || act.due_date,
+        submissionId: sub ? sub.id : null,
+        fileUrl: sub ? sub.file_url : null,
+        statusType: 'pending', // graded, late, missing, pending
+        scoreAchieved: 0,
+        percentage: 0,
+        statusLabel: '',
+        badgeClass: '',
+        dateDisplay: 'No Submission'
+      };
+
+      if (sub) {
+        const st = String(sub.status || '').toLowerCase();
+        const hasScore = (sub.grade !== null && sub.grade !== undefined && sub.grade !== '') ||
+                         (sub.score !== null && sub.score !== undefined && sub.score !== '');
+
+        const subTime = sub.submitted_at ? new Date(sub.submitted_at).getTime() : null;
+        const isLate = deadlineTime && subTime && subTime > deadlineTime;
+
+        const subDateObj = sub.submitted_at ? new Date(sub.submitted_at) : null;
+        rowData.dateDisplay = subDateObj && !isNaN(subDateObj.getTime())
+          ? subDateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+          : 'Turned In';
+
+        if (st === 'graded' || hasScore) {
+          const score = Number(sub.grade !== null && sub.grade !== undefined ? sub.grade : sub.score) || 0;
+          rowData.scoreAchieved = score;
+          rowData.percentage = Math.round((score / maxPts) * 100);
+
+          if (isLate) {
+            rowData.statusType = 'late';
+            rowData.statusLabel = 'Graded (Late Submission)';
+            rowData.badgeClass = 'badge badge-late';
+          } else {
+            rowData.statusType = 'graded';
+            rowData.statusLabel = 'Graded (On Time)';
+            rowData.badgeClass = 'badge badge-graded';
+          }
+        } else if (st === 'submitted' || sub.submitted_at) {
+          rowData.scoreAchieved = 0;
+          rowData.percentage = 0;
+          if (isLate) {
+            rowData.statusType = 'late';
+            rowData.statusLabel = 'Submitted Late (Pending Evaluation)';
+            rowData.badgeClass = 'badge badge-late';
+          } else {
+            rowData.statusType = 'pending';
+            rowData.statusLabel = 'Turned In (Pending Evaluation)';
+            rowData.badgeClass = 'badge badge-pending';
+          }
+        } else {
+          // Unsubmitted or returned
+          if (deadlineTime && now > deadlineTime) {
+            rowData.statusType = 'missing';
+            rowData.scoreAchieved = 0;
+            rowData.percentage = 0;
+            rowData.statusLabel = 'Missing / Overdue (Failed: 0)';
+            rowData.badgeClass = 'badge badge-missing';
+          } else {
+            rowData.statusType = 'pending';
+            rowData.statusLabel = 'Pending Work / Not Yet Submitted';
+            rowData.badgeClass = 'badge badge-pending';
+          }
+        }
+      } else {
+        // No submission record exists at all
+        if (deadlineTime && now > deadlineTime) {
+          // Deadline has passed: Automatically Marked as Missing/Failed (0)
+          rowData.statusType = 'missing';
+          rowData.scoreAchieved = 0;
+          rowData.percentage = 0;
+          rowData.statusLabel = 'Missing / Overdue (Failed: 0)';
+          rowData.badgeClass = 'badge badge-missing';
+
+          const dObj = new Date(deadlineTime);
+          rowData.dateDisplay = `Due: ${dObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+        } else {
+          // Deadline still in future: Active Work to Complete
+          rowData.statusType = 'pending';
+          rowData.scoreAchieved = 0;
+          rowData.percentage = 0;
+          rowData.statusLabel = 'Assigned (Pending Work)';
+          rowData.badgeClass = 'badge badge-pending';
+
+          if (deadlineTime) {
+            const dObj = new Date(deadlineTime);
+            rowData.dateDisplay = `Due: ${dObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+          } else {
+            rowData.dateDisplay = 'No Deadline';
+          }
+        }
+      }
+
+      allClassWorkRows.push(rowData);
+    });
+
+    renderClassWorkTable(allClassWorkRows);
+  }
+
+  /* =====================================================
+     6. RENDER WORK TABLE & UPDATE GPA SUMMARY METRICS
+  ===================================================== */
+  function renderClassWorkTable(rows) {
+    const tbody = document.getElementById("studentGradesBody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    if (rows.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="empty-state">
+            <i class="fa-solid fa-folder-open" style="font-size: 32px; color: #94a3b8; margin-bottom: 10px;"></i><br>
+            No published activities or deliverables found for ${selectedClassCode ? 'Class <strong>' + escapeHtml(selectedClassCode) + '</strong>' : 'your enrolled classes'}.
+          </td>
+        </tr>
+      `;
+
+      updateSummaryMetrics(0, 0, 0, 0, 0);
+      return;
+    }
+
+    let totalPointsPossible = 0;
+    let totalPointsEarned = 0;
+    let completedGradedCount = 0;
+    let totalWeightedPctSum = 0;
+    let countableActivitiesCount = 0;
+
+    rows.forEach(item => {
+      const tr = document.createElement("tr");
+
+      // Points accounting: Graded & Missing(0) count towards the real grade
+      if (item.statusType === 'graded' || item.statusType === 'late') {
+        completedGradedCount++;
+        totalPointsEarned += item.scoreAchieved;
+        totalPointsPossible += item.maxPoints;
+        totalWeightedPctSum += item.percentage;
+        countableActivitiesCount++;
+      } else if (item.statusType === 'missing') {
+        // Missing activities count as ZERO against the student's average
+        totalPointsEarned += 0;
+        totalPointsPossible += item.maxPoints;
+        totalWeightedPctSum += 0;
+        countableActivitiesCount++;
+      }
+
+      // Action Button Routing
+      let actionBtn = "";
+      if (item.submissionId) {
+        if (userRole === "STUDENT") {
+          actionBtn = `<button class="btn-inspect" onclick="openReviewPage('${item.activityId}', '${item.submissionId}')"><i class="fa-solid fa-eye"></i> View Feedback</button>`;
+        } else {
+          actionBtn = `<button class="btn-inspect" onclick="inspectStudentSubmission('${item.submissionId}')"><i class="fa-solid fa-eye"></i> Audit Work</button>`;
+        }
+      } else {
+        // Not submitted yet or missing: Shortcut directly to submit work
+        if (userRole === "STUDENT") {
+          actionBtn = `<button class="btn-submit-work" onclick="goToSubmitActivity('${item.activityId}', '${item.subjectCode}')"><i class="fa-solid fa-arrow-up-from-bracket"></i> Turn In Work</button>`;
+        } else {
+          actionBtn = `<span style="font-size:12px; color:var(--muted); font-style:italic;">No deliverable</span>`;
+        }
+      }
+
+      tr.innerHTML = `
+        <td><strong>📝 ${escapeHtml(item.activityTitle)}</strong></td>
+        <td>${escapeHtml(item.dateDisplay)}</td>
+        <td><strong>${item.scoreAchieved} / ${item.maxPoints}</strong></td>
+        <td><strong>${item.percentage}%</strong></td>
+        <td><span class="${item.badgeClass}">${escapeHtml(item.statusLabel)}</span></td>
+        <td>${actionBtn}</td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+
+    const averagePercentage = countableActivitiesCount > 0
+      ? Math.round(totalWeightedPctSum / countableActivitiesCount)
+      : 0;
+
+    updateSummaryMetrics(completedGradedCount, rows.length, totalPointsEarned, totalPointsPossible, averagePercentage);
+  }
+
+  function updateSummaryMetrics(completed, total, earned, possible, avgPct) {
+    const statCountEl = document.getElementById("statGradedCount");
+    const statPtsEl = document.getElementById("statTotalPoints");
+    const statAvgEl = document.getElementById("statStudentAvg");
+    const statFinalEl = document.getElementById("statFinalGrade");
+
+    if (statCountEl) statCountEl.textContent = `${completed} / ${total}`;
+    if (statPtsEl) statPtsEl.textContent = `${earned} / ${possible}`;
+    if (statAvgEl) statAvgEl.textContent = `${avgPct}%`;
+    if (statFinalEl) statFinalEl.textContent = getGpaEquivalent(avgPct);
+  }
+
+  /* =====================================================
+     7. ROUTING ACTIONS & SHORTCUTS
+  ===================================================== */
+  function goToSubmitActivity(activityId, classCode) {
+    localStorage.setItem("selectedActivityId", String(activityId));
+    if (classCode) localStorage.setItem("selectedClass", classCode);
+    window.location.href = activitySubmitUrl;
+  }
+
+  function openReviewPage(activityId, submissionId) {
+    localStorage.setItem("selectedActivityId", String(activityId));
+    if (submissionId) localStorage.setItem("selectedSubmissionId", String(submissionId));
+    window.location.href = reviewUrl;
+  }
+
+  function inspectStudentSubmission(submissionId) {
+    localStorage.setItem("selectedSubmissionId", String(submissionId));
+    window.location.href = studentWorkUrl;
+  }
+
+  /* =====================================================
+     8. EXPORT FULL AUDIT REPORT TO EXCEL CSV
+  ===================================================== */
+  function exportStudentGradeReportToExcel() {
+    if (!allClassWorkRows || allClassWorkRows.length === 0) {
+      alert("No academic records available to export for this subject.");
+      return;
+    }
+
+    let csvRows = [];
+    csvRows.push(["REGIS MARIE COLLEGE - STUDENT ACADEMIC GRADE & COMPLIANCE REPORT"]);
+    csvRows.push([`Student Name: ${currentTargetStudentName}`, `Class Filter: ${selectedClassCode || 'All Enrolled Classes'}`]);
+    csvRows.push([`Generated On: ${new Date().toLocaleString()}`, userRole === 'ADMIN' ? 'Registrar Audit Transcript' : 'Official Academic Record']);
+    csvRows.push([]);
+    csvRows.push(["Activity Title", "Class Code", "Due / Submitted", "Score Given", "Max Points", "Percentage", "Performance Status"]);
+
+    allClassWorkRows.forEach(item => {
+      csvRows.push([
+        item.activityTitle,
+        item.subjectCode,
+        item.dateDisplay,
+        item.scoreAchieved,
+        item.maxPoints,
+        `${item.percentage}%`,
+        item.statusLabel
+      ]);
+    });
+
+    const csvContent = "\uFEFF" + csvRows.map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    const cleanStudentName = currentTargetStudentName.replace(/\s+/g, '_');
+    link.setAttribute("download", `Gradebook_${cleanStudentName}_${selectedClassCode || 'AllClasses'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  /* =====================================================
+     9. SIDEBAR ACTIVE CLASSES & GROUPS SYNC
+  ===================================================== */
+  async function loadSidebarClasses() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarClassList = document.getElementById("sidebarClassList");
+    if (!sidebarClassList) return;
+    sidebarClassList.innerHTML = "";
+
+    const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+    let myClasses = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const { data: mems, error: memErr } = await client
+          .from('class_memberships')
+          .select('class_id')
+          .in('user_id', userSearchIds);
+
+        if (!memErr && mems && mems.length > 0) {
+          const classSearchIds = [...new Set(getDualTypeIds(mems.map(m => m.class_id)))];
+          if (classSearchIds.length > 0) {
+            const { data: fetchedClasses } = await client
+              .from('classes')
+              .select('id, subject, code, status')
+              .in('id', classSearchIds);
+            myClasses = fetchedClasses || [];
+          }
+        }
+      } else {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar classes error:", err);
+    }
+
+    myClasses = myClasses.filter(c => c && c.status !== 'archived');
+
+    if (myClasses.length > 0) {
+      myClasses.forEach(c => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (c.code === selectedClassCode) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `📘 ${c.subject}`;
+        sideLink.href = "#";
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          selectClassFilter(c.code);
+        };
+        sidebarClassList.appendChild(sideLink);
+      });
+    } else {
+      sidebarClassList.innerHTML = `<p style="font-size: 12px; opacity: 0.7; padding-left: 10px; color: white;">No active classes</p>`;
+    }
+  }
+
+  async function loadSidebarGroups() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarGroupList = document.getElementById("sidebarGroupList");
+    if (!sidebarGroupList) return;
+    sidebarGroupList.innerHTML = "";
+
+    const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+    let myGroups = [];
+
+    try {
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .in('teacher_id', userSearchIds)
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const { data: mems, error: memErr } = await client
+          .from('group_memberships')
+          .select('group_id')
+          .in('user_id', userSearchIds);
+
+        if (!memErr && mems && mems.length > 0) {
+          const groupSearchIds = [...new Set(getDualTypeIds(mems.map(m => m.group_id)))];
+          if (groupSearchIds.length > 0) {
+            const { data: fetchedGroups } = await client
+              .from('groups')
+              .select('id, name, code, status')
+              .in('id', groupSearchIds);
+            myGroups = fetchedGroups || [];
+          }
+        }
+      } else {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
+      }
+    } catch (err) {
+      console.error("Sidebar groups error:", err);
+    }
+
+    myGroups = myGroups.filter(g => g && g.status !== 'archived');
+
+    if (myGroups.length > 0) {
+      const currentSelectedGroup = localStorage.getItem("selectedGroup");
+      myGroups.forEach(g => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `👥 ${g.name}`;
+        sideLink.href = groupPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedGroup", g.code);
+          localStorage.setItem("selectedGroupId", String(g.id));
+          window.location.href = groupPageUrl;
+        };
+        sidebarGroupList.appendChild(sideLink);
+      });
+    } else {
+      sidebarGroupList.innerHTML = `<p style="font-size: 12px; opacity: 0.7; padding-left: 10px; color: white;">No active groups</p>`;
+    }
+  }
+</script>
+</html>

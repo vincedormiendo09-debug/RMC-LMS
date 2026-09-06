@@ -1,0 +1,1007 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regis Marie College | Official Homepage</title>
+    <!-- Google Fonts for Modern Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+   
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+   
+  <style>
+  /* =========================================
+     GLOBAL RESET & BRAND DESIGN SYSTEM
+  ========================================= */
+  :root {
+    --primary: #0284c7;
+    --primary-dark: #0369a1;
+    --primary-light: #e0f2fe;
+    --accent: #38bdf8;
+    --accent-hover: #7dd3fc;
+    --dark: #0f172a;
+    --text: #1e293b;
+    --muted: #64748b;
+    --background: #f8fafc;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', Arial, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--text);
+    line-height: 1.6;
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s ease;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* =========================================
+     NAVIGATION BAR & MOBILE DRAWER
+  ========================================= */
+  .navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 8%;
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    transition: padding 0.3s ease;
+  }
+
+  .brand-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 1001;
+  }
+
+  .brand-logo img {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+  }
+
+  .brand-logo span {
+    color: #ffffff;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .nav-links {
+    display: flex;
+    list-style: none;
+    gap: 28px;
+    align-items: center;
+  }
+
+  .nav-links a {
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .nav-links a:hover {
+    color: var(--accent);
+  }
+
+  .login-btn {
+    background-color: var(--primary) !important;
+    color: #ffffff !important;
+    min-height: 40px;
+    padding: 8px 22px;
+    border-radius: 6px;
+    font-weight: 600 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease !important;
+  }
+
+  .login-btn:hover {
+    background-color: var(--primary-dark) !important;
+    color: #ffffff !important;
+  }
+
+  /* HAMBURGER TOGGLE BUTTON */
+  .mobile-nav-toggle {
+    display: none;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 22px;
+    cursor: pointer;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+  }
+
+  /* =========================================
+     HERO SECTION WITH VIDEO BACKGROUND
+  ========================================= */
+  .hero-section {
+    position: relative;
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: #ffffff;
+    padding: 100px 20px 40px;
+    overflow: hidden;
+  }
+
+  .video-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: -2;
+  }
+
+  .video-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.72);
+    z-index: -1;
+  }
+
+  .hero-content {
+    max-width: 850px;
+    margin: 0 auto;
+  }
+
+  .hero-content h1 {
+    font-size: 3.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 16px;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    word-break: break-word;
+  }
+
+  .hero-content p {
+    font-size: 1.2rem;
+    max-width: 680px;
+    margin: 0 auto 32px auto;
+    color: #e2e8f0;
+    line-height: 1.6;
+  }
+
+  .cta-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--accent);
+    color: var(--dark);
+    min-height: 48px;
+    padding: 12px 32px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .cta-btn:hover {
+    transform: translateY(-2px);
+    background-color: var(--accent-hover);
+  }
+
+  /* =========================================
+     COMMON SECTION STYLES
+  ========================================= */
+  section {
+    padding: 80px 8%;
+    width: 100%;
+  }
+
+  .section-title {
+    text-align: center;
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 40px;
+    position: relative;
+    word-break: break-word;
+  }
+
+  .section-title::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 4px;
+    background-color: var(--primary);
+    margin: 10px auto 0 auto;
+    border-radius: 2px;
+  }
+
+  /* =========================================
+     MISSION & VISION SECTION
+  ========================================= */
+  .mission-vision-section {
+    background-color: var(--surface);
+  }
+
+  .mv-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: 28px;
+  }
+
+  .mv-card {
+    background: #f8fafc;
+    border-top: 5px solid var(--primary);
+    border-radius: 12px;
+    padding: 32px 28px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .mv-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow);
+  }
+
+  .mv-card h3 {
+    font-size: 1.5rem;
+    color: var(--dark);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    word-break: break-word;
+  }
+
+  .mv-card p {
+    color: #475569;
+    font-size: 0.96rem;
+    line-height: 1.7;
+  }
+
+  /* =========================================
+     WHY REGIS MARIE COLLEGE
+  ========================================= */
+  .why-rmc {
+    background-color: #f1f5f9;
+  }
+
+  .why-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: 24px;
+    margin-top: 20px;
+  }
+
+  .why-card {
+    background: var(--surface);
+    padding: 28px 24px;
+    border-radius: 12px;
+    border-left: 4px solid var(--primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    border-top: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    transition: transform 0.2s ease;
+  }
+
+  .why-card:hover {
+    transform: translateY(-3px);
+  }
+
+  .why-card h3 {
+    font-size: 1.25rem;
+    color: var(--dark);
+    margin-bottom: 10px;
+    word-break: break-word;
+  }
+
+  .why-card p {
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  /* =========================================
+     COURSES OFFERED
+  ========================================= */
+  .courses-section {
+    background-color: var(--surface);
+  }
+
+  .course-tags {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 35px;
+  }
+
+  .tag-pill {
+    background-color: var(--primary-light);
+    color: var(--primary-dark);
+    padding: 8px 18px;
+    border-radius: 30px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: 1px solid #bae6fd;
+    white-space: nowrap;
+  }
+
+  .courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: 26px;
+  }
+
+  .course-card {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 28px 24px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .course-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+  }
+
+  .course-title {
+    color: var(--primary);
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    word-break: break-word;
+  }
+
+  .course-subtitle {
+    color: #475569;
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 14px;
+  }
+
+  .course-desc {
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  /* =========================================
+     RULES & REGULATIONS SECTION
+  ========================================= */
+  .rules-section {
+    background-color: #f1f5f9;
+  }
+
+  .rules-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+    gap: 18px;
+    margin-top: 25px;
+  }
+
+  .rule-item {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .rule-item:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+  }
+
+  .rule-number {
+    background-color: var(--primary);
+    color: #ffffff;
+    font-weight: 700;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.9rem;
+  }
+
+  .rule-text {
+    color: #334155;
+    font-size: 0.94rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  /* =========================================
+     MAP & LOCATION SECTION
+  ========================================= */
+  .location-section {
+    background-color: var(--surface);
+  }
+
+  .location-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: center;
+  }
+
+  .location-info h3 {
+    font-size: 1.45rem;
+    color: var(--dark);
+    margin-bottom: 14px;
+    word-break: break-word;
+  }
+
+  .location-info p {
+    color: #475569;
+    margin-bottom: 12px;
+    font-size: 0.98rem;
+    line-height: 1.6;
+  }
+
+  .hours-box {
+    background-color: #f0f9ff;
+    border: 1px solid #bae6fd;
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin-top: 18px;
+    color: var(--primary-dark);
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .map-wrapper {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    min-height: 320px;
+    width: 100%;
+  }
+
+  .map-wrapper iframe {
+    width: 100%;
+    height: 320px;
+    border: 0;
+    display: block;
+  }
+
+  .map-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 16px;
+    background-color: var(--dark);
+    color: #ffffff;
+    min-height: 42px;
+    padding: 10px 22px;
+    border-radius: 6px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    transition: background 0.2s ease;
+  }
+
+  .map-btn:hover {
+    background-color: var(--primary);
+  }
+
+  /* =========================================
+     FOOTER & CONTACT INFO
+  ========================================= */
+  footer {
+    background-color: var(--dark);
+    color: #f8fafc;
+    padding: 60px 8% 30px;
+    width: 100%;
+  }
+
+  .footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+    gap: 36px;
+    margin-bottom: 36px;
+  }
+
+  .footer-brand h2 {
+    font-size: 1.35rem;
+    color: #ffffff;
+    margin-bottom: 10px;
+  }
+
+  .footer-brand p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .contact-list {
+    list-style: none;
+  }
+
+  .contact-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    font-size: 0.92rem;
+    color: #cbd5e1;
+    word-break: break-word;
+  }
+
+  .contact-item img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  .contact-item a:hover {
+    color: var(--accent);
+  }
+
+  .footer-bottom {
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid #334155;
+    color: #64748b;
+    font-size: 0.85rem;
+  }
+
+  /* =========================================
+     RESPONSIVE BREAKPOINTS (RWD)
+  ========================================= */
+  /* Medium Screens & Tablets */
+  @media (max-width: 900px) {
+    .navbar {
+      padding: 14px 20px;
+    }
+
+    .mobile-nav-toggle {
+      display: flex;
+    }
+
+    .nav-links {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      padding: 16px 24px 24px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+      transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.3s ease;
+    }
+
+    .nav-links.active {
+      max-height: 400px;
+      opacity: 1;
+      pointer-events: auto;
+      padding: 16px 24px 24px;
+    }
+
+    .nav-links li {
+      width: 100%;
+    }
+
+    .nav-links a {
+      display: block;
+      padding: 12px 0;
+      font-size: 1.05rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .login-btn {
+      margin-top: 12px;
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+      padding: 11px 0;
+    }
+
+    .location-container {
+      grid-template-columns: 1fr;
+      gap: 28px;
+    }
+
+    .hero-content h1 {
+      font-size: 2.5rem;
+    }
+
+    section {
+      padding: 60px 6%;
+    }
+  }
+
+  /* Compact Smartphones (320px - 480px) */
+  @media (max-width: 480px) {
+    .navbar {
+      padding: 12px 16px;
+    }
+
+    .brand-logo span {
+      font-size: 1.1rem;
+    }
+
+    .brand-logo img {
+      width: 36px;
+      height: 36px;
+    }
+
+    .hero-section {
+      padding: 85px 16px 35px;
+    }
+
+    .hero-content h1 {
+      font-size: 1.9rem;
+    }
+
+    .hero-content p {
+      font-size: 1rem;
+      margin-bottom: 24px;
+    }
+
+    .cta-btn {
+      width: 100%;
+      text-align: center;
+    }
+
+    section {
+      padding: 45px 16px;
+    }
+
+    .section-title {
+      font-size: 1.7rem;
+      margin-bottom: 28px;
+    }
+
+    .mv-card,
+    .why-card,
+    .course-card {
+      padding: 22px 18px;
+    }
+
+    .rule-item {
+      padding: 14px 16px;
+    }
+
+    .map-wrapper,
+    .map-wrapper iframe {
+      height: 260px;
+      min-height: 260px;
+    }
+
+    .map-btn {
+      width: 100%;
+      text-align: center;
+    }
+
+    footer {
+      padding: 45px 16px 20px;
+    }
+
+    .footer-content {
+      gap: 28px;
+    }
+  }
+</style>
+</head>
+<body>
+
+    <!-- TOP NAVIGATION BAR -->
+    <nav class="navbar">
+        <div class="brand-logo">
+            <img src="{{ url_for('static', filename='rmc.png') }}" alt="Regis Marie College Logo">
+            <span>REGIS MARIE COLLEGE</span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#about">About Us</a></li>
+            <li><a href="#rules">Rules</a></li>
+            <li><a href="{{ url_for('login') }}" class="login-btn">Login</a></li>
+        </ul>
+    </nav>
+
+    <!-- HERO SECTION WITH VIDEO BACKGROUND -->
+    <header class="hero-section" id="home">
+        <video class="video-bg" autoplay loop muted playsinline>
+            <source src="{{ url_for('static', filename='rmc.mp4') }}" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
+        <div class="video-overlay"></div>
+        <div class="hero-content">
+            <h1>Welcome to Regis Marie College</h1>
+            <p>Empowering minds, building character, and preparing leaders for the modern digital workforce.</p>
+            <a href="#courses" class="cta-btn">Explore Programs</a>
+        </div>
+    </header>
+
+    <!-- MISSION & VISION SECTION -->
+    <section class="mission-vision-section" id="mission">
+        <h2 class="section-title">Our Mission & Vision</h2>
+        <div class="mv-grid">
+            
+            <!-- Mission Card -->
+            <div class="mv-card">
+                <h3>🎯 Our Mission</h3>
+                <p>Regis Marie College gives students with high-quality educational opportunities and support services that lead to degrees, transfers, certifications, and basic skills mastery. In a safe, accessible, and inexpensive learning environment, the institution promotes academic and career success by encouraging critical thinking, effective communication, creativity, and cultural understanding. We embrace equality and accountability in serving the needs of our demographically student community through measurable learning outcomes, ethical data-driven decisions, and student performance.</p>
+            </div>
+
+            <!-- Vision Card -->
+            <div class="mv-card">
+                <h3>👁️ Our Vision</h3>
+                <p>Regis Marie College is committed to providing great educational experiences that are responsive to our students needs and that enable them to meet and exceed challenges as active participants in influencing the future.</p>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- WHY REGIS MARIE COLLEGE SECTION -->
+    <section class="why-rmc" id="about">
+        <h2 class="section-title">Why Regis Marie College?</h2>
+        <div class="why-container">
+            <div class="why-card">
+                <h3>Academic Excellence</h3>
+                <p>Curricula aligned with current industry standards and digital innovations to ensure holistic intellectual growth.</p>
+            </div>
+            <div class="why-card">
+                <h3>Hands-On Training</h3>
+                <p>State-of-the-art tools and practical learning opportunities that bridge classroom theory with real-world application.</p>
+            </div>
+            <div class="why-card">
+                <h3>Values & Leadership</h3>
+                <p>Built upon a foundation of integrity, professional competence, and a commitment to service and community development.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- COURSES OFFERED SECTION -->
+    <section class="courses-section" id="courses">
+        <h2 class="section-title">Courses Offered</h2>
+
+        <!-- Course Focus Pills -->
+        <div class="course-tags">
+            <span class="tag-pill">💻 Computer Science</span>
+            <span class="tag-pill">💼 Business Administration</span>
+            <span class="tag-pill">📚 General Education</span>
+        </div>
+
+        <div class="courses-grid">
+
+            <!-- Course 1 -->
+            <div class="course-card">
+                <div>
+                    <div class="course-title">Bachelor of Science in Computer Science</div>
+                    <div class="course-subtitle">Associate in Computer Technology</div>
+                    <p class="course-desc">Industry-ready computing tracks with strong faculty, IT partnerships, and hands-on preparation for the digital workplace.</p>
+                </div>
+            </div>
+
+            <!-- Course 2 -->
+            <div class="course-card">
+                <div>
+                    <div class="course-title">Bachelor of Science in Office Administration</div>
+                    <div class="course-subtitle">Diploma in Office Administration</div>
+                    <p class="course-desc">Administrative and managerial skills for modern offices, built on integrity, service, and professional competence.</p>
+                </div>
+            </div>
+
+            <!-- Course 3 -->
+            <div class="course-card">
+                <div>
+                    <div class="course-title">Bachelor of Elementary Education</div>
+                    <div class="course-subtitle">Bachelor of Secondary Education</div>
+                    <p style="font-weight: 600; color: #0284c7; margin-bottom: 8px;">Majors: English, Filipino & Mathematics</p>
+                    <p class="course-desc">Form future educators with strong pedagogy, leadership, and a commitment to shaping the next generation.</p>
+                </div>
+            </div>
+
+            <!-- Course 4 -->
+            <div class="course-card">
+                <div>
+                    <div class="course-title">Bachelor of Science in Multimedia Arts</div>
+                    <p class="course-desc" style="margin-top: 15px;">Master design, video, animation, and interactive media with industry tools and collaborative creative projects.</p>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- RULES & REGULATIONS SECTION -->
+    <section class="rules-section" id="rules">
+        <h2 class="section-title">Rules and Regulations</h2>
+        <div class="rules-list">
+
+            <div class="rule-item">
+                <div class="rule-number">1</div>
+                <div class="rule-text">Students must always wear their official school ID inside the campus.</div>
+            </div>
+
+            <div class="rule-item">
+                <div class="rule-number">2</div>
+                <div class="rule-text">Proper school uniform must be worn at all times during school hours.</div>
+            </div>
+
+            <div class="rule-item">
+                <div class="rule-number">3</div>
+                <div class="rule-text">Strictly no bullying, harassment, or discrimination of any kind.</div>
+            </div>
+
+            <div class="rule-item">
+                <div class="rule-number">4</div>
+                <div class="rule-text">Respect teachers, staff, and fellow students at all times.</div>
+            </div>
+
+            <div class="rule-item">
+                <div class="rule-number">5</div>
+                <div class="rule-text">Mobile phones may only be used during break time or with teacher permission.</div>
+            </div>
+
+            <div class="rule-item">
+                <div class="rule-number">6</div>
+                <div class="rule-text">Cheating during exams or quizzes is strictly prohibited.</div>
+            </div>
+
+            <div class="rule-item">
+                <div class="rule-number">7</div>
+                <div class="rule-text">Maintain cleanliness in classrooms, hallways, and school grounds.</div>
+            </div>
+
+            <div class="rule-item">
+                <div class="rule-number">8</div>
+                <div class="rule-text">Always submit assignments on or before the deadline.</div>
+            </div>
+
+            <div class="rule-item">
+                <div class="rule-number">9</div>
+                <div class="rule-text">Unauthorized absence from classes is not allowed without valid reason.</div>
+            </div>
+
+            <div class="rule-item">
+                <div class="rule-number">10</div>
+                <div class="rule-text">Follow all school policies and announcements from administration.</div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- MAP & LOCATION SECTION -->
+    <section class="location-section">
+        <h2 class="section-title">Campus Location</h2>
+        <div class="location-container">
+            <div class="location-info">
+                <h3>Visit Regis Marie College</h3>
+                <p><strong>Address:</strong> Villanueva Village Basketball Court, Lire Ln, Parañaque, 1709 Metro Manila</p>
+                <p><strong>Map Code:</strong> F2G2+MJ Parañaque, Metro Manila</p>
+                
+                <div class="hours-box">
+                    📅 Admissions Office Hours:<br>
+                    Monday to Friday | 8:00 AM – 5:00 PM
+                </div>
+
+                <a href="https://www.google.com/maps/search/?api=1&query=Villanueva+Village+Basketball+Court,+Lire+Ln,+Para%C3%B1aque,+1709+Metro+Manila" target="_blank" class="map-btn">
+                    📍 Open in Google Maps
+                </a>
+            </div>
+
+            <div class="map-wrapper">
+                <!-- Embedded Google Map -->
+                <iframe 
+                    src="https://maps.google.com/maps?q=Villanueva%20Village%20Basketball%20Court%2C%20Lire%20Ln%2C%20Para%C3%B1aque%2C%201709%20Metro%20Manila&t=&z=15&ie=UTF8&iwloc=&output=embed" 
+                    allowfullscreen="" 
+                    loading="lazy">
+                </iframe>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER / CONTACT INFO -->
+    <footer>
+        <div class="footer-content">
+            <div class="footer-brand">
+                <h2>REGIS MARIE COLLEGE</h2>
+                <p>Nurturing future leaders with quality, value-driven education in Parañaque City.</p>
+            </div>
+
+            <div>
+                <h3 style="margin-bottom: 20px; color: #ffffff;">Contact Us</h3>
+                <ul class="contact-list">
+                    <li class="contact-item">
+                        <img src="{{ url_for('static', filename='facebook.png') }}" alt="Facebook Icon">
+                        <a href="https://www.facebook.com/regismariecollegeparanaque" target="_blank">Regis Marie College Facebook</a>
+                    </li>
+                    <li class="contact-item">
+                        <img src="{{ url_for('static', filename='rmc.png') }}" alt="Website Icon">
+                        <a href="https://regismariecollege-edu.vercel.app" target="_blank">regismariecollege-edu.vercel.app</a>
+                    </li>
+                    <li class="contact-item">
+                        <img src="{{ url_for('static', filename='email.png') }}" alt="Email Icon">
+                        <a href="mailto:itsupport@regismarie-college.com">itsupport@regismarie-college.com</a>
+                    </li>
+                    <li class="contact-item">
+                        <img src="{{ url_for('static', filename='contact.png') }}" alt="Phone Icon">
+                        <span>0910 494 7097</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            &copy; 2026 Regis Marie College. All Rights Reserved.
+        </div>
+    </footer>
+
+</body>
+</html>

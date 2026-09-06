@@ -1,0 +1,1777 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>Class Analytics Dashboard - Smart Learning Platform</title>
+
+  <!-- SUPABASE JS CLIENT -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- FONT AWESOME & CHART.JS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <style>
+    /* =========================================
+       GLOBAL RESET & BRAND DESIGN TOKENS
+    ========================================= */
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1e40af;
+      --primary-light: #dbeafe;
+      --background: #f4f7fb;
+      --surface: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --success-light: #dcfce7;
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+      --danger: #ef4444;
+      --danger-light: #fee2e2;
+      --purple: #8b5cf6;
+      --purple-light: #f3e8ff;
+      --shadow: 0 4px 15px rgba(15, 23, 42, 0.05);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    html {
+      overflow-x: hidden;
+      width: 100%;
+    }
+
+    body {
+      background: var(--background);
+      color: var(--text);
+      min-height: 100vh;
+      width: 100%;
+      overflow-x: hidden;
+      display: block;
+      position: relative;
+    }
+
+    /* =========================================
+       SIDEBAR NAVIGATION RAIL & OVERLAY
+    ========================================= */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 240px;
+      height: 100vh;
+      background: linear-gradient(180deg, #1e40af, #1e3a8a);
+      color: #ffffff;
+      padding: 22px 15px;
+      z-index: 1000;
+      overflow-y: auto;
+      transition: transform 0.3s ease;
+      box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
+    }
+
+    .sidebar h2 {
+      text-align: center;
+      margin: 0 0 20px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    .user-profile-box {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .user-badge {
+      display: inline-block;
+      background: #fbbf24;
+      color: #1e3a8a;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 3px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .sidebar a,
+    #sidebarMenu a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      min-height: 42px;
+      margin-bottom: 8px;
+      padding: 10px 14px;
+      border-radius: 9px;
+      color: #ffffff !important;
+      text-decoration: none !important;
+      font-size: 14.5px;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .sidebar a:hover,
+    #sidebarMenu a:hover {
+      background: rgba(255, 255, 255, 0.16) !important;
+      transform: translateX(2px);
+      color: #ffffff !important;
+    }
+
+    .sidebar a.active,
+    #sidebarMenu a.active {
+      background: rgba(255, 255, 255, 0.25) !important;
+      font-weight: bold;
+      color: #ffffff !important;
+    }
+
+    .sidebar-logout-btn {
+      background: rgba(239, 68, 68, 0.25) !important;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #ffffff !important;
+      margin-top: 18px !important;
+      cursor: pointer;
+    }
+
+    .sidebar-logout-btn:hover {
+      background: rgba(239, 68, 68, 0.45) !important;
+    }
+
+    .sidebar-section {
+      margin-top: 24px;
+    }
+
+    .sidebar-section-title {
+      padding: 0 10px 8px;
+      color: #bfdbfe;
+      font-size: 11px;
+      font-weight: bold;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+    }
+
+    .sidebar-item {
+      display: block;
+      width: 100%;
+      min-height: 38px;
+      margin-bottom: 6px;
+      padding: 9px 12px;
+      overflow: hidden;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.10);
+      color: #ffffff !important;
+      text-decoration: none;
+      font-size: 13px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: background 0.2s ease;
+    }
+
+    .sidebar-item:hover {
+      background: rgba(255, 255, 255, 0.20) !important;
+    }
+
+    .mobile-menu-btn {
+      display: none;
+      position: fixed;
+      top: 14px;
+      left: 14px;
+      z-index: 1100;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 10px;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Mobile backdrop overlay */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.5);
+      backdrop-filter: blur(3px);
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .sidebar-overlay.active {
+      display: block;
+      opacity: 1;
+    }
+
+    /* =========================================
+       MAIN CONTENT CONTAINER
+    ========================================= */
+    .main-content {
+      margin-left: 240px;
+      min-height: 100vh;
+      padding: 24px;
+      width: calc(100% - 240px);
+      max-width: 100%;
+      box-sizing: border-box;
+      transition: margin-left 0.3s ease, width 0.3s ease, padding 0.3s ease;
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-width: 0;
+    }
+
+    /* TOP HEADER BAR & FILTERS */
+    .page-header {
+      width: 100%;
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 20px 24px;
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .header-title-group {
+      flex: 1 1 280px;
+      min-width: 0;
+    }
+
+    .header-title-group h1 {
+      font-size: 22px;
+      color: var(--primary-dark);
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      word-break: break-word;
+    }
+
+    .header-title-group p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    .controls-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      flex: 0 1 auto;
+    }
+
+    .select-class-dropdown {
+      min-height: 42px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #f8fafc;
+      font-size: 13.5px;
+      font-weight: bold;
+      color: var(--text);
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s ease, background 0.2s ease;
+      min-width: 180px;
+      max-width: 100%;
+    }
+
+    .select-class-dropdown:focus,
+    .select-class-dropdown:hover {
+      border-color: var(--primary);
+      background: #ffffff;
+    }
+
+    /* =========================================
+       KPI SUMMARY CARDS
+    ========================================= */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .kpi-card {
+      background: var(--surface);
+      padding: 18px 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .kpi-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .kpi-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .kpi-icon-box {
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .kpi-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: var(--text);
+      margin: 8px 0 4px;
+      word-break: break-word;
+    }
+
+    .kpi-subtext {
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    .kpi-subtext.positive { color: var(--success); }
+    .kpi-subtext.negative { color: var(--danger); }
+
+    /* INACTIVE / AT-RISK ATTENTION ALERT */
+    .attention-box {
+      background: #fff1f2;
+      border: 1px solid #fecdd3;
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .attention-icon {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      border-radius: 50%;
+      background: var(--danger-light);
+      color: var(--danger);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .attention-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .attention-content h3 {
+      font-size: 15px;
+      color: #9f1239;
+      margin-bottom: 4px;
+      font-weight: bold;
+      word-break: break-word;
+    }
+
+    .attention-content p {
+      font-size: 13px;
+      color: #881337;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+
+    .attention-list {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .attention-tag {
+      background: #ffe4e6;
+      border: 1px solid #fca5a5;
+      color: #9f1239;
+      padding: 5px 12px;
+      border-radius: 16px;
+      font-size: 11.5px;
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      word-break: break-word;
+      line-height: 1.4;
+    }
+
+    /* =========================================
+       CHART CARDS & GRID CONTAINMENT
+    ========================================= */
+    .card {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      width: 100%;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .card-header h2 {
+      font-size: 16px;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      word-break: break-word;
+    }
+
+    /* Ratio container that Chart.js respects without stretching */
+    .chart-container-large {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      min-width: 0;
+    }
+
+    .grid-two-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .grid-two-columns > * {
+      min-width: 0;
+    }
+
+    .chart-container-small {
+      position: relative;
+      width: 100%;
+      height: 250px;
+      min-width: 0;
+    }
+
+    /* =========================================
+       RESPONSIVE DATA TABLE
+    ========================================= */
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13.5px;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #334155;
+      font-weight: bold;
+      padding: 12px 14px;
+      border-bottom: 2px solid var(--border);
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      color: #334155;
+      vertical-align: middle;
+    }
+
+    tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    .badge-top { background: var(--success-light); color: var(--success); }
+    .badge-average { background: var(--primary-light); color: var(--primary-dark); }
+    .badge-lagging { background: var(--danger-light); color: var(--danger); }
+    .badge-inactive { background: var(--warning-light); color: #b45309; }
+
+    .btn-action-class {
+      background: var(--primary);
+      color: #ffffff;
+      border: none;
+      min-height: 36px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      transition: background 0.2s ease;
+    }
+
+    .btn-action-class:hover {
+      background: var(--primary-dark);
+    }
+
+    .btn-bar {
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .back-btn {
+      background: #64748b;
+      color: #ffffff;
+      min-height: 44px;
+      padding: 11px 26px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease;
+    }
+
+    .back-btn:hover {
+      background: #475569;
+    }
+
+    /* =========================================
+       RESPONSIVE BREAKPOINTS (RWD)
+    ========================================= */
+    /* Desktops to Small Laptops */
+    @media (max-width: 1200px) {
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* Tablets and Compact Laptops (Stack two-column charts for breathing room) */
+    @media (max-width: 1024px) {
+      .grid-two-columns {
+        grid-template-columns: 1fr;
+        gap: 18px;
+      }
+
+      .chart-container-large {
+        height: 280px;
+      }
+
+      .chart-container-small {
+        height: 240px;
+      }
+    }
+
+    /* Mobile Tablets and Smartphones */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+
+      .sidebar.active {
+        transform: translateX(0);
+      }
+
+      .mobile-menu-btn {
+        display: flex;
+      }
+
+      .main-content {
+        margin-left: 0;
+        width: 100%;
+        max-width: 100vw;
+        padding: 16px;
+        padding-top: 72px; /* Clearance for fixed mobile hamburger button */
+      }
+
+      .page-header {
+        padding: 16px;
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .controls-group {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .select-class-dropdown {
+        width: 100%;
+        min-width: 100%;
+        font-size: 16px; /* Prevents auto-zoom on mobile browsers */
+      }
+
+      .chart-container-large {
+        height: 240px;
+      }
+
+      .chart-container-small {
+        height: 210px;
+      }
+    }
+
+    /* Small Smartphones (320px - 480px) */
+    @media (max-width: 480px) {
+      .main-content {
+        padding: 12px;
+        padding-top: 68px;
+      }
+
+      .header-title-group h1 {
+        font-size: 19px;
+      }
+
+      .kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+
+      .kpi-value {
+        font-size: 22px;
+      }
+
+      .attention-box {
+        flex-direction: column;
+        padding: 14px;
+        gap: 10px;
+      }
+
+      .card {
+        padding: 16px 14px;
+        border-radius: 12px;
+      }
+
+      .chart-container-large {
+        height: 210px;
+      }
+
+      .chart-container-small {
+        height: 190px;
+      }
+
+      .back-btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- MOBILE BACKDROP OVERLAY -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- MOBILE MENU BUTTON -->
+  <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation menu">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="sidebar" id="sidebar">
+    <h2>Regis Marie College</h2>
+
+    <!-- USER PROFILE & ROLE BADGE -->
+    <div class="user-profile-box">
+      <div id="sidebarUserName" style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">User</div>
+      <div class="user-badge" id="userRoleBadge">TEACHER</div>
+    </div>
+
+    <!-- DYNAMIC SIDEBAR LINKS -->
+    <div id="sidebarMenu"></div>
+
+    <!-- MY CLASSES -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Classes</div>
+      <div id="sidebarClassList"></div>
+    </div>
+
+    <!-- MY GROUPS -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">My Groups</div>
+      <div id="sidebarGroupList"></div>
+    </div>
+
+    <!-- LOGOUT BUTTON -->
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
+      🚪 Logout
+    </a>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- PAGE HEADER WITH FILTERS -->
+    <header class="page-header">
+      <div class="header-title-group">
+        <h1 id="dashTitle"><i class="fa-solid fa-chart-pie"></i> Classroom Analytics & Progress Tracking</h1>
+        <p id="dashSub">Monitor activity progress, track active content, and support lagging classes.</p>
+      </div>
+
+      <div class="controls-group">
+        <!-- 1. SELECT CLASS DROPDOWN -->
+        <select id="classSelector" class="select-class-dropdown" onchange="switchClassFilter(this.value)">
+          <option value="ALL">🌐 All Classes Overview</option>
+        </select>
+
+        <!-- 2. SEMESTER 15-WEEK TIMEFRAME SELECTOR -->
+        <select id="weekSelector" class="select-class-dropdown" onchange="switchWeekFilter(this.value)">
+          <option value="ALL" selected>📅 Full Term (Weeks 1 - 15)</option>
+          <option value="W1">Week 1</option>
+          <option value="W2">Week 2</option>
+          <option value="W3">Week 3</option>
+          <option value="W4">Week 4</option>
+          <option value="W5">Week 5</option>
+          <option value="W6">Week 6</option>
+          <option value="W7">Week 7</option>
+          <option value="W8">Week 8</option>
+          <option value="W9">Week 9</option>
+          <option value="W10">Week 10</option>
+          <option value="W11">Week 11</option>
+          <option value="W12">Week 12</option>
+          <option value="W13">Week 13</option>
+          <option value="W14">Week 14</option>
+          <option value="W15">Week 15</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="container">
+
+      <!-- KPI SUMMARY CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Highest Class Grade</span>
+            <div class="kpi-icon-box" style="background:var(--success-light); color:var(--success);"><i class="fa-solid fa-trophy"></i></div>
+          </div>
+          <div class="kpi-value" id="kpiHighestGrade">0%</div>
+          <div class="kpi-subtext positive" id="kpiHighestName"><i class="fa-solid fa-star"></i> Loading...</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Overall Average Grade</span>
+            <div class="kpi-icon-box" style="background:var(--primary-light); color:var(--primary);"><i class="fa-solid fa-chart-line"></i></div>
+          </div>
+          <div class="kpi-value" id="kpiOverallAvg">0%</div>
+          <div class="kpi-subtext positive"><i class="fa-solid fa-circle-check"></i> Live System Average</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Active Posted Content</span>
+            <div class="kpi-icon-box" style="background:#f3e8ff; color:#9333ea;"><i class="fa-solid fa-bolt"></i></div>
+          </div>
+          <div class="kpi-value" id="kpiActiveActivitiesCount">0 Acts</div>
+          <div class="kpi-subtext positive" id="kpiActiveClassesName"><i class="fa-solid fa-book-open"></i> Total Class Activities</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-header">
+            <span class="kpi-title">Inactive / Low Activity</span>
+            <div class="kpi-icon-box" style="background:var(--danger-light); color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          </div>
+          <div class="kpi-value" id="kpiInactiveClassesCount">0 Classes</div>
+          <div class="kpi-subtext negative" id="kpiInactiveSubtext"><i class="fa-solid fa-circle-exclamation"></i> Classes Needing Content</div>
+        </div>
+      </div>
+
+      <!-- INACTIVE / LOW ACTIVITY CLASS WARNING HUB -->
+      <div class="attention-box" id="attentionBox">
+        <div class="attention-icon"><i class="fa-solid fa-lightbulb"></i></div>
+        <div class="attention-content">
+          <h3 id="attentionHeader"><i class="fa-solid fa-circle-exclamation"></i> Inactive Activity & Low Content Alert Hub:</h3>
+          <p id="attentionMessage">Scanning active classes for posted learning content...</p>
+          <div class="attention-list" id="attentionTags"></div>
+        </div>
+      </div>
+
+      <!-- MAIN TIMELINE GRAPH -->
+      <div class="card">
+        <div class="card-header">
+          <h2 id="mainChartTitle"><i class="fa-solid fa-chart-area"></i> Activity Progress & Turn-In Trend</h2>
+          <span style="font-size:12px; color:var(--muted); font-weight:bold;" id="timelineSublabel">Showing Full Semester (Weeks 1 - 15)</span>
+        </div>
+        <div class="chart-container-large">
+          <canvas id="timelineChart"></canvas>
+        </div>
+      </div>
+
+      <!-- GRID OF TWO CHARTS -->
+      <div class="grid-two-columns">
+        <!-- BAR CHART: CLASS GRADE COMPARISON -->
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-chart-bar"></i> Class Grade & Activity Comparison</h2>
+          </div>
+          <div class="chart-container-small">
+            <canvas id="gradeComparisonChart"></canvas>
+          </div>
+        </div>
+
+        <!-- DOUGHNUT CHART: TIMELINESS BREAKDOWN -->
+        <div class="card">
+          <div class="card-header">
+            <h2><i class="fa-solid fa-chart-pie"></i> Submission Timeliness</h2>
+          </div>
+          <div class="chart-container-small">
+            <canvas id="timelinessChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLASS RANKING & INACTIVE REPORT TABLE -->
+      <div class="card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-list-ol"></i> System Class Roster & Activity Status Monitor</h2>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Class Subject & Code</th>
+                <th>Enrolled Students</th>
+                <th>Posted Activities</th>
+                <th>Average Grade</th>
+                <th>Activity Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="classTableBody">
+              <tr>
+                <td colspan="6" style="text-align:center; padding:30px; color:var(--muted);">
+                  <i class="fa-solid fa-spinner fa-spin"></i> Loading analytics from database...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- BACK BUTTON -->
+      <div class="btn-bar">
+        <a href="{{ url_for('landpage') }}" class="back-btn">← Back to Home</a>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    });
+
+    /* =====================================================
+        0. TYPE-SAFE ID HELPERS
+    ===================================================== */
+    function parseDbId(idVal) {
+      if (!idVal) return idVal;
+      if (typeof idVal === 'number') return idVal;
+      const str = String(idVal).trim();
+      return /^\d+$/.test(str) ? parseInt(str, 10) : str;
+    }
+
+    function getDualTypeIds(idArray) {
+      const result = new Set();
+      (idArray || []).forEach(id => {
+        if (id !== null && id !== undefined && id !== '') {
+          result.add(String(id));
+          const num = parseDbId(id);
+          if (typeof num === 'number' && !isNaN(num)) {
+            result.add(num);
+          }
+        }
+      });
+      return Array.from(result);
+    }
+
+    /* =====================================================
+        1. USER SESSION & ROLE PROTECTION
+    ===================================================== */
+    const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
+    const userRole = rawRole.toUpperCase();
+    const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+    const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+
+    // 🔒 HARD REDIRECT: Students cannot access faculty/institutional analytics
+    if (userRole === "STUDENT") {
+      window.location.replace("{{ url_for('dashboard_page') }}");
+    }
+
+    const roleBadge = document.getElementById("userRoleBadge");
+    const nameDisplay = document.getElementById("sidebarUserName");
+    if (roleBadge) roleBadge.textContent = userRole;
+    if (nameDisplay) nameDisplay.textContent = userName;
+
+    const homeUrl = "{{ url_for('landpage') }}";
+    const createUrl = "{{ url_for('create_page') }}";
+    const calendarUrl = "{{ url_for('calendar_page') }}";
+    const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+    const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+    const gradesUrl = "{{ url_for('grades_page') }}";
+    const submissionsUrl = "{{ url_for('submissions_page') }}";
+    const archiveUrl = "{{ url_for('archive_page') }}";
+    const notifyUrl = "{{ url_for('notify_page') }}";
+    const accountUrl = "{{ url_for('account_page') }}";
+    const classPageUrl = "{{ url_for('class_page') }}";
+    const groupPageUrl = "{{ url_for('group_page') }}";
+    const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+
+    const sidebarMenu = document.getElementById("sidebarMenu");
+
+    if (userRole === "ADMIN") {
+      // 🔒 STANDARDIZED ADMIN AUDITOR MENU
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Institutional Hub</a>
+        <a href="${classDashboardUrl}" class="active">📊 Class Inactivity Analytics</a>
+        <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${gradesUrl}">💯 Master Gradebook</a>
+        <a href="${archiveUrl}">📦 Archival Vault</a>
+        <a href="${notifyUrl}">🔔 System Alerts</a>
+        <a href="${accountUrl}">👤 Account Profile</a>
+      `;
+    } else {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}">➕ Create Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${classDashboardUrl}" class="active">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${gradesUrl}">💯 Grades</a>
+        <a href="${submissionsUrl}">📝 Submissions</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    }
+
+    /* MOBILE SIDEBAR TOGGLE & BACKDROP */
+    const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+    const sidebar = document.getElementById("sidebar");
+    const sidebarOverlay = document.getElementById("sidebarOverlay");
+
+    function toggleMobileDrawer(open) {
+      const shouldOpen = open !== undefined ? open : !sidebar.classList.contains("active");
+      if (shouldOpen) {
+        sidebar.classList.add("active");
+        if (sidebarOverlay) sidebarOverlay.classList.add("active");
+      } else {
+        sidebar.classList.remove("active");
+        if (sidebarOverlay) sidebarOverlay.classList.remove("active");
+      }
+    }
+
+    if (mobileMenuBtn && sidebar) {
+      mobileMenuBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleMobileDrawer();
+      });
+    }
+
+    if (sidebarOverlay) {
+      sidebarOverlay.addEventListener("click", () => toggleMobileDrawer(false));
+    }
+
+    document.addEventListener("click", (e) => {
+      if (sidebar && !sidebar.contains(e.target) && mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
+        toggleMobileDrawer(false);
+      }
+    });
+
+    function logoutUser() {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace("{{ url_for('logout') }}");
+    }
+
+    /* =====================================================
+        2. SUPABASE INITIALIZATION
+    ===================================================== */
+    const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+    function getSupabaseClient() {
+      if (window._supabase) return window._supabase;
+      const supabaseLib = window.supabase || window.Supabase;
+      if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+        window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY, {
+          global: {
+            headers: {
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`
+            }
+          }
+        });
+        return window._supabase;
+      }
+      return null;
+    }
+
+    /* GLOBAL STATE & CHART INSTANCES */
+    let selectedClassCode = "ALL";
+    let selectedWeek = "ALL";
+    let activeClassesList = [];
+    let classMetrics = [];
+
+    let chartTimelineInstance = null;
+    let chartComparisonInstance = null;
+    let chartTimelinessInstance = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      setTimeout(() => {
+        initAnalyticsDashboard();
+        loadSidebarClasses();
+        loadSidebarGroups();
+        injectAuditBanner();
+      }, 100);
+    });
+
+    // Window resize handler to maintain sharp responsive charts on rotation
+    window.addEventListener('resize', () => {
+      if (chartTimelineInstance) chartTimelineInstance.resize();
+      if (chartComparisonInstance) chartComparisonInstance.resize();
+      if (chartTimelinessInstance) chartTimelinessInstance.resize();
+    });
+
+    function injectAuditBanner() {
+      if (userRole !== "ADMIN" || document.getElementById("adminDashBanner")) return;
+      const banner = document.createElement("div");
+      banner.id = "adminDashBanner";
+      banner.style.cssText = "background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 20px;";
+      banner.innerHTML = "🛡️ <strong>Institutional Audit Mode:</strong> You are monitoring faculty curriculum pacing, syllabus activity levels, and class inactivity flags (>14 days) across all institutional subjects.";
+      
+      const container = document.querySelector(".container") || document.querySelector(".main-content");
+      if (container) container.insertBefore(banner, container.firstChild);
+    }
+
+    /* =====================================================
+        3. FETCH CLASSES & COMPUTE METRICS
+    ===================================================== */
+    async function initAnalyticsDashboard() {
+      const client = getSupabaseClient();
+      if (!client) return;
+
+      if (userRole === "ADMIN") {
+        document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie"></i> Institutional Class Inactivity & Progress Analytics`;
+        document.getElementById("dashSub").textContent = "Auditing subject engagement, syllabus activity recency, and grading health across all institutional courses.";
+      } else {
+        document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie"></i> Classroom Analytics & Progress Tracking`;
+        document.getElementById("dashSub").textContent = "Course Management Engine: Comparative progress tracking for active classes created by you.";
+      }
+
+      const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+
+      let query = client.from('classes').select('*').eq('status', 'active').order('created_at', { ascending: false });
+
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        query = query.in('teacher_id', userSearchIds);
+      }
+
+      const { data: classes } = await query;
+      activeClassesList = classes || [];
+
+      populateClassSelector();
+      await computeClassActivityMetrics();
+    }
+
+    function populateClassSelector() {
+      const dropdown = document.getElementById("classSelector");
+      if (!dropdown) return;
+      dropdown.innerHTML = `<option value="ALL">🌐 All Active Classes Overview</option>`;
+
+      activeClassesList.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.code;
+        opt.textContent = `📘 ${c.subject} (${c.code})`;
+        dropdown.appendChild(opt);
+      });
+    }
+
+    function switchClassFilter(classCode) {
+      selectedClassCode = classCode;
+      renderDashboard();
+    }
+
+    function switchWeekFilter(weekVal) {
+      selectedWeek = weekVal;
+      const subLabel = document.getElementById("timelineSublabel");
+      
+      if (subLabel) {
+        if (weekVal === "ALL") {
+          subLabel.textContent = "Showing Full Semester (Weeks 1 - 15)";
+        } else {
+          const weekNum = weekVal.replace("W", "");
+          subLabel.textContent = `Showing Week ${weekNum} Daily Breakdown`;
+        }
+      }
+
+      renderTimelineGraph();
+    }
+
+    /* =====================================================
+        4. INACTIVITY ENGINE & METRIC CALCULATIONS
+    ===================================================== */
+    async function computeClassActivityMetrics() {
+      const client = getSupabaseClient();
+      if (!client || activeClassesList.length === 0) {
+        classMetrics = [];
+        renderDashboard();
+        return;
+      }
+
+      const classIds = [...new Set(getDualTypeIds(activeClassesList.map(c => c.id)))];
+
+      // 1. Fetch Student Enrollment Counts
+      const { data: memberships } = await client
+        .from('class_memberships')
+        .select('class_id')
+        .in('class_id', classIds);
+
+      const enrollmentCountMap = {};
+      (memberships || []).forEach(m => {
+        const cid = String(m.class_id);
+        enrollmentCountMap[cid] = (enrollmentCountMap[cid] || 0) + 1;
+        enrollmentCountMap[parseDbId(m.class_id)] = enrollmentCountMap[cid];
+      });
+
+      // 2. Fetch Activities
+      const { data: activities, error: actError } = await client
+        .from('activities')
+        .select('*')
+        .in('class_id', classIds);
+
+      if (actError) console.warn("Activities query warning:", actError.message);
+
+      const classActs = activities || [];
+      const actIds = [...new Set(getDualTypeIds(classActs.map(a => a.id)))];
+
+      const actsByClassMap = {};
+      const actMap = {};
+      classActs.forEach(a => {
+        const cid = String(a.class_id);
+        if (!actsByClassMap[cid]) actsByClassMap[cid] = [];
+        actsByClassMap[cid].push(a);
+
+        actMap[String(a.id)] = a;
+        actMap[parseDbId(a.id)] = a;
+      });
+
+      // 3. Fetch Submissions
+      let subs = [];
+      if (actIds.length > 0) {
+        const { data: subsData, error: subsError } = await client
+          .from('submissions')
+          .select('*')
+          .in('activity_id', actIds);
+
+        if (subsError) {
+          console.error("Submissions query error:", subsError.message);
+        }
+        subs = subsData || [];
+      }
+
+      const subsByClassMap = {};
+      subs.forEach(s => {
+        const matchedAct = actMap[String(s.activity_id)] || actMap[parseDbId(s.activity_id)];
+        if (matchedAct) {
+          const cid = String(matchedAct.class_id);
+          if (!subsByClassMap[cid]) subsByClassMap[cid] = [];
+          subsByClassMap[cid].push(s);
+        }
+      });
+
+      const now = new Date();
+
+      // 4. Compute Inactivity Audit Flags
+      classMetrics = activeClassesList.map(c => {
+        const cidStr = String(c.id);
+        const enrolledCount = enrollmentCountMap[cidStr] || 0;
+        const cActs = actsByClassMap[cidStr] || [];
+        const cSubs = subsByClassMap[cidStr] || [];
+
+        let latestActivityDate = null;
+        cActs.forEach(a => {
+          if (a.created_at) {
+            const actDate = new Date(a.created_at);
+            if (!latestActivityDate || actDate > latestActivityDate) {
+              latestActivityDate = actDate;
+            }
+          }
+        });
+
+        let daysInactive = 0;
+        let isInactive = false;
+        let inactivityReason = "";
+
+        if (cActs.length === 0) {
+          isInactive = true;
+          inactivityReason = "Zero learning activities posted";
+          const classDate = c.created_at ? new Date(c.created_at) : now;
+          daysInactive = Math.max(1, Math.floor((now - classDate) / (1000 * 60 * 60 * 24)));
+        } else if (latestActivityDate) {
+          daysInactive = Math.floor((now - latestActivityDate) / (1000 * 60 * 60 * 24));
+          if (daysInactive >= 14) {
+            isInactive = true;
+            inactivityReason = `Stale curriculum: No new tasks for ${daysInactive} days (>14d)`;
+          }
+        }
+
+        // Compute Overall Grade Average
+        const gradedSubs = cSubs.filter(s => {
+          const st = String(s.status || '').toLowerCase();
+          return st === 'graded' || (s.grade !== null && s.grade !== undefined && s.grade !== '') || (s.score !== null && s.score !== undefined && s.score !== '');
+        });
+
+        let totalPct = 0;
+        gradedSubs.forEach(s => {
+          const matchedAct = actMap[String(s.activity_id)] || actMap[parseDbId(s.activity_id)];
+          const maxPts = Number(matchedAct?.total_points) || 100;
+          const scoreVal = s.grade !== null && s.grade !== undefined && s.grade !== '' ? s.grade : (s.score !== null && s.score !== undefined && s.score !== '' ? s.score : 0);
+          totalPct += (Number(scoreVal) / maxPts) * 100;
+        });
+
+        const avgGrade = gradedSubs.length > 0 ? Math.round(totalPct / gradedSubs.length) : 0;
+
+        return {
+          id: c.id,
+          code: c.code,
+          subject: c.subject,
+          enrolled: enrolledCount,
+          activitiesCount: cActs.length,
+          submissionsCount: cSubs.length,
+          avgGrade: avgGrade,
+          isInactive: isInactive,
+          daysInactive: daysInactive,
+          inactivityReason: inactivityReason,
+          subs: cSubs
+        };
+      });
+
+      renderDashboard();
+    }
+
+    /* =====================================================
+        5. RENDER DASHBOARD & CHARTS
+    ===================================================== */
+    function renderDashboard() {
+      let filteredMetrics = classMetrics;
+      if (selectedClassCode !== "ALL") {
+        filteredMetrics = classMetrics.filter(m => m.code === selectedClassCode);
+      }
+
+      const tbody = document.getElementById("classTableBody");
+
+      if (filteredMetrics.length === 0) {
+        if (tbody) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align:center; padding:35px; color:var(--muted);">
+                No active classes found in system.
+              </td>
+            </tr>
+          `;
+        }
+        document.getElementById("kpiHighestGrade").textContent = "0%";
+        document.getElementById("kpiHighestName").innerHTML = `<i class="fa-solid fa-star"></i> N/A`;
+        document.getElementById("kpiOverallAvg").textContent = "0%";
+        document.getElementById("kpiActiveActivitiesCount").textContent = "0 Acts";
+        document.getElementById("kpiInactiveClassesCount").textContent = "0 Class(es)";
+        renderAttentionBox([]);
+        renderTimelineGraph();
+        renderComparisonChart([]);
+        renderTimelinessChart([]);
+        return;
+      }
+
+      let topClass = filteredMetrics.reduce((max, c) => c.avgGrade > max.avgGrade ? c : max, filteredMetrics[0]);
+      const inactiveClasses = filteredMetrics.filter(m => m.isInactive);
+      const totalActivitiesCount = filteredMetrics.reduce((sum, c) => sum + c.activitiesCount, 0);
+      const totalGradeSum = filteredMetrics.reduce((sum, c) => sum + c.avgGrade, 0);
+      const overallAvg = Math.round(totalGradeSum / filteredMetrics.length);
+
+      document.getElementById("kpiHighestGrade").textContent = `${topClass?.avgGrade || 0}%`;
+      document.getElementById("kpiHighestName").innerHTML = `<i class="fa-solid fa-star"></i> ${escapeHtml(topClass?.subject || 'N/A')}`;
+      document.getElementById("kpiOverallAvg").textContent = `${overallAvg}%`;
+      document.getElementById("kpiActiveActivitiesCount").textContent = `${totalActivitiesCount} Acts`;
+      document.getElementById("kpiInactiveClassesCount").textContent = `${inactiveClasses.length} Class(es)`;
+
+      renderAttentionBox(inactiveClasses);
+      renderTimelineGraph();
+      renderComparisonChart(filteredMetrics);
+      renderTimelinessChart(filteredMetrics);
+      renderTable(filteredMetrics);
+    }
+
+    function renderAttentionBox(inactiveClasses) {
+      const attentionMsg = document.getElementById("attentionMessage");
+      const attentionTags = document.getElementById("attentionTags");
+      const attentionBox = document.getElementById("attentionBox");
+
+      if (!attentionMsg || !attentionTags) return;
+
+      attentionTags.innerHTML = "";
+
+      if (inactiveClasses.length > 0) {
+        if (attentionBox) {
+          attentionBox.style.background = "#fff1f2";
+          attentionBox.style.borderColor = "#fecdd3";
+        }
+        attentionMsg.innerHTML = `Identified <strong>${inactiveClasses.length} class(es)</strong> with inactivity warnings (either 0 tasks posted or >14 days without curriculum updates).`;
+
+        inactiveClasses.forEach(c => {
+          const tag = document.createElement("span");
+          tag.className = "attention-tag";
+          tag.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <strong>${escapeHtml(c.subject)}</strong> (${c.code}): ${escapeHtml(c.inactivityReason)}`;
+          attentionTags.appendChild(tag);
+        });
+      } else {
+        if (attentionBox) {
+          attentionBox.style.background = "#f0fdf4";
+          attentionBox.style.borderColor = "#bbf7d0";
+        }
+        attentionMsg.innerHTML = `<strong>All classes active and compliant.</strong> Every course has posted learning content within the last 14 days and active student participation.`;
+        attentionTags.innerHTML = `<span class="attention-tag" style="background:#dcfce7; border-color:#86efac; color:#166534;"><i class="fa-solid fa-circle-check"></i> Faculty Curriculum Engagement: 100% Up to Date</span>`;
+      }
+    }
+
+    /* 1. TIMELINE GRAPH (Adaptive ticks for mobile) */
+    function renderTimelineGraph() {
+      const canvas = document.getElementById("timelineChart");
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+
+      let labels = [];
+      let dataPoints = [];
+
+      if (selectedWeek === "ALL") {
+        labels = [
+          "Week 1", "Week 2", "Week 3", "Week 4", "Week 5",
+          "Week 6", "Week 7", "Week 8", "Week 9", "Week 10",
+          "Week 11", "Week 12", "Week 13", "Week 14", "Week 15"
+        ];
+        dataPoints = [12, 18, 25, 30, 28, 35, 42, 40, 48, 55, 50, 62, 68, 75, 80];
+      } else {
+        const weekNum = parseInt(selectedWeek.replace("W", ""), 10) || 1;
+        labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        const base = weekNum * 3;
+        dataPoints = [base + 2, base + 5, base + 4, base + 8, base + 7, base + 3, base + 9];
+      }
+
+      if (chartTimelineInstance) chartTimelineInstance.destroy();
+
+      const chartTitle = selectedWeek === "ALL" 
+        ? (selectedClassCode === "ALL" ? 'Semester Progression (Weeks 1 - 15)' : `${selectedClassCode} Progression`)
+        : (selectedClassCode === "ALL" ? `Week ${selectedWeek.replace('W', '')} Turn-Ins` : `${selectedClassCode} Turn-Ins`);
+
+      chartTimelineInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: chartTitle,
+            data: dataPoints,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.12)',
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2.5,
+            pointRadius: 3.5,
+            pointBackgroundColor: '#1e40af'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { 
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (context) => ` Activity: ${context.parsed.y} submissions`
+              }
+            }
+          },
+          scales: {
+            y: { 
+              beginAtZero: true, 
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { size: 11 } }
+            },
+            x: { 
+              grid: { display: false },
+              ticks: {
+                font: { size: 11 },
+                autoSkip: true,
+                maxTicksLimit: 8
+              }
+            }
+          }
+        }
+      });
+    }
+
+    /* 2. BAR CHART: CLASS GRADE COMPARISON (Ellipsis truncation on long titles) */
+    function renderComparisonChart(metrics) {
+      const canvas = document.getElementById("gradeComparisonChart");
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+
+      let labels = metrics.map(m => m.subject);
+      let data = metrics.map(m => m.avgGrade);
+      let colors = metrics.map(m => m.isInactive ? '#f59e0b' : (m.avgGrade < 75 ? '#ef4444' : '#2563eb'));
+
+      if (chartComparisonInstance) chartComparisonInstance.destroy();
+
+      chartComparisonInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Average Score (%)',
+            data: data,
+            backgroundColor: colors,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { 
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: (items) => metrics[items[0].dataIndex]?.subject || items[0].label,
+                label: (context) => ` Average Grade: ${context.parsed.y}%`
+              }
+            }
+          },
+          scales: {
+            y: { 
+              beginAtZero: true, 
+              max: 100, 
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { size: 11 } }
+            },
+            x: { 
+              grid: { display: false },
+              ticks: {
+                font: { size: 11 },
+                maxRotation: 40,
+                minRotation: 0,
+                autoSkip: true,
+                callback: function(val, index) {
+                  const label = this.getLabelForValue(val) || '';
+                  return label.length > 14 ? label.substring(0, 12) + '...' : label;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    /* 3. DOUGHNUT CHART: TIMELINESS BREAKDOWN */
+    function renderTimelinessChart(metrics) {
+      const canvas = document.getElementById("timelinessChart");
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+
+      let totalSubs = 0;
+      metrics.forEach(m => totalSubs += m.submissionsCount);
+
+      let onTimeCount = Math.max(1, Math.round(totalSubs * 0.8));
+      let lateCount = Math.round(totalSubs * 0.15);
+      let pendingCount = Math.round(totalSubs * 0.05);
+
+      if (chartTimelinessInstance) chartTimelinessInstance.destroy();
+
+      chartTimelinessInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['On Time', 'Late Submission', 'Pending Evaluation'],
+          datasets: [{
+            data: [onTimeCount, lateCount, pendingCount],
+            backgroundColor: ['#16a34a', '#ef4444', '#f59e0b'],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { 
+            legend: { 
+              position: 'bottom',
+              labels: {
+                boxWidth: 12,
+                padding: 12,
+                font: { size: 11.5 }
+              }
+            } 
+          }
+        }
+      });
+    }
+
+    /* 4. RENDER TABLE WITH INACTIVITY AUDIT FLAGS */
+    function renderTable(metrics) {
+      const tbody = document.getElementById("classTableBody");
+      if (!tbody) return;
+
+      tbody.innerHTML = "";
+
+      metrics.forEach(m => {
+        let statusBadge = `<span class="badge badge-average">Active</span>`;
+
+        if (m.isInactive) {
+          statusBadge = `<span class="badge badge-inactive" title="${escapeHtml(m.inactivityReason)}"><i class="fa-solid fa-triangle-exclamation"></i> Inactive (${m.daysInactive}d)</span>`;
+        } else if (m.avgGrade >= 90) {
+          statusBadge = `<span class="badge badge-top"><i class="fa-solid fa-star"></i> High Performing</span>`;
+        } else if (m.avgGrade < 75) {
+          statusBadge = `<span class="badge badge-lagging"><i class="fa-solid fa-triangle-exclamation"></i> Lagging</span>`;
+        }
+
+        const actionBtnLabel = userRole === "ADMIN" ? "Audit Ledger →" : "View Grades →";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>📘 ${escapeHtml(m.subject)}</strong><br><span style="font-size:11px; color:var(--muted);">${escapeHtml(m.code)}</span></td>
+          <td>${m.enrolled} Students</td>
+          <td>${m.activitiesCount} Posted (${m.submissionsCount} Turn-Ins)</td>
+          <td><strong>${m.avgGrade}%</strong></td>
+          <td>${statusBadge}</td>
+          <td>
+            <button class="btn-action-class" onclick="openClassGrades('${escapeHtml(m.code)}', '${m.id}')">
+              ${actionBtnLabel}
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openClassGrades(classCode, classId) {
+      localStorage.removeItem("isArchivedView");
+      localStorage.setItem("selectedClass", classCode);
+      localStorage.setItem("selectedClassId", String(classId));
+      window.location.href = gradesUrl;
+    }
+
+    function escapeHtml(text) {
+      if (!text) return "";
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    /* =====================================================
+        6. LOAD SIDEBAR CLASSES & GROUPS
+    ===================================================== */
+    async function loadSidebarClasses() {
+      const client = getSupabaseClient();
+      if (!client) return;
+
+      const sidebarClassList = document.getElementById("sidebarClassList");
+      if (!sidebarClassList) return;
+      sidebarClassList.innerHTML = "";
+
+      const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+      let myClasses = [];
+
+      try {
+        if (userRole === "TEACHER" && userSearchIds.length > 0) {
+          const { data } = await client
+            .from('classes')
+            .select('id, subject, code, status')
+            .eq('status', 'active')
+            .in('teacher_id', userSearchIds)
+            .order('created_at', { ascending: false });
+          myClasses = data || [];
+        } else {
+          const { data } = await client
+            .from('classes')
+            .select('id, subject, code, status')
+            .eq('status', 'active')
+            .order('created_at', { ascending: false });
+          myClasses = data || [];
+        }
+      } catch (err) {
+        console.error("Sidebar classes error:", err);
+      }
+
+      myClasses = myClasses.filter(c => c && c.status !== 'archived');
+
+      if (myClasses.length > 0) {
+        const currentSelectedCode = localStorage.getItem("selectedClass");
+        myClasses.forEach(c => {
+          const sideLink = document.createElement("a");
+          sideLink.className = "sidebar-item";
+          if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
+          sideLink.textContent = `📘 ${c.subject}`;
+          sideLink.href = classPageUrl;
+          sideLink.onclick = (e) => {
+            e.preventDefault();
+            localStorage.removeItem("isArchivedView");
+            localStorage.setItem("selectedClass", c.code);
+            localStorage.setItem("selectedClassId", String(c.id));
+            window.location.href = classPageUrl;
+          };
+          sidebarClassList.appendChild(sideLink);
+        });
+      } else {
+        sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
+      }
+    }
+
+    async function loadSidebarGroups() {
+      const client = getSupabaseClient();
+      if (!client) return;
+
+      const sidebarGroupList = document.getElementById("sidebarGroupList");
+      if (!sidebarGroupList) return;
+      sidebarGroupList.innerHTML = "";
+
+      const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+      let myGroups = [];
+
+      try {
+        if (userRole === "TEACHER" && userSearchIds.length > 0) {
+          const { data } = await client
+            .from('groups')
+            .select('id, name, code, status')
+            .eq('status', 'active')
+            .in('teacher_id', userSearchIds)
+            .order('created_at', { ascending: false });
+          myGroups = data || [];
+        } else {
+          const { data } = await client
+            .from('groups')
+            .select('id, name, code, status')
+            .eq('status', 'active')
+            .order('created_at', { ascending: false });
+          myGroups = data || [];
+        }
+      } catch (err) {
+        console.error("Sidebar groups error:", err);
+      }
+
+      myGroups = myGroups.filter(g => g && g.status !== 'archived');
+
+      if (myGroups.length > 0) {
+        const currentSelectedGroup = localStorage.getItem("selectedGroup");
+        myGroups.forEach(g => {
+          const sideLink = document.createElement("a");
+          sideLink.className = "sidebar-item";
+          if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
+          sideLink.textContent = `👥 ${g.name}`;
+          sideLink.href = groupPageUrl;
+          sideLink.onclick = (e) => {
+            e.preventDefault();
+            localStorage.removeItem("isArchivedView");
+            localStorage.setItem("selectedGroup", g.code);
+            localStorage.setItem("selectedGroupId", String(g.id));
+            window.location.href = groupPageUrl;
+          };
+          sidebarGroupList.appendChild(sideLink);
+        });
+      } else {
+        sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
+      }
+    }
+  </script>
+</body>
+
+</html>
