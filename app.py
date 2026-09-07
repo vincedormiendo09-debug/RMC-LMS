@@ -12,7 +12,8 @@ from flask import (
     flash,
     session,
     make_response,
-    jsonify
+    jsonify,
+    send_from_directory
 )
 from supabase import create_client, Client
 from pywebpush import webpush, WebPushException
@@ -129,6 +130,27 @@ def inject_user_context():
     }
 
 # =========================================
+# 📱 PWA ROOT SERVICE WORKER & ASSET FALLBACKS
+# =========================================
+@app.route('/sw.js')
+def service_worker():
+    """Serves sw.js from root scope so it can control all routes and trigger PWA install."""
+    response = make_response(send_from_directory('static', 'sw.js'))
+    response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Service-Worker-Allowed'] = '/'
+    return prevent_caching(response)
+
+@app.route('/favicon.ico')
+def favicon():
+    """Resolves browser favicon requests without 404 errors."""
+    return send_from_directory('static', 'rmc.png', mimetype='image/png')
+
+@app.route('/static/rmc.jpg')
+def fallback_rmc_jpg():
+    """Prevents 404 errors from older templates still referencing rmc.jpg."""
+    return send_from_directory('static', 'rmc.png', mimetype='image/png')
+
+# =========================================
 # 🏠 PUBLIC & AUTHENTICATION ROUTES
 # =========================================
 @app.route('/')
@@ -181,7 +203,6 @@ def login():
 @app.route('/register.html', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        # Accept either FormData or JSON payloads
         data = request.get_json(silent=True) or request.form
         is_ajax = request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
 
@@ -300,7 +321,6 @@ def ai_moderate():
     image_url = (data.get('image_url') or '').strip()
     file_name = (data.get('file_name') or '').strip()
 
-    # 1. File extension validation
     if file_name:
         ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else ''
         if ext in BLOCKED_EXTENSIONS or (ALLOWED_EXTENSIONS and ext not in ALLOWED_EXTENSIONS):
@@ -309,7 +329,6 @@ def ai_moderate():
                 "reason": f"Security Notice: File extension (.{ext}) is prohibited to prevent malware and suspicious uploads."
             }), 200
 
-    # 2. Skip if no payload
     if not message_text and not image_url:
         return jsonify({"allowed": True}), 200
 
@@ -317,7 +336,6 @@ def ai_moderate():
     if not api_key:
         return jsonify({"allowed": True}), 200
 
-    # 3. Payload build
     moderation_input = []
     if message_text:
         moderation_input.append({
@@ -736,7 +754,6 @@ def notify_users():
     
     subject_prefix, body_action = type_messages.get(notif_type, ('Academic Update', 'An update has been made'))
 
-    # 1. Dispatch Email Notifications via Brevo API
     if student_emails:
         email_body = f"""Hello Regis Marie College Student,
 
@@ -757,7 +774,6 @@ Regis Marie College
             body_text=email_body
         )
 
-    # 2. Dispatch Mobile Push & Lock Screen Notifications
     if student_ids:
         try:
             response = supabase.table('push_subscriptions').select('*').in_('user_id', student_ids).execute()
@@ -952,10 +968,13 @@ def update_notif_log(activity_id, log_dict):
     except Exception as e:
         print(f"Error updating notification log: {e}")
 
-# Start APScheduler
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=check_activity_deadlines_and_reminders, trigger="interval", seconds=60)
-scheduler.start()
+# Start APScheduler safely with daemon thread
+try:
+    scheduler = BackgroundScheduler(daemon=True)
+    scheduler.add_job(func=check_activity_deadlines_and_reminders, trigger="interval", seconds=60)
+    scheduler.start()
+except Exception as sched_err:
+    print(f"⚠️ APScheduler startup warning: {sched_err}")
 
 # =========================================
 # 📊 ANALYTICS, DASHBOARDS & NOTIFICATIONS
