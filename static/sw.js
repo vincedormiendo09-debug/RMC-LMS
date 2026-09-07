@@ -1,19 +1,55 @@
 /* =====================================================
    REGIS MARIE COLLEGE - MOBILE BACKGROUND SERVICE WORKER
-   Lock-screen banners, vibration, badge counts, & routing
+   PWA Installation, Caching, Web Push Alerts & Routing
 ===================================================== */
 
-// Immediate activation on installation
-self.addEventListener('install', function (event) {
+const CACHE_NAME = 'rmc-lms-cache-v1';
+const PRECACHE_ASSETS = [
+  '/static/rmc.png',
+  '/static/manifest.json',
+  '/login.html'
+];
+
+// 1. Install: Pre-cache essential assets & activate immediately
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(PRECACHE_ASSETS).catch((err) => {
+        console.warn('Pre-caching asset warning:', err);
+      });
+    })
+  );
   self.skipWaiting();
 });
 
-self.addEventListener('activate', function (event) {
-  event.waitUntil(clients.claim());
+// 2. Activate: Clear old caches and claim open pages immediately
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      );
+    }).then(() => clients.claim())
+  );
 });
 
-// 1. Listen for Incoming Web Push Messages
-self.addEventListener('push', function (event) {
+// 3. Fetch: Required by Chrome/Edge/Android to satisfy PWA install criteria
+self.addEventListener('fetch', (event) => {
+  // Only handle standard GET requests (bypass POST routes like /register, /login, /api/*)
+  if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
+    return;
+  }
+
+  event.respondWith(
+    fetch(event.request).catch(() => {
+      // Offline fallback: serve cached match if network fails
+      return caches.match(event.request);
+    })
+  );
+});
+
+// 4. Web Push Notification Handler
+self.addEventListener('push', (event) => {
   if (!event.data) return;
 
   let payload = {};
@@ -33,34 +69,32 @@ self.addEventListener('push', function (event) {
 
   const options = {
     body: payload.body || "New coursework has been posted in your class.",
-    icon: "/static/icons/icon-192.png",       // App logo in notification
-    badge: "/static/icons/badge-72.png",      // Monochrome icon in mobile status bar
-    vibrate: [150, 75, 150, 75, 200],         // Haptic alert pattern
+    icon: "/static/rmc.png",            // Verified existing school logo
+    badge: "/static/rmc.png",           // Mobile status-bar icon
+    vibrate: [150, 75, 150, 75, 200],
     data: {
       url: targetUrl,
       activityId: payload.activityId || null
     },
     tag: payload.tag || `activity-${payload.activityId || Date.now()}`,
     renotify: true,
-    requireInteraction: false                 // Shows on lock screen and drops down banner
+    requireInteraction: false
   };
 
-  // Update App Icon Badge on Mobile Home Screen (if supported)
+  // Update app icon badge on mobile home screens (Android / PWA)
   if (navigator.setAppBadge) {
     navigator.setAppBadge(payload.unreadCount || 1).catch(() => {});
   }
 
-  // Display Lock Screen Alert, Status Bar Icon, and Drop-Down Banner
   event.waitUntil(
     self.registration.showNotification(title, options)
   );
 });
 
-// 2. Handle Student Tapping the Mobile Notification
-self.addEventListener('notificationclick', function (event) {
+// 5. Notification Click & Tab Focus Handler
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  // Clear app badge when notification is opened
   if (navigator.clearAppBadge) {
     navigator.clearAppBadge().catch(() => {});
   }
@@ -69,19 +103,20 @@ self.addEventListener('notificationclick', function (event) {
     return;
   }
 
-  const targetUrl = event.notification.data?.url || "/dashboard.html";
+  const relativeUrl = event.notification.data?.url || "/dashboard.html";
+  const absoluteTarget = new URL(relativeUrl, self.location.origin).href;
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
-      // Focus existing tab if already open
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Focus tab if user already has this view open
       for (const client of clientList) {
-        if (client.url.includes(targetUrl) && 'focus' in client) {
+        if (client.url === absoluteTarget && 'focus' in client) {
           return client.focus();
         }
       }
-      // Otherwise open a new portal window
+      // Otherwise open a new window straight to the target
       if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
+        return clients.openWindow(absoluteTarget);
       }
     })
   );

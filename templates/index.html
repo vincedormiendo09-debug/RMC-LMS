@@ -745,34 +745,68 @@
 
   </main>
 
-  <!-- PWA SHORTCUT INSTALL & REDIRECT SCRIPT -->
   <script>
     let deferredInstallPrompt = null;
     const rmcAppBtn = document.getElementById('btnRmcActivityApp');
 
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredInstallPrompt = e;
-    });
+    // 1. Detect if the user is already inside the installed standalone app
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
 
-    if (rmcAppBtn) {
-      rmcAppBtn.addEventListener('click', async () => {
-        if (deferredInstallPrompt) {
-          try {
-            deferredInstallPrompt.prompt();
-            const { outcome } = await deferredInstallPrompt.userChoice;
-            console.log('Install prompt outcome:', outcome);
-          } catch (err) {
-            console.log('Prompt execution skipped:', err);
-          }
-          deferredInstallPrompt = null;
-        }
-        
-        // Immediate redirect to login page
+    if (isStandalone && rmcAppBtn) {
+      // If opened directly from the desktop/home screen shortcut, take them to login
+      rmcAppBtn.innerText = "Go to Login";
+      rmcAppBtn.addEventListener('click', () => {
         window.location.href = "{{ url_for('login') }}";
       });
+    } else {
+      // 2. Capture native browser install prompt (Chrome, Edge, Android)
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredInstallPrompt = e;
+      });
+
+      // 3. Handle button click for installation
+      if (rmcAppBtn) {
+        rmcAppBtn.addEventListener('click', async (e) => {
+          e.preventDefault();
+
+          if (deferredInstallPrompt) {
+            try {
+              await deferredInstallPrompt.prompt();
+              const { outcome } = await deferredInstallPrompt.userChoice;
+              console.log('Install prompt outcome:', outcome);
+
+              if (outcome === 'accepted') {
+                rmcAppBtn.innerText = "Installing App...";
+                rmcAppBtn.disabled = true;
+              }
+            } catch (err) {
+              console.error('Prompt execution failed:', err);
+            }
+            deferredInstallPrompt = null;
+          } else {
+            // Informative fallback for iOS Safari or browsers where prompt hasn't primed
+            alert(
+              "To install the RMC Activity App shortcut on your device:\n\n" +
+              "• On PC (Chrome / Edge): Click the Install icon in the right side of the address bar.\n" +
+              "• On Android: Tap the 3 dots menu (⋮) -> select 'Install app' or 'Add to Home screen'.\n" +
+              "• On iPhone / iPad (Safari): Tap the Share icon -> select 'Add to Home Screen'."
+            );
+          }
+        });
+      }
+
+      // 4. Trigger confirmation once installation is complete
+      window.addEventListener('appinstalled', () => {
+        deferredInstallPrompt = null;
+        alert("✅ RMC Activity App installed successfully!\n\nOpen the shortcut from your desktop or home screen to launch into the login portal.");
+        if (rmcAppBtn) {
+          rmcAppBtn.innerText = "App Installed";
+          rmcAppBtn.disabled = true;
+        }
+      });
     }
-  </script>
+</script>
 
 </body>
 </html>
