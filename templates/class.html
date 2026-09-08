@@ -783,7 +783,6 @@
   const teacherActivityActions = document.getElementById("teacherActivityActions");
   const uploadBtn = document.getElementById("uploadBtn");
 
-  // Initial baseline lockdown for non-instructors
   if (userRole === "STUDENT" || userRole === "ADMIN") {
     if (uploadContainer) uploadContainer.style.display = "none";
     if (teacherLessonActions) teacherLessonActions.style.display = "none";
@@ -987,7 +986,6 @@
       if (currentClass && !error) {
         localStorage.setItem("selectedClassId", String(currentClass.id));
 
-        // 🔒 STRICT DATABASE-DRIVEN ARCHIVAL STATE
         const isArchived = (currentClass.status === 'archived');
         if (isArchived) {
           localStorage.setItem("isArchivedView", "true");
@@ -995,13 +993,11 @@
           localStorage.removeItem("isArchivedView");
         }
 
-        // 🔒 CLASS AUTHORSHIP VERIFICATION
         const isClassOwner = (userRole === "TEACHER" && (String(currentClass.teacher_id) === String(currentUserId) || parseDbId(currentClass.teacher_id) === parseDbId(currentUserId)));
 
         const existingArchivedBanner = document.getElementById("archivedNoticeBanner");
         const existingAdminBanner = document.getElementById("adminClassAuditBanner");
 
-        // Apply Access Boundaries
         if (isArchived) {
           if (uploadContainer) uploadContainer.style.display = "none";
           if (teacherLessonActions) teacherLessonActions.style.display = "none";
@@ -1165,7 +1161,6 @@
       const userSearchIds = getDualTypeIds([currentUserId]);
       const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
 
-      // Dual-schema query: checks user_id and student_id
       const { data: subData } = await client
         .from('submissions')
         .select('id, activity_id, status, grade, score')
@@ -1197,7 +1192,6 @@
       let targetUrl = userRole === "STUDENT" ? activitySubmitUrl : submissionsUrl;
       let associatedSubmissionId = null;
 
-      // 🔒 ARCHIVED CLASSROOM INTERACTION LOGIC
       if (isArchived) {
         if (userRole === "STUDENT") {
           const sub = studentSubmissionsMap[String(a.id)] || studentSubmissionsMap[parseDbId(a.id)];
@@ -1228,7 +1222,6 @@
           targetUrl = submissionsUrl;
         }
       } else {
-        // ACTIVE CLASSROOM INTERACTION LOGIC
         if (userRole === "STUDENT") {
           const sub = studentSubmissionsMap[String(a.id)] || studentSubmissionsMap[parseDbId(a.id)];
           const st = String(sub?.status || '').toLowerCase();
@@ -1241,7 +1234,6 @@
             targetUrl = reviewPageUrl;
             associatedSubmissionId = sub.id;
           } else if (isOverdue) {
-            // 🔒 DEADLINE PASSED & NOT SUBMITTED: Flagged as missed
             buttonText = "Missed to Submit →";
             buttonBg = "#ef4444";
             targetUrl = activitySubmitUrl;
@@ -1262,7 +1254,6 @@
         }
       }
 
-      // 3-dots menu restricted strictly to the verified owner of an active course
       let teacherActionHtml = "";
       if (isClassOwner && !isArchived) {
         teacherActionHtml = `
@@ -1318,7 +1309,7 @@
   }
 
   /* =====================================================
-     5. ROSTER TAB (DUAL-SCHEMA MEMBERSHIP RESOLUTION)
+     5. ROSTER TAB (SAFE MEMBERSHIP RESOLUTION)
   ===================================================== */
   async function fetchRosterForClass(currentClass, isArchived = false) {
     const client = getSupabaseClient();
@@ -1381,28 +1372,79 @@
     const studentsContainer = document.getElementById("studentsRosterSubList");
     const classSearchIds = getDualTypeIds([currentClass.id]);
     
-    // Dual check: extract both user_id and student_id from memberships
-    const { data: memberships, error: memErr } = await client
+    // 1. Safe select('*') avoids 42703 column-not-found errors across different schema versions
+    let memberships = [];
+    const { data: memData, error: memErr } = await client
       .from('class_memberships')
-      .select('user_id, student_id')
+      .select('*')
       .in('class_id', classSearchIds);
 
-    if (memErr || !memberships || memberships.length === 0) {
+    if (memErr) {
+      console.warn("Class memberships query notice:", memErr.message);
+    }
+
+    if (memData && memData.length > 0) {
+      memberships = memData;
+    } else if (currentClass.code) {
+      // Fallback: check if memberships was stored by class_code
+      const { data: codeData } = await client
+        .from('class_memberships')
+        .select('*')
+        .eq('class_code', currentClass.code);
+      if (codeData && codeData.length > 0) {
+        memberships = codeData;
+      }
+    }
+
+    if (!memberships || memberships.length === 0) {
       studentsContainer.innerHTML = `<li style="padding: 16px; background: #f8fafc; border: 1px dashed var(--border); border-radius: 8px; color: var(--muted); font-size: 13px; text-align: center;">No students found in this class roster.</li>`;
       return;
     }
 
+    // 2. Extract user ID regardless of field naming (user_id, student_id, member_id)
     const rawStudentIds = [];
     memberships.forEach(m => {
-      if (m.user_id) rawStudentIds.push(m.user_id);
-      if (m.student_id) rawStudentIds.push(m.student_id);
+      const sId = m.user_id || m.student_id || m.userId || m.studentId || m.member_id;
+      if (sId && String(sId) !== String(currentClass.teacher_id)) {
+        rawStudentIds.push(sId);
+      }
     });
 
     const studentSearchIds = getDualTypeIds(rawStudentIds);
-    const { data: studentUsers } = await client
-      .from('users')
-      .select('id, full_name, email, student_id')
-      .in('id', studentSearchIds);
+    let studentUsers = [];
+
+    if (studentSearchIds.length > 0) {
+      // Primary: Lookup by users.id
+      const { data: usersById } = await client
+        .from('users')
+        .select('id, full_name, email, student_id')
+        .in('id', studentSearchIds);
+
+      if (usersById && usersById.length > 0) {
+        studentUsers = usersById;
+      } else {
+        // Fallback: Lookup by users.student_id
+        const { data: usersByStudentId } = await client
+          .from('users')
+          .select('id, full_name, email, student_id')
+          .in('student_id', studentSearchIds);
+        if (usersByStudentId && usersByStudentId.length > 0) {
+          studentUsers = usersByStudentId;
+        }
+      }
+    }
+
+    // Direct fallback if memberships table contains student full_name or email
+    if (studentUsers.length === 0 && memberships.length > 0) {
+      studentUsers = memberships
+        .filter(m => (m.full_name || m.name || m.email) && String(m.user_id || m.student_id) !== String(currentClass.teacher_id))
+        .map(m => ({
+          id: m.user_id || m.student_id || m.id,
+          full_name: m.full_name || m.name || 'Enrolled Student',
+          email: m.email || '',
+          student_id: m.student_id || ''
+        }));
+    }
 
     if (studentUsers && studentUsers.length > 0) {
       studentsContainer.innerHTML = "";
@@ -1438,7 +1480,7 @@
         studentsContainer.appendChild(li);
       });
     } else {
-      studentsContainer.innerHTML = `<li style="padding: 16px; background: #f8fafc; border: 1px dashed var(--border); border-radius: 8px; color: var(--muted); font-size: 13px; text-align: center;">No student records found.</li>`;
+      studentsContainer.innerHTML = `<li style="padding: 16px; background: #f8fafc; border: 1px dashed var(--border); border-radius: 8px; color: var(--muted); font-size: 13px; text-align: center;">No students found in this class roster.</li>`;
     }
   }
 
@@ -1507,7 +1549,7 @@
   }
 
   /* =====================================================
-     6. LOAD SIDEBAR CLASSES & GROUPS
+     6. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA)
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
@@ -1530,10 +1572,11 @@
           .order('created_at', { ascending: false });
         myClasses = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
         const { data: mems, error: memErr } = await client
           .from('class_memberships')
           .select('class_id')
-          .in('user_id', userSearchIds);
+          .or(`user_id.in.(${userIdsFormatted}),student_id.in.(${userIdsFormatted})`);
 
         if (!memErr && mems && mems.length > 0) {
           const classSearchIds = getDualTypeIds(mems.map(m => m.class_id));
@@ -1611,10 +1654,11 @@
           .order('created_at', { ascending: false });
         myGroups = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
         const { data: mems, error: memErr } = await client
           .from('group_memberships')
           .select('group_id')
-          .in('user_id', userSearchIds);
+          .or(`user_id.in.(${userIdsFormatted}),student_id.in.(${userIdsFormatted})`);
 
         if (!memErr && mems && mems.length > 0) {
           const groupSearchIds = getDualTypeIds(mems.map(m => m.group_id));
