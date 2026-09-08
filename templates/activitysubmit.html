@@ -1281,14 +1281,16 @@
       const userSearchIds = getDualTypeIds([currentUserId]);
 
       let submission = null;
-      const { data: subUser, error: errUser } = await client
+      const { data: subUser } = await client
         .from('submissions')
         .select('*')
         .in('activity_id', actSearchIds)
         .in('user_id', userSearchIds)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
-      if (!errUser && subUser) {
+      if (subUser) {
         submission = subUser;
       } else {
         const { data: subStudent } = await client
@@ -1296,6 +1298,8 @@
           .select('*')
           .in('activity_id', actSearchIds)
           .in('student_id', userSearchIds)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle();
         submission = subStudent;
       }
@@ -1392,7 +1396,6 @@
           submitBtn.style.background = "";
           submitBtn.innerHTML = `<i class="fa-solid fa-lock"></i> Graded & Locked`;
         } else if (isDeadlinePassed) {
-          // 🔒 Hard Lockout: Cannot unsubmit after deadline has passed
           submitBtn.className = "btn-submit-now submitted";
           submitBtn.disabled = true;
           submitBtn.style.opacity = "0.75";
@@ -1453,7 +1456,6 @@
       }
 
     } else {
-      // 🔒 NOT SUBMITTED: Check if deadline has passed for HARD LOCKOUT
       if (isDeadlinePassed) {
         if (commentsInput) commentsInput.disabled = true;
         if (linkInput) linkInput.disabled = true;
@@ -1475,7 +1477,6 @@
           statusBadge.style.color = "#991b1b";
         }
       } else {
-        // Within deadline: normal submission allowed
         if (commentsInput) commentsInput.disabled = false;
         if (linkInput) linkInput.disabled = false;
         if (fileInput) fileInput.disabled = false;
@@ -1524,7 +1525,6 @@
 
     const now = new Date().getTime();
 
-    // 🔒 HARD LOCKOUT CHECK: Check if the deadline has passed
     if (currentActivityData && (currentActivityData.deadline || currentActivityData.due_date)) {
       const deadlineTime = new Date(currentActivityData.deadline || currentActivityData.due_date).getTime();
       if (!isNaN(deadlineTime) && now > deadlineTime) {
@@ -1607,14 +1607,14 @@
       }
     }
 
-    // 2. Validate File Selection (Anti-Malware & Whitelisting)
+    // 2. Validate File Selection
     let pickedFile = null;
     if (fileInput && fileInput.files && fileInput.files.length > 0) {
       pickedFile = fileInput.files[0];
       const ext = pickedFile.name.split('.').pop().toLowerCase();
 
       if (BLOCKED_EXTENSIONS.has(ext)) {
-        alert(`🛑 Security Alert: The file type (.${ext}) is strictly prohibited to prevent malware and protect school networks.`);
+        alert(`🛑 Security Alert: The file type (.${ext}) is strictly prohibited to prevent malware.`);
         fileInput.value = "";
         return;
       }
@@ -1761,53 +1761,68 @@
 
     if (targetSubId) {
       const subSearchIds = getDualTypeIds([targetSubId]);
-      const { data: updatedSub, error } = await client
+      
+      let updatePayload = {
+        comments: comments,
+        link_url: formattedLink,
+        file_url: uploadedFileUrl,
+        status: 'submitted',
+        submitted_at: submissionTime,
+        user_id: parsedUid,
+        student_id: parsedUid
+      };
+
+      let { data: updatedSub, error } = await client
         .from('submissions')
-        .update({
-          comments: comments,
-          link_url: formattedLink,
-          file_url: uploadedFileUrl,
-          status: 'submitted',
-          submitted_at: submissionTime
-        })
+        .update(updatePayload)
         .in('id', subSearchIds)
         .select()
         .maybeSingle();
 
+      if (error && (error.code === '42703' || (error.message && error.message.includes('student_id')))) {
+        delete updatePayload.student_id;
+        const res = await client.from('submissions').update(updatePayload).in('id', subSearchIds).select().maybeSingle();
+        updatedSub = res.data;
+        error = res.error;
+      } else if (error && (error.code === '42703' || (error.message && error.message.includes('user_id')))) {
+        delete updatePayload.user_id;
+        updatePayload.student_id = parsedUid;
+        const res = await client.from('submissions').update(updatePayload).in('id', subSearchIds).select().maybeSingle();
+        updatedSub = res.data;
+        error = res.error;
+      }
+
       subError = error;
       if (updatedSub) currentSubmissionData = updatedSub;
     } else {
+      let insertPayload = {
+        activity_id: parsedActId,
+        user_id: parsedUid,
+        student_id: parsedUid,
+        comments: comments,
+        link_url: formattedLink,
+        file_url: uploadedFileUrl,
+        status: 'submitted',
+        submitted_at: submissionTime
+      };
+
       let { data: newSub, error } = await client
         .from('submissions')
-        .insert([{
-          activity_id: parsedActId,
-          user_id: parsedUid,
-          comments: comments,
-          link_url: formattedLink,
-          file_url: uploadedFileUrl,
-          status: 'submitted',
-          submitted_at: submissionTime
-        }])
+        .insert([insertPayload])
         .select()
         .maybeSingle();
 
-      if (error && (error.code === 'PGRST204' || (error.message && error.message.includes('user_id')))) {
-        const retry = await client
-          .from('submissions')
-          .insert([{
-            activity_id: parsedActId,
-            student_id: parsedUid,
-            comments: comments,
-            link_url: formattedLink,
-            file_url: uploadedFileUrl,
-            status: 'submitted',
-            submitted_at: submissionTime
-          }])
-          .select()
-          .maybeSingle();
-
-        newSub = retry.data;
-        error = retry.error;
+      if (error && (error.code === '42703' || (error.message && error.message.includes('student_id')))) {
+        delete insertPayload.student_id;
+        const res = await client.from('submissions').insert([insertPayload]).select().maybeSingle();
+        newSub = res.data;
+        error = res.error;
+      } else if (error && (error.code === '42703' || (error.message && error.message.includes('user_id')))) {
+        delete insertPayload.user_id;
+        insertPayload.student_id = parsedUid;
+        const res = await client.from('submissions').insert([insertPayload]).select().maybeSingle();
+        newSub = res.data;
+        error = res.error;
       }
 
       subError = error;
@@ -1822,22 +1837,52 @@
         submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
       }
     } else {
+      // 4. Notify Teacher of Submission
       if (currentTeacherProfile?.id) {
         const teacherSearchIds = getDualTypeIds([currentTeacherProfile.id]);
         if (teacherSearchIds.length > 0) {
-          await client
-            .from('notifications')
-            .insert([{
-              user_id: parseDbId(teacherSearchIds[0]),
-              title: `📝 New Submission: ${userName}`,
-              message: `${userName} turned in work for "${currentActivityData?.title || 'Assignment'}".`,
-              is_read: false,
-              created_at: new Date().toISOString()
-            }]);
+          try {
+            await client
+              .from('notifications')
+              .insert([{
+                user_id: parseDbId(teacherSearchIds[0]),
+                title: `📝 New Submission: ${userName}`,
+                message: `${userName} turned in work for "${currentActivityData?.title || 'Assignment'}".`,
+                type: 'submission',
+                target_id: String(parsedActId),
+                activity_id: parsedActId,
+                submission_id: currentSubmissionData?.id || null,
+                class_code: selectedCode || '',
+                is_read: false,
+                created_at: new Date().toISOString()
+              }]);
+          } catch (tNotifErr) {
+            console.warn("Teacher notification error:", tNotifErr);
+          }
         }
       }
 
-      alert("🎉 Work turned in successfully on time!");
+      // 5. Purge lingering deadline reminders for this student & activity
+      try {
+        fetch('/api/clear-activity-reminders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: currentUserId, activity_id: parsedActId })
+        }).catch(e => console.warn(e));
+
+        const userSearchIds = getDualTypeIds([currentUserId]);
+        const actSearchIds = getDualTypeIds([parsedActId]);
+        
+        await client
+          .from('notifications')
+          .delete()
+          .in('user_id', userSearchIds)
+          .in('activity_id', actSearchIds);
+      } catch (cleanErr) {
+        console.warn("Notice clearing reminders:", cleanErr);
+      }
+
+      alert("🎉 Work turned in successfully!");
       isCurrentlySubmitted = true;
       if (submitBtn) submitBtn.disabled = false;
       updateFormState(true, currentSubmissionData);
@@ -1916,7 +1961,7 @@
   }
 
   /* =====================================================
-     8. LOAD SIDEBAR CLASSES & GROUPS
+     8. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA)
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
@@ -1939,10 +1984,11 @@
           .order('created_at', { ascending: false });
         myClasses = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
         const { data: mems, error: memErr } = await client
           .from('class_memberships')
           .select('class_id')
-          .in('user_id', userSearchIds);
+          .or(`user_id.in.(${userIdsFormatted}),student_id.in.(${userIdsFormatted})`);
 
         if (!memErr && mems && mems.length > 0) {
           const classSearchIds = getDualTypeIds(mems.map(m => m.class_id));
@@ -1963,6 +2009,13 @@
             myClasses = fallbackData || [];
           }
         }
+      } else {
+        const { data } = await client
+          .from('classes')
+          .select('id, subject, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myClasses = data || [];
       }
     } catch (err) {
       console.error("Sidebar classes error:", err);
@@ -2013,10 +2066,11 @@
           .order('created_at', { ascending: false });
         myGroups = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
         const { data: mems, error: memErr } = await client
           .from('group_memberships')
           .select('group_id')
-          .in('user_id', userSearchIds);
+          .or(`user_id.in.(${userIdsFormatted}),student_id.in.(${userIdsFormatted})`);
 
         if (!memErr && mems && mems.length > 0) {
           const groupSearchIds = getDualTypeIds(mems.map(m => m.group_id));
@@ -2037,6 +2091,13 @@
             myGroups = fallbackData || [];
           }
         }
+      } else {
+        const { data } = await client
+          .from('groups')
+          .select('id, name, code, status')
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+        myGroups = data || [];
       }
     } catch (err) {
       console.error("Sidebar groups error:", err);

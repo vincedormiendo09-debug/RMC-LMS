@@ -656,7 +656,7 @@
   });
 
   /* =====================================================
-      0. TYPE-SAFE ID HELPERS
+      0. TYPE-SAFE ID HELPERS & ESCAPE UTILITIES
   ===================================================== */
   function parseDbId(idVal) {
     if (!idVal) return idVal;
@@ -677,6 +677,21 @@
       }
     });
     return Array.from(result);
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeJsString(str) {
+    if (!str) return "";
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
   /* =====================================================
@@ -713,6 +728,7 @@
   const classPageUrl = "{{ url_for('class_page') }}";
   const groupPageUrl = "{{ url_for('group_page') }}";
   const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+  const messageTeacherUrl = "{{ url_for('message_teacher_page') }}";
 
   const sidebarMenu = document.getElementById("sidebarMenu");
   const subtextEl = document.getElementById("notifyHeaderSubtext");
@@ -745,7 +761,6 @@
     `;
     if (subtextEl) subtextEl.textContent = "Track student assignment turn-ins, course enrollments, and grading updates.";
   } else {
-    // STUDENT POV
     sidebarMenu.innerHTML = `
       <a href="${homeUrl}">🏠 Home</a>
       <a href="${joinUrl}">🔑 Join Class/Group</a>
@@ -873,9 +888,11 @@
       .subscribe();
   }
 
-  /* SMART ICON RESOLVER (COUNTDOWNS, WARNINGS & MILESTONES) */
+  /* SMART ICON RESOLVER */
   function getIcon(title = '', type = '') {
     const lower = String(title).toLowerCase();
+    const typeLower = String(type).toLowerCase();
+    if (typeLower === 'private_message' || lower.includes('message') || lower.includes('chat') || lower.includes('💬')) return '💬';
     if (lower.includes('penalty') || lower.includes('critical') || lower.includes('missed')) return '🚨';
     if (lower.includes('left') || lower.includes('warning') || lower.includes('deadline') || lower.includes('minutes') || lower.includes('hours')) return '⏰';
     if (lower.includes('submission') || lower.includes('turned in') || lower.includes('submitted')) return '📥';
@@ -945,7 +962,7 @@
       return;
     }
 
-    filtered.forEach(notif => {
+    filtered.forEach((notif, index) => {
       const isRead = notif.is_read || notif.read || false;
       const timeAgo = notif.created_at ? new Date(notif.created_at).toLocaleDateString(undefined, {
         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
@@ -955,15 +972,24 @@
       card.className = `notif-card ${!isRead ? 'unread' : ''}`;
 
       const lowerTitle = String(notif.title || '').toLowerCase();
+      const notifType = String(notif.type || '').toLowerCase();
       let defaultLink = homeUrl;
 
-      if (userRole === "TEACHER" || userRole === "ADMIN") {
+      const isChat = notifType === 'private_message' || 
+                     lowerTitle.includes('message') || 
+                     lowerTitle.includes('consultation') || 
+                     lowerTitle.includes('chat') || 
+                     lowerTitle.includes('💬');
+
+      if (isChat) {
+        defaultLink = messageTeacherUrl;
+      } else if (userRole === "TEACHER" || userRole === "ADMIN") {
         if (lowerTitle.includes('submission') || lowerTitle.includes('turned in')) {
           defaultLink = submissionsUrl;
         } else if (lowerTitle.includes('grade') || lowerTitle.includes('score')) {
           defaultLink = gradesUrl;
         } else {
-          defaultLink = submissionsUrl;
+          defaultLink = homeUrl;
         }
       } else {
         // STUDENT POV
@@ -984,7 +1010,7 @@
       const classCode = notif.class_code || '';
 
       card.innerHTML = `
-        <div class="notif-content" onclick="handleNotificationClick(${notif.id}, '${targetLink}', ${isRead}, '${actId}', '${subId}', '${classCode}')">
+        <div class="notif-content" onclick="handleNotificationClick('${escapeJsString(notif.id)}', '${escapeJsString(targetLink)}', ${isRead}, '${escapeJsString(actId)}', '${escapeJsString(subId)}', '${escapeJsString(classCode)}', ${index})">
           <div class="notif-title-row">
             <span class="notif-type-icon">${getIcon(notif.title, notif.type)}</span>
             <span class="notif-title">${escapeHtml(notif.title || 'Notification')}</span>
@@ -994,7 +1020,7 @@
           <div class="notif-time"><i class="fa-regular fa-clock"></i> ${timeAgo}</div>
         </div>
         <div class="notif-actions">
-          <button class="delete-btn" onclick="deleteNotification(event, ${notif.id})" title="Delete Notification">&times;</button>
+          <button class="delete-btn" onclick="deleteNotification(event, '${escapeJsString(notif.id)}')" title="Delete Notification">&times;</button>
         </div>
       `;
 
@@ -1003,7 +1029,7 @@
   }
 
   /* =====================================================
-      4. NOTIFICATION USER ACTIONS
+      4. NOTIFICATION USER ACTIONS (CHAT-AWARE)
   ===================================================== */
   window.filterNotifications = function (filter) {
     currentFilter = filter;
@@ -1014,7 +1040,7 @@
     renderNotifications();
   };
 
-  window.handleNotificationClick = async function (id, targetLink, isAlreadyRead, activityId, submissionId, classCode) {
+  window.handleNotificationClick = async function (id, targetLink, isAlreadyRead, activityId, submissionId, classCode, notifIndex) {
     const client = getSupabaseClient();
     if (client && !isAlreadyRead) {
       const notifSearchIds = getDualTypeIds([id]);
@@ -1024,6 +1050,91 @@
         .in('id', notifSearchIds);
     }
 
+    const notif = (typeof notifIndex === 'number' && notificationsList[notifIndex]) 
+      ? notificationsList[notifIndex] 
+      : (notificationsList.find(n => String(n.id) === String(id)) || {});
+
+    const lowerTitle = String(notif.title || '').toLowerCase();
+    const notifType = String(notif.type || '').toLowerCase();
+    const isChat = notifType === 'private_message' || 
+                   lowerTitle.includes('message') || 
+                   lowerTitle.includes('consultation') || 
+                   lowerTitle.includes('chat') || 
+                   lowerTitle.includes('💬');
+
+    // 💬 CHAT ROUTING LOGIC: Set localStorage context and open consultation room
+    if (isChat) {
+      let partnerName = notif.sender_name || '';
+      if (!partnerName && notif.title) {
+        const match = notif.title.match(/(?:from|ni)\s+(.+)$/i);
+        if (match && match[1]) {
+          partnerName = match[1].trim();
+        }
+      }
+
+      let partnerId = notif.sender_id || null;
+
+      // If sender_id was not recorded, resolve user ID by full_name
+      if (!partnerId && partnerName && client) {
+        try {
+          const { data: userMatch } = await client
+            .from('users')
+            .select('id, full_name')
+            .ilike('full_name', partnerName)
+            .maybeSingle();
+          if (userMatch && userMatch.id) {
+            partnerId = userMatch.id;
+          }
+        } catch (e) {
+          console.warn("Could not resolve sender by name:", e);
+        }
+      }
+
+      // Fallback: Query private_messages for the latest exchange with the current user
+      if (!partnerId && client) {
+        try {
+          const myIds = getDualTypeIds([currentUserId]);
+          const userIdsFormatted = myIds.map(i => `"${i}"`).join(',');
+          const { data: latestMsg } = await client
+            .from('private_messages')
+            .select('student_id, teacher_id, sender_id, sender_name')
+            .or(`student_id.in.(${userIdsFormatted}),teacher_id.in.(${userIdsFormatted})`)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (latestMsg) {
+            const myIdStrs = myIds.map(String);
+            partnerId = myIdStrs.includes(String(latestMsg.student_id)) ? latestMsg.teacher_id : latestMsg.student_id;
+            if (!partnerName) partnerName = latestMsg.sender_name || 'Consultation Partner';
+          }
+        } catch (e) {
+          console.warn("Could not resolve partner from private_messages:", e);
+        }
+      }
+
+      if (partnerId) {
+        if (userRole === "TEACHER") {
+          localStorage.setItem("chatTargetStudentId", String(partnerId));
+          localStorage.setItem("chatTargetStudentName", partnerName || "Student");
+          localStorage.setItem("chatTargetTeacherId", String(currentUserId));
+          localStorage.setItem("chatTargetTeacherName", userName);
+        } else {
+          localStorage.setItem("chatTargetTeacherId", String(partnerId));
+          localStorage.setItem("chatTargetTeacherName", partnerName || "Instructor");
+          localStorage.setItem("chatTargetStudentId", String(currentUserId));
+          localStorage.setItem("chatTargetStudentName", userName);
+        }
+        localStorage.setItem("updateType", "private-chat");
+        window.location.href = messageTeacherUrl;
+        return;
+      } else {
+        window.location.href = privateMessageInboxUrl;
+        return;
+      }
+    }
+
+    // Standard Academic Flow
     if (activityId && activityId !== 'undefined' && activityId !== 'null' && activityId !== '') {
       localStorage.setItem("selectedActivityId", String(activityId));
     }
@@ -1088,18 +1199,8 @@
     }
   };
 
-  function escapeHtml(text) {
-    if (!text) return "";
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
-
   /* =====================================================
-      5. LOAD SIDEBAR CLASSES & GROUPS
+      5. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA)
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
@@ -1122,10 +1223,11 @@
           .order('created_at', { ascending: false });
         myClasses = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
         const { data: mems, error: memErr } = await client
           .from('class_memberships')
           .select('class_id')
-          .in('user_id', userSearchIds);
+          .or(`user_id.in.(${userIdsFormatted}),student_id.in.(${userIdsFormatted})`);
 
         if (!memErr && mems && mems.length > 0) {
           const classSearchIds = getDualTypeIds(mems.map(m => m.class_id));
@@ -1203,10 +1305,11 @@
           .order('created_at', { ascending: false });
         myGroups = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
         const { data: mems, error: memErr } = await client
           .from('group_memberships')
           .select('group_id')
-          .in('user_id', userSearchIds);
+          .or(`user_id.in.(${userIdsFormatted}),student_id.in.(${userIdsFormatted})`);
 
         if (!memErr && mems && mems.length > 0) {
           const groupSearchIds = getDualTypeIds(mems.map(m => m.group_id));

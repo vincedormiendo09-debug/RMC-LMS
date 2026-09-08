@@ -937,19 +937,15 @@
           schema: 'public',
           table: 'private_messages'
         },
-        payload => {
-          const row = payload.new || payload.old;
-          const myIds = getDualTypeIds([currentUserId]).map(String);
-          if (row && (myIds.includes(String(row.student_id)) || myIds.includes(String(row.teacher_id)))) {
-            loadPrivateMessageVault();
-          }
+        () => {
+          loadPrivateMessageVault();
         }
       )
       .subscribe();
   }
 
   /* =====================================================
-     3. FETCH AND AGGREGATE THREADS (BIDIRECTIONAL)
+     3. FETCH AND AGGREGATE THREADS (ROBUST DUAL QUERY)
   ===================================================== */
   async function loadPrivateMessageVault() {
     const client = getSupabaseClient();
@@ -957,16 +953,28 @@
     if (!client || !container) return;
 
     const userSearchIds = getDualTypeIds([currentUserId]);
-    const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
 
-    // Fetch messages where current user is either student_id or teacher_id
-    const { data: rawMessages, error } = await client
-      .from('private_messages')
-      .select('*')
-      .or(`student_id.in.(${userIdsFormatted}),teacher_id.in.(${userIdsFormatted})`)
-      .order('created_at', { ascending: false });
+    // Query messages where current user is student_id OR teacher_id in parallel
+    const [asStudentResp, asTeacherResp] = await Promise.all([
+      client.from('private_messages').select('*').in('student_id', userSearchIds).order('created_at', { ascending: false }),
+      client.from('private_messages').select('*').in('teacher_id', userSearchIds).order('created_at', { ascending: false })
+    ]);
 
-    if (error || !rawMessages || rawMessages.length === 0) {
+    const combined = [...(asStudentResp.data || []), ...(asTeacherResp.data || [])];
+    const seen = new Set();
+    const rawMessages = [];
+
+    combined.forEach(msg => {
+      const idStr = String(msg.id);
+      if (!seen.has(idStr)) {
+        seen.add(idStr);
+        rawMessages.push(msg);
+      }
+    });
+
+    rawMessages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    if (rawMessages.length === 0) {
       renderEmptyVaultState();
       return;
     }
@@ -976,7 +984,6 @@
     const myIdStrings = new Set(userSearchIds.map(String));
 
     rawMessages.forEach(msg => {
-      // Determine conversation partner regardless of who is in student_id vs teacher_id
       const isStudentSlot = myIdStrings.has(String(msg.student_id));
       const partnerId = isStudentSlot ? String(msg.teacher_id) : String(msg.student_id);
 
@@ -987,6 +994,12 @@
       if (!snippetText && msg.media_type === "image") snippetText = "📷 Shared an image";
       if (!snippetText && msg.media_type === "file") snippetText = `📎 Shared a file: ${msg.file_name || ""}`;
 
+      // Instant fallback to sender_name so card never gets stuck on "Loading..."
+      let initialPartnerName = "Consultation Partner";
+      if (String(msg.sender_id) === String(partnerId) && msg.sender_name) {
+        initialPartnerName = msg.sender_name;
+      }
+
       if (!threadMap[partnerId]) {
         threadMap[partnerId] = {
           partnerId: partnerId,
@@ -994,14 +1007,18 @@
           latestSenderName: msg.sender_name,
           latestTime: msg.created_at,
           messageCount: 1,
-          partnerName: "Loading...",
+          partnerName: initialPartnerName,
           partnerRole: isStudentSlot ? "TEACHER" : "STUDENT"
         };
       } else {
         threadMap[partnerId].messageCount++;
+        if (threadMap[partnerId].partnerName === "Consultation Partner" && String(msg.sender_id) === String(partnerId) && msg.sender_name) {
+          threadMap[partnerId].partnerName = msg.sender_name;
+        }
       }
     });
 
+    // Enhance partner information with live user profiles
     const partnerSearchIds = getDualTypeIds(Array.from(partnerIds));
     if (partnerSearchIds.length > 0) {
       const { data: userProfiles } = await client
@@ -1012,8 +1029,8 @@
       (userProfiles || []).forEach(u => {
         const key = String(u.id);
         if (threadMap[key]) {
-          threadMap[key].partnerName = u.full_name || "Consultation Partner";
-          threadMap[key].partnerRole = u.role || threadMap[key].partnerRole;
+          if (u.full_name) threadMap[key].partnerName = u.full_name;
+          if (u.role) threadMap[key].partnerRole = u.role;
         }
       });
     }
@@ -1190,7 +1207,7 @@
   }
 
   /* =====================================================
-     7. LOAD SIDEBAR CLASSES & GROUPS
+     7. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA)
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
@@ -1213,10 +1230,11 @@
           .order('created_at', { ascending: false });
         myClasses = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
         const { data: mems, error: memErr } = await client
           .from('class_memberships')
           .select('class_id')
-          .in('user_id', userSearchIds);
+          .or(`user_id.in.(${userIdsFormatted}),student_id.in.(${userIdsFormatted})`);
 
         if (!memErr && mems && mems.length > 0) {
           const classSearchIds = getDualTypeIds(mems.map(m => m.class_id));
@@ -1294,10 +1312,11 @@
           .order('created_at', { ascending: false });
         myGroups = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+        const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
         const { data: mems, error: memErr } = await client
           .from('group_memberships')
           .select('group_id')
-          .in('user_id', userSearchIds);
+          .or(`user_id.in.(${userIdsFormatted}),student_id.in.(${userIdsFormatted})`);
 
         if (!memErr && mems && mems.length > 0) {
           const groupSearchIds = getDualTypeIds(mems.map(m => m.group_id));

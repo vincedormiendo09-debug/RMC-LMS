@@ -1262,6 +1262,18 @@
     return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
+  // Safe file downloader helper
+  function downloadFileDirectly(url, filename) {
+    if (!url) return;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'download';
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+
   /* =====================================================
      1. USER SESSION & ROLE PROTECTION
   ===================================================== */
@@ -1488,10 +1500,29 @@
 
     // Resolve Participant Identification
     if (userRole === "STUDENT" || userRole === "ADMIN") {
+      targetStudentId = currentUserId;
       if (!targetTeacherId) {
         targetTeacherId = localStorage.getItem("chatTargetTeacherId") || localStorage.getItem("lastGroupTeacherId");
+        
+        // Auto-detect teacher from student's enrolled classes if not yet set in localStorage
+        if (!targetTeacherId) {
+          const userSearchIds = getDualTypeIds([currentUserId]);
+          const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
+          const { data: mems } = await client
+            .from('class_memberships')
+            .select('class_id')
+            .or(`user_id.in.(${userIdsFormatted}),student_id.in.(${userIdsFormatted})`)
+            .limit(1);
+
+          if (mems && mems.length > 0) {
+            const { data: cls } = await client.from('classes').select('teacher_id').eq('id', mems[0].class_id).maybeSingle();
+            if (cls && cls.teacher_id) {
+              targetTeacherId = String(cls.teacher_id);
+              localStorage.setItem("chatTargetTeacherId", targetTeacherId);
+            }
+          }
+        }
       }
-      targetStudentId = currentUserId;
     } else if (userRole === "TEACHER") {
       targetTeacherId = currentUserId;
       if (!targetStudentId) {
@@ -1637,7 +1668,9 @@
       client.removeChannel(realtimeChannel);
     }
 
-    const channelRoom = `private_chat_${sId}_${tId}`;
+    // Normalizing channel ID pair so both users connect to the exact same WebSocket room
+    const sortedPair = [String(sId), String(tId)].sort().join('_');
+    const channelRoom = `private_chat_${sortedPair}`;
 
     realtimeChannel = client.channel(channelRoom, {
       config: { broadcast: { self: false } }
@@ -2008,7 +2041,7 @@
     const tId = userRole === "TEACHER" ? currentUserId : targetTeacherId;
 
     if (!sId || !tId) {
-      alert("Cannot dispatch: Missing recipient context.");
+      alert("Cannot dispatch: Missing recipient context. Please choose a consultation recipient.");
       return;
     }
 
@@ -2045,6 +2078,13 @@
         if (tempRow) tempRow.dataset.id = inserted.id;
       } else if (insertErr) {
         console.error("Database insert error:", insertErr.message);
+        showModerationToast("❌ Message failed to send: " + insertErr.message);
+        const tempRow = document.querySelector(`.msg-row[data-id="${tempId}"]`);
+        if (tempRow) {
+          tempRow.style.opacity = '0.5';
+          tempRow.title = "Failed to deliver: " + insertErr.message;
+        }
+        return; // Halt broadcast so ghost messages are not distributed
       }
 
       // 3. Dispatch Recipient In-App Notification

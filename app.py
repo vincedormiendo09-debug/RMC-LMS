@@ -776,7 +776,13 @@ Regis Marie College
 
     if student_ids:
         try:
-            response = supabase.table('push_subscriptions').select('*').in_('user_id', student_ids).execute()
+            clean_ids = []
+            for sid in student_ids:
+                if str(sid).isdigit():
+                    clean_ids.append(int(sid))
+                clean_ids.append(str(sid))
+
+            response = supabase.table('push_subscriptions').select('*').in_('user_id', clean_ids).execute()
             subscriptions = response.data or []
 
             push_payload = json.dumps({
@@ -815,6 +821,35 @@ Regis Marie College
 def notify_activity():
     return notify_users()
 
+@app.route('/api/clear-activity-reminders', methods=['POST'])
+def clear_activity_reminders():
+    """Removes lingering deadline reminders once a student submits their activity."""
+    data = request.json or {}
+    user_id = data.get('user_id') or session.get('user_id')
+    activity_id = data.get('activity_id')
+    
+    if not user_id or not activity_id:
+        return jsonify({"success": False, "message": "Missing user_id or activity_id"}), 400
+
+    try:
+        u_ids = [int(user_id)] if str(user_id).isdigit() else [str(user_id)]
+        if str(user_id).isdigit():
+            u_ids.append(str(user_id))
+
+        act_ids = [int(activity_id)] if str(activity_id).isdigit() else [str(activity_id)]
+        if str(activity_id).isdigit():
+            act_ids.append(str(activity_id))
+
+        supabase.table('notifications').delete()\
+            .in_('user_id', u_ids)\
+            .in_('activity_id', act_ids)\
+            .execute()
+
+        return jsonify({"success": True, "message": "Activity reminders cleared"}), 200
+    except Exception as e:
+        print(f"⚠️ Clear activity reminders notice: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
 # =========================================
 # ⏰ AUTOMATED DEADLINE & REMINDER ENGINE (APScheduler)
 # =========================================
@@ -827,11 +862,17 @@ def check_activity_deadlines_and_reminders():
         activities = activities_resp.data or []
 
         for act in activities:
-            deadline_str = act.get('deadline')
+            deadline_str = act.get('deadline') or act.get('due_date')
             if not deadline_str:
                 continue
             
-            deadline = datetime.fromisoformat(deadline_str.replace('Z', '+00:00'))
+            try:
+                deadline = datetime.fromisoformat(str(deadline_str).replace('Z', '+00:00'))
+                if deadline.tzinfo is None:
+                    deadline = deadline.replace(tzinfo=timezone.utc)
+            except Exception:
+                continue
+
             time_left = deadline - now
             total_seconds = time_left.total_seconds()
 
@@ -839,80 +880,172 @@ def check_activity_deadlines_and_reminders():
             activity_id = act.get('id')
             activity_title = act.get('title', 'Assignment')
             
-            enroll_resp = supabase.table('class_memberships').select('user_id').eq('class_id', class_id).execute()
-            enrolled_users = [row['user_id'] for row in (enroll_resp.data or [])]
-
-            if not enrolled_users:
+            if not class_id or not activity_id:
                 continue
 
-            subs_resp = supabase.table('submissions').select('student_id').eq('activity_id', activity_id).execute()
-            submitted_users = {sub['student_id'] for sub in (subs_resp.data or [])}
+            # 1. Fetch enrolled students from class_memberships
+            enroll_rows = []
+            try:
+                e1 = supabase.table('class_memberships').select('*').eq('class_id', class_id).execute()
+                enroll_rows = e1.data or []
+            except Exception:
+                pass
 
-            unsubmitted_users = [uid for uid in enrolled_users if uid not in submitted_users]
-            if not unsubmitted_users:
+            if not enroll_rows and str(class_id).isdigit():
+                try:
+                    e2 = supabase.table('class_memberships').select('*').eq('class_id', int(class_id)).execute()
+                    enroll_rows = e2.data or []
+                except Exception:
+                    pass
+
+            if not enroll_rows:
                 continue
 
-            users_resp = supabase.table('users').select('id, email, full_name').in_('id', unsubmitted_users).execute()
-            target_students = users_resp.data or []
-            student_emails = [s['email'] for s in target_students if s.get('email')]
-            student_ids = [str(s['id']) for s in target_students]
+            candidate_uids = set()
+            for row in enroll_rows:
+                for key in ['user_id', 'student_id', 'userId', 'studentId']:
+                    val = row.get(key)
+                    if val is not None and str(val).strip():
+                        candidate_uids.add(str(val).strip())
+
+            if not candidate_uids:
+                continue
+
+            # 2. Fetch all submissions for this activity
+            subs_rows = []
+            try:
+                s1 = supabase.table('submissions').select('*').eq('activity_id', activity_id).execute()
+                subs_rows = s1.data or []
+            except Exception:
+                pass
+
+            if not subs_rows and str(activity_id).isdigit():
+                try:
+                    s2 = supabase.table('submissions').select('*').eq('activity_id', int(activity_id)).execute()
+                    subs_rows = s2.data or []
+                except Exception:
+                    pass
+
+            # Gather all submitted student identifiers (both user_id and student_id)
+            submitted_identifiers = set()
+            for sub in subs_rows:
+                st = str(sub.get('status', '')).strip().lower()
+                if st == 'draft':
+                    continue  # Drafts are not submitted
+                for key in ['student_id', 'user_id', 'studentId', 'userId']:
+                    val = sub.get(key)
+                    if val is not None and str(val).strip():
+                        submitted_identifiers.add(str(val).strip())
+
+            # 3. Lookup user profiles for enrolled candidates
+            search_ids = []
+            for cid in candidate_uids:
+                if cid.isdigit():
+                    search_ids.append(int(cid))
+                search_ids.append(cid)
+
+            enrolled_users_list = []
+            try:
+                u_resp = supabase.table('users').select('id, email, full_name, student_id').in_('id', search_ids).execute()
+                enrolled_users_list = u_resp.data or []
+            except Exception:
+                pass
+
+            try:
+                u_resp_stud = supabase.table('users').select('id, email, full_name, student_id').in_('student_id', [str(c) for c in candidate_uids]).execute()
+                existing_u_ids = {str(u['id']) for u in enrolled_users_list}
+                for u in (u_resp_stud.data or []):
+                    if str(u.get('id')) not in existing_u_ids:
+                        enrolled_users_list.append(u)
+                        existing_u_ids.add(str(u.get('id')))
+            except Exception:
+                pass
+
+            # 4. Strict check: Exclude anyone who has submitted (by id OR student_id)
+            unsubmitted_students = []
+            for u in enrolled_users_list:
+                uid_str = str(u.get('id', '')).strip()
+                stud_no = str(u.get('student_id', '')).strip()
+
+                has_submitted = False
+                if uid_str and uid_str in submitted_identifiers:
+                    has_submitted = True
+                elif stud_no and stud_no in submitted_identifiers:
+                    has_submitted = True
+
+                if not has_submitted:
+                    unsubmitted_students.append(u)
+
+            if not unsubmitted_students:
+                continue
+
+            student_emails = [s['email'] for s in unsubmitted_students if s.get('email')]
+            student_ids = [str(s['id']) for s in unsubmitted_students if s.get('id')]
+
+            if not student_emails and not student_ids:
+                continue
 
             notif_log = act.get('notification_log') or {}
+            if isinstance(notif_log, str):
+                try:
+                    notif_log = json.loads(notif_log)
+                except Exception:
+                    notif_log = {}
 
             # Checkpoints (1 day down to 5 minutes)
             if 86400 <= total_seconds <= 90000 and not notif_log.get('1d'):
-                send_reminder_cluster(student_emails, student_ids, activity_title, "1 Day Left", "Your activity deadline is in 24 hours. Please complete and submit your work.")
+                send_reminder_cluster(student_emails, student_ids, activity_title, "1 Day Left", "Your activity deadline is in 24 hours. Please complete and submit your work.", activity_id=activity_id)
                 notif_log['1d'] = True
                 update_notif_log(activity_id, notif_log)
             elif 57000 <= total_seconds <= 58200 and not notif_log.get('16h'):
-                send_reminder_cluster(student_emails, student_ids, activity_title, "16 Hours Left", "16 hours remaining before your activity deadline.")
+                send_reminder_cluster(student_emails, student_ids, activity_title, "16 Hours Left", "16 hours remaining before your activity deadline.", activity_id=activity_id)
                 notif_log['16h'] = True
                 update_notif_log(activity_id, notif_log)
             elif 28200 <= total_seconds <= 29400 and not notif_log.get('8h'):
-                send_reminder_cluster(student_emails, student_ids, activity_title, "8 Hours Left", "8 hours left until submission cutoff.")
+                send_reminder_cluster(student_emails, student_ids, activity_title, "8 Hours Left", "8 hours left until submission cutoff.", activity_id=activity_id)
                 notif_log['8h'] = True
                 update_notif_log(activity_id, notif_log)
             elif 13800 <= total_seconds <= 15000 and not notif_log.get('4h'):
-                send_reminder_cluster(student_emails, student_ids, activity_title, "4 Hours Left", "4 hours remaining. Time is running short!")
+                send_reminder_cluster(student_emails, student_ids, activity_title, "4 Hours Left", "4 hours remaining. Time is running short!", activity_id=activity_id)
                 notif_log['4h'] = True
                 update_notif_log(activity_id, notif_log)
             elif 6600 <= total_seconds <= 7800 and not notif_log.get('2h'):
-                send_reminder_cluster(student_emails, student_ids, activity_title, "2 Hours Left", "Only 2 hours left before deadline!")
+                send_reminder_cluster(student_emails, student_ids, activity_title, "2 Hours Left", "Only 2 hours left before deadline!", activity_id=activity_id)
                 notif_log['2h'] = True
                 update_notif_log(activity_id, notif_log)
             elif 3000 <= total_seconds <= 4200 and not notif_log.get('1h'):
-                send_reminder_cluster(student_emails, student_ids, activity_title, "1 Hour Left", "Final hour warning! Submit your work now.")
+                send_reminder_cluster(student_emails, student_ids, activity_title, "1 Hour Left", "Final hour warning! Submit your work now.", activity_id=activity_id)
                 notif_log['1h'] = True
                 update_notif_log(activity_id, notif_log)
             elif 1500 <= total_seconds <= 2100 and not notif_log.get('30m'):
-                send_reminder_cluster(student_emails, student_ids, activity_title, "30 Minutes Left", "30 minutes remaining before submission lock.")
+                send_reminder_cluster(student_emails, student_ids, activity_title, "30 Minutes Left", "30 minutes remaining before submission lock.", activity_id=activity_id)
                 notif_log['30m'] = True
                 update_notif_log(activity_id, notif_log)
             elif 600 <= total_seconds <= 1200 and not notif_log.get('15m'):
-                send_reminder_cluster(student_emails, student_ids, activity_title, "15 Minutes Left", "Urgent: 15 minutes left!")
+                send_reminder_cluster(student_emails, student_ids, activity_title, "15 Minutes Left", "Urgent: 15 minutes left!", activity_id=activity_id)
                 notif_log['15m'] = True
                 update_notif_log(activity_id, notif_log)
             elif 300 <= total_seconds <= 900 and not notif_log.get('10m'):
-                send_reminder_cluster(student_emails, student_ids, activity_title, "10 Minutes Left", "Only 10 minutes remaining!")
+                send_reminder_cluster(student_emails, student_ids, activity_title, "10 Minutes Left", "Only 10 minutes remaining!", activity_id=activity_id)
                 notif_log['10m'] = True
                 update_notif_log(activity_id, notif_log)
             elif 0 <= total_seconds <= 300 and not notif_log.get('5m'):
-                send_reminder_cluster(student_emails, student_ids, activity_title, "5 Minutes Left", "Final 5 minutes! Submit immediately to avoid penalties.")
+                send_reminder_cluster(student_emails, student_ids, activity_title, "5 Minutes Left", "Final 5 minutes! Submit immediately to avoid penalties.", activity_id=activity_id)
                 notif_log['5m'] = True
                 update_notif_log(activity_id, notif_log)
             elif -300 <= total_seconds < 0 and not notif_log.get('missed_0h'):
-                send_reminder_cluster(student_emails, student_ids, activity_title, "DEADLINE MISSED - Penalty Notice", "You failed to turn in this activity before the deadline. Minus points have been applied to your grade record.")
+                send_reminder_cluster(student_emails, student_ids, activity_title, "DEADLINE MISSED - Penalty Notice", "You failed to turn in this activity before the deadline. Minus points have been applied to your grade record.", activity_id=activity_id)
                 notif_log['missed_0h'] = True
                 update_notif_log(activity_id, notif_log)
             elif -90000 <= total_seconds <= -86400 and not notif_log.get('missed_24h'):
-                send_reminder_cluster(student_emails, student_ids, activity_title, "CRITICAL: 24h Past Deadline", "You have failed to comply within 24 hours of the deadline. A severe grade penalty has been applied.")
+                send_reminder_cluster(student_emails, student_ids, activity_title, "CRITICAL: 24h Past Deadline", "You have failed to comply within 24 hours of the deadline. A severe grade penalty has been applied.", activity_id=activity_id)
                 notif_log['missed_24h'] = True
                 update_notif_log(activity_id, notif_log)
 
     except Exception as e:
         print(f"⚠️ Deadline background scheduler error: {e}")
 
-def send_reminder_cluster(emails, user_ids, title, heading, details):
+def send_reminder_cluster(emails, user_ids, title, heading, details, activity_id=None):
     if emails:
         reminder_body = f"""Hello Regis Marie College Student,
 
@@ -934,8 +1067,36 @@ Regis Marie College
         )
 
     if user_ids:
+        # In-app notifications in Supabase 'notifications' table
         try:
-            response = supabase.table('push_subscriptions').select('*').in_('user_id', user_ids).execute()
+            notif_rows = []
+            now_iso = datetime.now(timezone.utc).isoformat()
+            for uid in user_ids:
+                parsed_uid = int(uid) if str(uid).isdigit() else str(uid)
+                notif_rows.append({
+                    "user_id": parsed_uid,
+                    "title": f"⏰ {heading}: {title}",
+                    "message": details,
+                    "type": "activity",
+                    "target_id": str(activity_id) if activity_id else None,
+                    "activity_id": int(activity_id) if str(activity_id).isdigit() else str(activity_id) if activity_id else None,
+                    "is_read": False,
+                    "created_at": now_iso
+                })
+            if notif_rows:
+                supabase.table('notifications').insert(notif_rows).execute()
+        except Exception as notif_err:
+            print(f"⚠️ In-app reminder creation notice: {notif_err}")
+
+        # Web push notifications
+        try:
+            push_uids = []
+            for u in user_ids:
+                if str(u).isdigit():
+                    push_uids.append(int(u))
+                push_uids.append(str(u))
+
+            response = supabase.table('push_subscriptions').select('*').in_('user_id', push_uids).execute()
             subscriptions = response.data or []
 
             push_payload = json.dumps({
@@ -964,7 +1125,9 @@ Regis Marie College
 
 def update_notif_log(activity_id, log_dict):
     try:
-        supabase.table('activities').update({'notification_log': log_dict}).eq('id', activity_id).execute()
+        res = supabase.table('activities').update({'notification_log': log_dict}).eq('id', activity_id).execute()
+        if not res.data and str(activity_id).isdigit():
+            supabase.table('activities').update({'notification_log': log_dict}).eq('id', int(activity_id)).execute()
     except Exception as e:
         print(f"Error updating notification log: {e}")
 
