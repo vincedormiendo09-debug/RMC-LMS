@@ -929,7 +929,8 @@
       client.removeChannel(inboxRealtimeChannel);
     }
 
-    inboxRealtimeChannel = client.channel(`realtime_inbox_${currentUserId}`)
+    // Connect to a broadcast & postgres channel that refreshes whenever ANY message touches this user
+    inboxRealtimeChannel = client.channel(`realtime_inbox_all_${currentUserId}`)
       .on(
         'postgres_changes',
         {
@@ -937,15 +938,26 @@
           schema: 'public',
           table: 'private_messages'
         },
-        () => {
-          loadPrivateMessageVault();
+        payload => {
+          const row = payload.new || payload.old;
+          if (!row) {
+            loadPrivateMessageVault();
+            return;
+          }
+          const myIds = getDualTypeIds([currentUserId]).map(String);
+          const touchesMe = myIds.includes(String(row.student_id)) ||
+                            myIds.includes(String(row.teacher_id)) ||
+                            myIds.includes(String(row.sender_id));
+          if (touchesMe) {
+            loadPrivateMessageVault();
+          }
         }
       )
       .subscribe();
   }
 
   /* =====================================================
-     3. FETCH AND AGGREGATE THREADS (ROBUST DUAL QUERY)
+     3. FETCH AND AGGREGATE THREADS (ALL-DIRECTION SAFE)
   ===================================================== */
   async function loadPrivateMessageVault() {
     const client = getSupabaseClient();
@@ -954,13 +966,21 @@
 
     const userSearchIds = getDualTypeIds([currentUserId]);
 
-    // Query messages where current user is student_id OR teacher_id in parallel
-    const [asStudentResp, asTeacherResp] = await Promise.all([
+    // Query 1: Where I am teacher_id
+    // Query 2: Where I am student_id
+    // Query 3: Where I am sender_id (covers edge cases where admin/student initiated with custom schema)
+    const [asTeacherResp, asStudentResp, asSenderResp] = await Promise.all([
+      client.from('private_messages').select('*').in('teacher_id', userSearchIds).order('created_at', { ascending: false }),
       client.from('private_messages').select('*').in('student_id', userSearchIds).order('created_at', { ascending: false }),
-      client.from('private_messages').select('*').in('teacher_id', userSearchIds).order('created_at', { ascending: false })
+      client.from('private_messages').select('*').in('sender_id', userSearchIds).order('created_at', { ascending: false })
     ]);
 
-    const combined = [...(asStudentResp.data || []), ...(asTeacherResp.data || [])];
+    const combined = [
+      ...(asTeacherResp.data || []),
+      ...(asStudentResp.data || []),
+      ...(asSenderResp.data || [])
+    ];
+
     const seen = new Set();
     const rawMessages = [];
 
@@ -984,55 +1004,70 @@
     const myIdStrings = new Set(userSearchIds.map(String));
 
     rawMessages.forEach(msg => {
-      const isStudentSlot = myIdStrings.has(String(msg.student_id));
-      const partnerId = isStudentSlot ? String(msg.teacher_id) : String(msg.student_id);
+      const sIdStr = String(msg.student_id ?? '');
+      const tIdStr = String(msg.teacher_id ?? '');
+      const senderStr = String(msg.sender_id ?? '');
 
-      if (!partnerId || partnerId === "null" || partnerId === "undefined") return;
+      // Determine the partner: whoever is NOT me
+      let partnerId = null;
+      if (!myIdStrings.has(sIdStr) && sIdStr && sIdStr !== 'null' && sIdStr !== 'undefined') {
+        partnerId = sIdStr;
+      } else if (!myIdStrings.has(tIdStr) && tIdStr && tIdStr !== 'null' && tIdStr !== 'undefined') {
+        partnerId = tIdStr;
+      } else if (!myIdStrings.has(senderStr) && senderStr && senderStr !== 'null' && senderStr !== 'undefined') {
+        partnerId = senderStr;
+      }
+
+      if (!partnerId) return;
       partnerIds.add(partnerId);
 
       let snippetText = msg.message || "";
       if (!snippetText && msg.media_type === "image") snippetText = "📷 Shared an image";
       if (!snippetText && msg.media_type === "file") snippetText = `📎 Shared a file: ${msg.file_name || ""}`;
 
-      // Instant fallback to sender_name so card never gets stuck on "Loading..."
-      let initialPartnerName = "Consultation Partner";
+      // Default name from sender_name if available
+      let fallbackName = "Consultation Partner";
       if (String(msg.sender_id) === String(partnerId) && msg.sender_name) {
-        initialPartnerName = msg.sender_name;
+        fallbackName = msg.sender_name;
       }
 
       if (!threadMap[partnerId]) {
         threadMap[partnerId] = {
           partnerId: partnerId,
           latestMessage: snippetText,
-          latestSenderName: msg.sender_name,
+          latestSenderName: msg.sender_name || 'User',
           latestTime: msg.created_at,
           messageCount: 1,
-          partnerName: initialPartnerName,
-          partnerRole: isStudentSlot ? "TEACHER" : "STUDENT"
+          partnerName: fallbackName,
+          partnerRole: userRole === "TEACHER" ? "STUDENT" : "TEACHER"
         };
       } else {
         threadMap[partnerId].messageCount++;
-        if (threadMap[partnerId].partnerName === "Consultation Partner" && String(msg.sender_id) === String(partnerId) && msg.sender_name) {
-          threadMap[partnerId].partnerName = msg.sender_name;
+        if (threadMap[partnerId].partnerName === "Consultation Partner" && fallbackName !== "Consultation Partner") {
+          threadMap[partnerId].partnerName = fallbackName;
         }
       }
     });
 
-    // Enhance partner information with live user profiles
+    // Resolve user profiles for partner IDs
     const partnerSearchIds = getDualTypeIds(Array.from(partnerIds));
     if (partnerSearchIds.length > 0) {
-      const { data: userProfiles } = await client
-        .from('users')
-        .select('id, full_name, role, email')
-        .in('id', partnerSearchIds);
+      try {
+        const { data: userProfiles } = await client
+          .from('users')
+          .select('id, full_name, role, email')
+          .in('id', partnerSearchIds);
 
-      (userProfiles || []).forEach(u => {
-        const key = String(u.id);
-        if (threadMap[key]) {
-          if (u.full_name) threadMap[key].partnerName = u.full_name;
-          if (u.role) threadMap[key].partnerRole = u.role;
-        }
-      });
+        (userProfiles || []).forEach(u => {
+          const key = String(u.id);
+          if (threadMap[key]) {
+            if (u.full_name) threadMap[key].partnerName = u.full_name;
+            if (u.role) threadMap[key].partnerRole = u.role;
+          }
+        });
+      } catch (e) {
+        console.warn("Notice loading user profiles for threads:", e);
+      }
     }
 
     renderThreads(Object.values(threadMap));
@@ -1066,7 +1101,7 @@
       let roleTagClass = "student";
       let roleLabel = "Student";
 
-      if (roleUpper === "TEACHER") {
+      if (roleUpper === "TEACHER" || roleUpper === "FACULTY") {
         avatarEmoji = "👨‍🏫";
         roleTagClass = "teacher";
         roleLabel = "Instructor";
@@ -1142,7 +1177,7 @@
   }
 
   /* =====================================================
-     5. OPEN THREAD CONVERSATION
+     5. OPEN THREAD CONVERSATION (CONTEXT-PRESERVING)
   ===================================================== */
   function openThreadConversation(partnerId, partnerName) {
     if (userRole === "STUDENT" || userRole === "ADMIN") {
@@ -1153,6 +1188,7 @@
     } else {
       localStorage.setItem("chatTargetStudentId", String(partnerId));
       localStorage.setItem("chatTargetStudentName", partnerName);
+      localStorage.setItem("selectedStudentId", String(partnerId));
       localStorage.setItem("chatTargetTeacherId", String(currentUserId));
       localStorage.setItem("chatTargetTeacherName", userName);
     }
@@ -1181,7 +1217,6 @@
         const mySearchIds = getDualTypeIds([currentUserId]);
         const partnerSearchIds = getDualTypeIds([partnerId]);
 
-        // Clean deletion in both directions
         const deleteForward = client
           .from('private_messages')
           .delete()
