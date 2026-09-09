@@ -27,6 +27,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "super_secret_key")
 # =========================================
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=365)  # ⏰ Keeps user logged in for 1 year
 if os.environ.get("RENDER"):
     app.config['SESSION_COOKIE_SECURE'] = True
 
@@ -157,6 +158,8 @@ def fallback_rmc_jpg():
 @app.route('/index')
 @app.route('/index.html')
 def index():
+    if 'user_id' in session:
+        return redirect(url_for('landpage'))
     response = make_response(render_template('index.html'))
     return prevent_caching(response)
 
@@ -170,9 +173,16 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 @app.route('/login.html', methods=['GET', 'POST'])
 def login():
+    # 🔒 Auto-bypass login screen if user session is already active
+    if 'user_id' in session:
+        return redirect(url_for('landpage'))
+
     if request.method == 'POST':
-        email = (request.form.get('email') or '').strip().lower()
-        password = (request.form.get('password') or '').strip()
+        data = request.get_json(silent=True) or request.form
+        is_ajax = request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+        email = (data.get('email') or '').strip().lower()
+        password = (data.get('password') or '').strip()
 
         try:
             response = supabase.table('users').select('*').eq('email', email).eq('password', password).execute()
@@ -180,19 +190,29 @@ def login():
 
             if users and len(users) > 0:
                 user = users[0]
+
+                # ⏰ Set session as permanent so cookie survives browser/PWA closure
+                session.permanent = True
                 session['user_id'] = str(user['id'])
                 session['full_name'] = user.get('full_name', '')
                 session['email'] = user.get('email', '')
                 session['role'] = str(user.get('role', 'STUDENT')).upper()
 
                 print(f"👤 Logged in User: {session['full_name']} | ID: {session['user_id']} | Role: {session['role']}")
+
+                if is_ajax:
+                    return jsonify({"success": True, "redirect": url_for('landpage')}), 200
                 return redirect(url_for('landpage'))
             else:
+                if is_ajax:
+                    return jsonify({"success": False, "message": "Invalid email or password."}), 401
                 flash("Invalid email or password.", "error")
                 return redirect(url_for('login'))
 
         except Exception as err:
             print(f"❌ Login Database Error: {err}")
+            if is_ajax:
+                return jsonify({"success": False, "message": f"Database error: {err}"}), 500
             flash(f"Database error: {err}", "error")
             return redirect(url_for('login'))
 

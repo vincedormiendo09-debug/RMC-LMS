@@ -437,19 +437,87 @@
     </div>
   </div>
 
-  <!-- REGISTRATION NOTICE SCRIPT -->
-  <script>
-    function handleRegistrationNotice(event) {
-      const noticeMessage = 
-        "Kindly message this person about registration so you can fill up online and wait for your account to be processed. You will receive an email within 24hrs - 72hrs.\n\nClick OK to proceed to Facebook.";
-      
-      const userConfirmed = confirm(noticeMessage);
-
-      if (!userConfirmed) {
-        event.preventDefault();
-      }
+  <!-- AUTHENTICATION & REGISTRATION SCRIPTS -->
+<script>
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
     }
-  </script>
+  });
+
+  /* =====================================================
+     1. REGISTRATION NOTICE REDIRECT HANDLER
+  ===================================================== */
+  function handleRegistrationNotice(event) {
+    const noticeMessage = 
+      "Kindly message this person about registration so you can fill up online and wait for your account to be processed. You will receive an email within 24hrs - 72hrs.\n\nClick OK to proceed to Facebook.";
+    
+    const userConfirmed = confirm(noticeMessage);
+    if (!userConfirmed) {
+      event.preventDefault();
+    }
+  }
+
+  /* =====================================================
+     2. AUTO-LOGIN CHECK & REMEMBER ME PERSISTENCE
+  ===================================================== */
+  document.addEventListener("DOMContentLoaded", async () => {
+    const emailInput = document.querySelector('input[name="email"]') || document.getElementById('email');
+    const passwordInput = document.querySelector('input[name="password"]') || document.getElementById('password');
+    const rememberCheckbox = document.getElementById('rememberMeCheckbox') || document.querySelector('input[name="remember_me"]');
+    const loginForm = document.querySelector('form');
+
+    // 1. Check if user already has an active session on the server
+    try {
+      const resp = await fetch('/api/current-user');
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.authenticated && data.user_id) {
+          window.location.replace("{{ url_for('landpage') }}");
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("Session check bypass:", err);
+    }
+
+    // 2. Autofill credentials from localStorage if previously saved
+    const savedEmail = localStorage.getItem("rmc_saved_email");
+    const savedPassword = localStorage.getItem("rmc_saved_password");
+    const rememberPref = localStorage.getItem("rmc_remember_me");
+
+    if (savedEmail && emailInput) {
+      emailInput.value = savedEmail;
+    }
+    if (savedPassword && passwordInput) {
+      passwordInput.value = savedPassword;
+    }
+    if (rememberCheckbox) {
+      rememberCheckbox.checked = rememberPref !== "false";
+    }
+
+    // 3. Save or clear credentials upon form submission
+    if (loginForm) {
+      loginForm.addEventListener("submit", () => {
+        const shouldRemember = rememberCheckbox ? rememberCheckbox.checked : true;
+        if (shouldRemember) {
+          if (emailInput && emailInput.value.trim()) {
+            localStorage.setItem("rmc_saved_email", emailInput.value.trim());
+          }
+          if (passwordInput && passwordInput.value.trim()) {
+            localStorage.setItem("rmc_saved_password", passwordInput.value.trim());
+          }
+          localStorage.setItem("rmc_remember_me", "true");
+        } else {
+          localStorage.removeItem("rmc_saved_email");
+          localStorage.removeItem("rmc_saved_password");
+          localStorage.setItem("rmc_remember_me", "false");
+        }
+      });
+    }
+  });
+</script>
 
 </body>
 </html>
