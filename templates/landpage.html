@@ -655,6 +655,112 @@
       font-size: 14.5px;
     }
   }
+
+.pending-popup-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999999;
+    padding: 16px;
+    animation: fadeInModal 0.2s ease-out;
+  }
+  @keyframes fadeInModal {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .pending-popup-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 480px;
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e2e8f0;
+  }
+  .pending-popup-header {
+    background: linear-gradient(135deg, #1e3a8a, #2563eb);
+    color: #ffffff;
+    padding: 18px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .pending-popup-header i {
+    font-size: 24px;
+    color: #fde047;
+  }
+  .pending-popup-body {
+    padding: 18px 22px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .pending-activity-item {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .pending-activity-item:hover, .pending-activity-item.selected {
+    border-color: #2563eb;
+    background: #eff6ff;
+  }
+  .pending-activity-item.selected {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  }
+  .pending-popup-footer {
+    padding: 14px 22px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
+  }
+  .btn-modal-okay {
+    background: #e2e8f0;
+    color: #334155;
+    border: none;
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-modal-okay:hover {
+    background: #cbd5e1;
+  }
+  .btn-modal-go {
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    padding: 9px 22px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+  .btn-modal-go:hover {
+    background: #1d4ed8;
+  }
+
 </style>
 </head>
 
@@ -736,6 +842,25 @@
 
     </div>
 
+<div class="pending-popup-backdrop" id="pendingActivityModal">
+  <div class="pending-popup-card">
+    <div class="pending-popup-header">
+      <i class="fa-solid fa-bell"></i>
+      <div>
+        <h3 style="margin: 0; font-size: 16.5px; font-weight: 700;">Pending Activities Alert</h3>
+        <p style="margin: 2px 0 0; font-size: 12.5px; opacity: 0.9;">You have unsubmitted coursework requiring your action.</p>
+      </div>
+    </div>
+    <div class="pending-popup-body" id="pendingPopupList">
+      <!-- Items dynamically populated via JavaScript -->
+    </div>
+    <div class="pending-popup-footer">
+      <button type="button" class="btn-modal-okay" onclick="dismissPendingModal()">Okay</button>
+      <button type="button" class="btn-modal-go" id="btnModalGo" onclick="navigateToSelectedActivity()">Go <i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+  </div>
+</div>
+
   </main>
 
   <style>
@@ -798,7 +923,7 @@
   });
 
   /* =====================================================
-      0. TYPE-SAFE ID HELPERS
+      0. TYPE-SAFE ID HELPERS & STRING ESCAPERS
   ===================================================== */
   function parseDbId(idVal) {
     if (!idVal) return idVal;
@@ -822,6 +947,21 @@
       }
     });
     return Array.from(result);
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeJsString(str) {
+    if (!str) return "";
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
   /* =====================================================
@@ -977,7 +1117,7 @@
   }
 
   /* =====================================================
-      4. SUPABASE CLIENT INITIALIZATION & PUSH REGISTRATION
+      4. SUPABASE INITIALIZATION & LIFECYCLE
   ===================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
@@ -999,17 +1139,21 @@
         fetchClassesFromSupabase();
         fetchGroupsFromSupabase();
         fetchRealtimeBadgesAndCounts();
+        initBadgeRealtimeListener();
 
-        // Register mobile device for lock-screen push notifications if student
-        if (userRole === "STUDENT" && currentUserId && typeof registerDeviceForMobileAlerts === 'function') {
-          registerDeviceForMobileAlerts(currentUserId, client);
+        // 📱 Activate native Mobile OS Web Push subscription
+        setupMobilePushSubscription();
+
+        // 🚨 Scan and pop up pending assignments modal for students
+        if (userRole === "STUDENT" && currentUserId) {
+          scanForPendingActivities(currentUserId);
         }
       }
     }, 100);
   });
 
   /* =====================================================
-      5. FETCH & RENDER CLASSES
+      5. FETCH & RENDER CLASSES (DUAL-SCHEMA SAFE)
   ===================================================== */
   async function fetchClassesFromSupabase() {
     const client = getSupabaseClient();
@@ -1030,24 +1174,24 @@
           .order('created_at', { ascending: false });
         classes = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
-        const { data: mems, error: memErr } = await client
-          .from('class_memberships')
-          .select('class_id')
-          .in('user_id', userSearchIds);
+        // Parallel queries to support both user_id and student_id enrollment formats
+        const [memUser, memStudent] = await Promise.all([
+          client.from('class_memberships').select('class_id').in('user_id', userSearchIds),
+          client.from('class_memberships').select('class_id').in('student_id', userSearchIds)
+        ]);
 
-        if (!memErr && mems && mems.length > 0) {
-          const classSearchIds = getDualTypeIds(mems.map(m => m.class_id));
+        const combinedMems = [...(memUser.data || []), ...(memStudent.data || [])];
+        const classSearchIds = getDualTypeIds(combinedMems.map(m => m.class_id));
 
-          if (classSearchIds.length > 0) {
-            const { data: fetchedClasses } = await client
-              .from('classes')
-              .select('*')
-              .in('id', classSearchIds);
+        if (classSearchIds.length > 0) {
+          const { data: fetchedClasses } = await client
+            .from('classes')
+            .select('*')
+            .in('id', classSearchIds);
 
-            classes = fetchedClasses || [];
-            const joinedCodes = classes.map(c => c.code);
-            localStorage.setItem("joinedClasses", JSON.stringify(joinedCodes));
-          }
+          classes = fetchedClasses || [];
+          const joinedCodes = classes.map(c => c.code);
+          localStorage.setItem("joinedClasses", JSON.stringify(joinedCodes));
         } else {
           const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
           if (joinedClasses.length > 0) {
@@ -1059,7 +1203,7 @@
           }
         }
       } else {
-        // ADMIN POV: Query all active institutional classes system-wide
+        // ADMIN POV: Query all active classes
         const { data } = await client
           .from('classes')
           .select('*')
@@ -1121,7 +1265,7 @@
 
         li.appendChild(btn);
 
-        // Action Menu strictly rendered for Teachers only
+        // Teacher management actions
         if (userRole === "TEACHER") {
           const menuBtn = document.createElement("button");
           menuBtn.className = "menu-btn";
@@ -1212,7 +1356,7 @@
   }
 
   /* =====================================================
-      6. FETCH & RENDER GROUPS
+      6. FETCH & RENDER GROUPS (DUAL-SCHEMA SAFE)
   ===================================================== */
   async function fetchGroupsFromSupabase() {
     const client = getSupabaseClient();
@@ -1233,24 +1377,24 @@
           .order('created_at', { ascending: false });
         groups = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
-        const { data: mems, error: memErr } = await client
-          .from('group_memberships')
-          .select('group_id')
-          .in('user_id', userSearchIds);
+        // Parallel queries to support both user_id and student_id enrollment formats
+        const [memUser, memStudent] = await Promise.all([
+          client.from('group_memberships').select('group_id').in('user_id', userSearchIds),
+          client.from('group_memberships').select('group_id').in('student_id', userSearchIds)
+        ]);
 
-        if (!memErr && mems && mems.length > 0) {
-          const groupSearchIds = getDualTypeIds(mems.map(m => m.group_id));
+        const combinedMems = [...(memUser.data || []), ...(memStudent.data || [])];
+        const groupSearchIds = getDualTypeIds(combinedMems.map(m => m.group_id));
 
-          if (groupSearchIds.length > 0) {
-            const { data: fetchedGroups } = await client
-              .from('groups')
-              .select('*')
-              .in('id', groupSearchIds);
+        if (groupSearchIds.length > 0) {
+          const { data: fetchedGroups } = await client
+            .from('groups')
+            .select('*')
+            .in('id', groupSearchIds);
 
-            groups = fetchedGroups || [];
-            const joinedCodes = groups.map(g => g.code);
-            localStorage.setItem("joinedGroups", JSON.stringify(joinedCodes));
-          }
+          groups = fetchedGroups || [];
+          const joinedCodes = groups.map(g => g.code);
+          localStorage.setItem("joinedGroups", JSON.stringify(joinedCodes));
         } else {
           const joinedGroups = JSON.parse(localStorage.getItem("joinedGroups") || "[]");
           if (joinedGroups.length > 0) {
@@ -1262,7 +1406,7 @@
           }
         }
       } else {
-        // ADMIN POV: Query all active institutional groups system-wide
+        // ADMIN POV: Query all active groups
         const { data } = await client
           .from('groups')
           .select('*')
@@ -1324,7 +1468,7 @@
 
         li.appendChild(btn);
 
-        // Action Menu strictly rendered for Teachers only
+        // Teacher management actions
         if (userRole === "TEACHER") {
           const menuBtn = document.createElement("button");
           menuBtn.className = "menu-btn";
@@ -1415,7 +1559,7 @@
   }
 
   /* =====================================================
-      7. REAL-TIME UNREAD NOTIFICATIONS BADGE ONLY
+      7. REALTIME UNREAD NOTIFICATION COUNTERS
   ===================================================== */
   async function fetchRealtimeBadgesAndCounts() {
     const client = getSupabaseClient();
@@ -1448,18 +1592,253 @@
     }
   }
 
-  function escapeHtml(text) {
-    if (!text) return "";
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+  function initBadgeRealtimeListener() {
+    const client = getSupabaseClient();
+    if (!client || !currentUserId) return;
+
+    client.channel(`landpage_notifs_${currentUserId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications' },
+        () => { fetchRealtimeBadgesAndCounts(); }
+      )
+      .subscribe();
   }
 
-  // Close open dropdowns when clicking outside
   document.addEventListener("click", () => {
     document.querySelectorAll(".dropdown").forEach(d => d.style.display = "none");
   });
+
+  /* =====================================================
+      8. AUTOMATED MOBILE OS WEB PUSH SUBSCRIPTION
+  ===================================================== */
+  async function setupMobilePushSubscription() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      return;
+    }
+
+    try {
+      // 1. Fetch public VAPID key dynamically from Flask
+      const keyResp = await fetch('/api/vapid-public-key');
+      if (!keyResp.ok) return;
+      const { publicKey } = await keyResp.json();
+      if (!publicKey) return;
+
+      // 2. Request permission if not already granted or denied
+      if (Notification.permission === 'default') {
+        await Notification.requestPermission();
+      }
+
+      if (Notification.permission !== 'granted') return;
+
+      // 3. Register push subscription with active service worker
+      const registration = await navigator.serviceWorker.ready;
+      let subscription = await registration.pushManager.getSubscription();
+
+      if (!subscription) {
+        const convertedVapidKey = urlBase64ToUint8Array(publicKey);
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedVapidKey
+        });
+      }
+
+      // 4. Save device subscription token to Supabase via backend endpoint
+      if (subscription) {
+        await fetch('/api/save-subscription', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...subscription.toJSON(),
+            user_id: currentUserId
+          })
+        });
+      }
+    } catch (err) {
+      console.warn("Mobile push subscription notice:", err);
+    }
+  }
+
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  }
+
+  /* =====================================================
+      9. AUTOMATED LOGIN MODAL FOR PENDING ACTIVITIES
+  ===================================================== */
+  let activePendingActivities = [];
+  let currentTargetActivity = null;
+
+  async function scanForPendingActivities(studentId) {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    try {
+      const mySearchIds = getDualTypeIds([studentId]);
+
+      // 1. Fetch student's enrolled classes (dual-schema safe)
+      const [memUser, memStudent] = await Promise.all([
+        client.from('class_memberships').select('class_id').in('user_id', mySearchIds),
+        client.from('class_memberships').select('class_id').in('student_id', mySearchIds)
+      ]);
+
+      const combinedEnrollments = [...(memUser.data || []), ...(memStudent.data || [])];
+      if (combinedEnrollments.length === 0) return;
+
+      const classIds = Array.from(new Set(combinedEnrollments.map(e => e.class_id).filter(Boolean)));
+      if (classIds.length === 0) return;
+
+      // 2. Exclude archived classes
+      const { data: activeClasses } = await client
+        .from('classes')
+        .select('id, subject, code, status')
+        .in('id', classIds)
+        .neq('status', 'archived');
+
+      if (!activeClasses || activeClasses.length === 0) return;
+
+      const validClassIds = activeClasses.map(c => c.id);
+      const classMap = {};
+      activeClasses.forEach(c => {
+        classMap[String(c.id)] = c;
+      });
+
+      // 3. Fetch activities for enrolled classes
+      const { data: activities } = await client
+        .from('activities')
+        .select('id, title, deadline, due_date, class_id, total_points')
+        .in('class_id', validClassIds);
+
+      if (!activities || activities.length === 0) return;
+
+      const activityIds = activities.map(a => a.id);
+
+      // 4. Fetch existing submissions (dual-schema safe)
+      const [subUser, subStudent] = await Promise.all([
+        client.from('submissions').select('activity_id, status').in('user_id', mySearchIds).in('activity_id', activityIds),
+        client.from('submissions').select('activity_id, status').in('student_id', mySearchIds).in('activity_id', activityIds)
+      ]);
+
+      const combinedSubmissions = [...(subUser.data || []), ...(subStudent.data || [])];
+      const submittedActIds = new Set();
+
+      combinedSubmissions.forEach(sub => {
+        const st = String(sub.status || '').trim().toLowerCase();
+        if (st === 'submitted' || st === 'graded' || st === 'finished') {
+          submittedActIds.add(String(sub.activity_id));
+        }
+      });
+
+      // 5. Filter for unfinished/unsubmitted assignments
+      activePendingActivities = activities.filter(act => !submittedActIds.has(String(act.id)));
+
+      if (activePendingActivities.length > 0) {
+        activePendingActivities.sort((a, b) => {
+          const dateA = new Date(a.deadline || a.due_date || '2099-12-31').getTime();
+          const dateB = new Date(b.deadline || b.due_date || '2099-12-31').getTime();
+          return dateA - dateB;
+        });
+
+        displayPendingActivityModal(classMap);
+      }
+    } catch (err) {
+      console.warn("Pending activities scanner notice:", err);
+    }
+  }
+
+  function displayPendingActivityModal(classMap) {
+    const modal = document.getElementById("pendingActivityModal");
+    const listContainer = document.getElementById("pendingPopupList");
+    if (!modal || !listContainer || activePendingActivities.length === 0) return;
+
+    listContainer.innerHTML = "";
+    currentTargetActivity = activePendingActivities[0];
+
+    activePendingActivities.forEach((act, idx) => {
+      const cls = classMap[String(act.class_id)] || {};
+      const subjectName = cls.subject || "Course Activity";
+      const deadlineVal = act.deadline || act.due_date;
+      
+      let dueText = "No deadline";
+      if (deadlineVal) {
+        const dt = new Date(deadlineVal);
+        if (!isNaN(dt.getTime())) {
+          dueText = dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + " · " +
+                    dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        }
+      }
+
+      const item = document.createElement("div");
+      item.className = `pending-activity-item ${idx === 0 ? 'selected' : ''}`;
+      item.id = `pendingItem_${act.id}`;
+      item.onclick = () => selectPendingItem(act, cls.code);
+
+      item.innerHTML = `
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-size: 11.5px; font-weight: 700; color: #2563eb; text-transform: uppercase; margin-bottom: 2px;">
+            📘 ${escapeHtml(subjectName)}
+          </div>
+          <strong style="font-size: 13.5px; color: #0f172a; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            ${escapeHtml(act.title || 'Untitled Activity')}
+          </strong>
+          <span style="font-size: 12px; color: #dc2626; font-weight: 600;">
+            ⏰ Due: ${dueText}
+          </span>
+        </div>
+        <div style="font-size: 11.5px; font-weight: 600; color: #64748b; background: #e2e8f0; padding: 4px 8px; border-radius: 6px; white-space: nowrap;">
+          ${act.total_points || 100} pts
+        </div>
+      `;
+
+      listContainer.appendChild(item);
+    });
+
+    const defaultCls = classMap[String(currentTargetActivity.class_id)] || {};
+    currentTargetActivity._classCode = defaultCls.code || "";
+
+    modal.style.display = "flex";
+  }
+
+  function selectPendingItem(act, classCode) {
+    currentTargetActivity = act;
+    currentTargetActivity._classCode = classCode || "";
+
+    document.querySelectorAll('.pending-activity-item').forEach(el => el.classList.remove('selected'));
+    const selectedEl = document.getElementById(`pendingItem_${act.id}`);
+    if (selectedEl) selectedEl.classList.add('selected');
+  }
+
+  /* 🚪 OKAY BUTTON: Dismiss modal without navigating */
+  function dismissPendingModal() {
+    const modal = document.getElementById("pendingActivityModal");
+    if (modal) {
+      modal.style.display = "none";
+    }
+  }
+
+  /* 🚀 GO BUTTON: Direct routing straight into the activity */
+  function navigateToSelectedActivity() {
+    if (!currentTargetActivity || !currentTargetActivity.id) {
+      dismissPendingModal();
+      return;
+    }
+
+    localStorage.setItem("selectedActivityId", String(currentTargetActivity.id));
+    if (currentTargetActivity._classCode) {
+      localStorage.setItem("selectedClass", currentTargetActivity._classCode);
+    }
+    if (currentTargetActivity.class_id) {
+      localStorage.setItem("selectedClassId", String(currentTargetActivity.class_id));
+    }
+    localStorage.removeItem("isArchivedView");
+
+    window.location.href = "{{ url_for('activitysubmit_page') }}";
+  }
 </script>

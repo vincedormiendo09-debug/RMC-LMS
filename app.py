@@ -106,8 +106,12 @@ def send_email_api(to_recipients, subject, body_text):
         print(f"❌ Network error while calling Brevo API: {e}")
         return False
 
+# =========================================
+# 🔔 VAPID & WEB PUSH CONFIGURATION
+# =========================================
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
 VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "vapid_private.pem")
-VAPID_CLAIM_EMAIL = "mailto:regismariecollege100@gmail.com"
+VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:regismariecollege100@gmail.com")
 
 # =========================================
 # 🔒 HELPER: PREVENT BROWSER CACHING
@@ -173,7 +177,6 @@ def home():
 @app.route('/login', methods=['GET', 'POST'])
 @app.route('/login.html', methods=['GET', 'POST'])
 def login():
-    # 🔒 Auto-bypass login screen if user session is already active
     if 'user_id' in session:
         return redirect(url_for('landpage'))
 
@@ -191,7 +194,6 @@ def login():
             if users and len(users) > 0:
                 user = users[0]
 
-                # ⏰ Set session as permanent so cookie survives browser/PWA closure
                 session.permanent = True
                 session['user_id'] = str(user['id'])
                 session['full_name'] = user.get('full_name', '')
@@ -319,6 +321,49 @@ def get_current_user():
         "email": session.get('email'),
         "role": session.get('role')
     }), 200
+
+# =========================================
+# 🔑 WEB PUSH TOKEN SUBSCRIPTION ENDPOINTS
+# =========================================
+@app.route('/api/vapid-public-key', methods=['GET'])
+def get_vapid_public_key():
+    """Provides VAPID public key dynamically to client PWA scripts."""
+    key = os.environ.get("VAPID_PUBLIC_KEY") or VAPID_PUBLIC_KEY
+    return jsonify({"publicKey": key}), 200
+
+@app.route('/api/save-subscription', methods=['POST'])
+def save_subscription():
+    """Stores client device push subscription endpoints in Supabase."""
+    user_id = session.get('user_id')
+    data = request.get_json(silent=True) or {}
+    
+    if not user_id:
+        user_id = data.get('user_id')
+
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    endpoint = data.get('endpoint')
+    keys = data.get('keys', {})
+    p256dh = keys.get('p256dh')
+    auth = keys.get('auth')
+
+    if not endpoint or not p256dh or not auth:
+        return jsonify({"error": "Invalid push subscription payload"}), 400
+
+    try:
+        clean_user_id = str(user_id).strip()
+        supabase.table('push_subscriptions').upsert({
+            'user_id': clean_user_id,
+            'endpoint': endpoint,
+            'p256dh': p256dh,
+            'auth': auth
+        }, on_conflict='endpoint').execute()
+        
+        return jsonify({"success": True, "message": "Push token registered successfully"}), 200
+    except Exception as err:
+        print(f"❌ Push token registration error: {err}")
+        return jsonify({"error": str(err)}), 500
 
 # =======================================================
 # 🛡️ MULTILINGUAL AI MODERATION, NSFW & MALWARE CHECKER
@@ -764,6 +809,7 @@ def notify_users():
     student_emails = data.get('student_emails', [])
     student_ids = data.get('student_ids', [])
     details = data.get('details', 'Check portal for updates.')
+    target_url = data.get('url', '/notify.html')
 
     type_messages = {
         'new_activity': ('New Activity Posted', 'A new activity has been posted'),
@@ -808,7 +854,7 @@ Regis Marie College
             push_payload = json.dumps({
                 "title": f"🔔 {subject_prefix}: {item_title}",
                 "body": f"{class_title} • {details}",
-                "url": "/dashboard.html",
+                "url": target_url,
                 "unreadCount": 1
             })
 
@@ -903,7 +949,6 @@ def check_activity_deadlines_and_reminders():
             if not class_id or not activity_id:
                 continue
 
-            # 1. Fetch enrolled students from class_memberships
             enroll_rows = []
             try:
                 e1 = supabase.table('class_memberships').select('*').eq('class_id', class_id).execute()
@@ -931,7 +976,6 @@ def check_activity_deadlines_and_reminders():
             if not candidate_uids:
                 continue
 
-            # 2. Fetch all submissions for this activity
             subs_rows = []
             try:
                 s1 = supabase.table('submissions').select('*').eq('activity_id', activity_id).execute()
@@ -946,18 +990,16 @@ def check_activity_deadlines_and_reminders():
                 except Exception:
                     pass
 
-            # Gather all submitted student identifiers (both user_id and student_id)
             submitted_identifiers = set()
             for sub in subs_rows:
                 st = str(sub.get('status', '')).strip().lower()
                 if st == 'draft':
-                    continue  # Drafts are not submitted
+                    continue
                 for key in ['student_id', 'user_id', 'studentId', 'userId']:
                     val = sub.get(key)
                     if val is not None and str(val).strip():
                         submitted_identifiers.add(str(val).strip())
 
-            # 3. Lookup user profiles for enrolled candidates
             search_ids = []
             for cid in candidate_uids:
                 if cid.isdigit():
@@ -981,7 +1023,6 @@ def check_activity_deadlines_and_reminders():
             except Exception:
                 pass
 
-            # 4. Strict check: Exclude anyone who has submitted (by id OR student_id)
             unsubmitted_students = []
             for u in enrolled_users_list:
                 uid_str = str(u.get('id', '')).strip()
@@ -1012,7 +1053,6 @@ def check_activity_deadlines_and_reminders():
                 except Exception:
                     notif_log = {}
 
-            # Checkpoints (1 day down to 5 minutes)
             if 86400 <= total_seconds <= 90000 and not notif_log.get('1d'):
                 send_reminder_cluster(student_emails, student_ids, activity_title, "1 Day Left", "Your activity deadline is in 24 hours. Please complete and submit your work.", activity_id=activity_id)
                 notif_log['1d'] = True
@@ -1087,7 +1127,6 @@ Regis Marie College
         )
 
     if user_ids:
-        # In-app notifications in Supabase 'notifications' table
         try:
             notif_rows = []
             now_iso = datetime.now(timezone.utc).isoformat()
@@ -1108,7 +1147,6 @@ Regis Marie College
         except Exception as notif_err:
             print(f"⚠️ In-app reminder creation notice: {notif_err}")
 
-        # Web push notifications
         try:
             push_uids = []
             for u in user_ids:
@@ -1122,7 +1160,7 @@ Regis Marie College
             push_payload = json.dumps({
                 "title": f"⚠️ {heading}: {title}",
                 "body": details,
-                "url": "/dashboard.html",
+                "url": "/notify.html",
                 "unreadCount": 1
             })
 
@@ -1151,7 +1189,6 @@ def update_notif_log(activity_id, log_dict):
     except Exception as e:
         print(f"Error updating notification log: {e}")
 
-# Start APScheduler safely with daemon thread
 try:
     scheduler = BackgroundScheduler(daemon=True)
     scheduler.add_job(func=check_activity_deadlines_and_reminders, trigger="interval", seconds=60)

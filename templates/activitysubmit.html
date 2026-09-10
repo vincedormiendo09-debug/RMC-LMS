@@ -868,7 +868,7 @@
 </body>
 
 <script>
-  /* PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
   window.addEventListener('pageshow', function (event) {
     if (event.persisted) {
       window.location.reload();
@@ -876,7 +876,7 @@
   });
 
   /* =====================================================
-     0. TYPE-SAFE ID HELPERS & ESCAPE UTILITIES
+      0. TYPE-SAFE ID HELPERS & ESCAPE UTILITIES
   ===================================================== */
   function parseDbId(idVal) {
     if (!idVal) return idVal;
@@ -915,7 +915,7 @@
   }
 
   /* =====================================================
-     1. USER SESSION & ROLE PROTECTION
+      1. USER SESSION & ROLE PROTECTION
   ===================================================== */
   const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "STUDENT";
   const userRole = rawRole.toUpperCase();
@@ -1016,7 +1016,7 @@
   }
 
   /* =====================================================
-     2. SUPABASE INITIALIZATION & CONSTANTS
+      2. SUPABASE INITIALIZATION & RESOLUTION
   ===================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
@@ -1031,8 +1031,17 @@
     return null;
   }
 
-  const rawSelectedActivityId = localStorage.getItem("selectedActivityId");
-  const selectedActivityId = parseDbId(rawSelectedActivityId);
+  // 🎯 Resolve Activity ID from URL Query String or LocalStorage
+  const urlParams = new URLSearchParams(window.location.search);
+  const rawParamId = urlParams.get("activity_id") || urlParams.get("id");
+  const rawStorageId = localStorage.getItem("selectedActivityId");
+  const resolvedActId = rawParamId || rawStorageId;
+
+  if (rawParamId) {
+    localStorage.setItem("selectedActivityId", String(rawParamId));
+  }
+
+  const selectedActivityId = parseDbId(resolvedActId);
   const selectedCode = localStorage.getItem("selectedClass");
   let currentActivityData = null;
   let currentSubmissionData = null;
@@ -1134,18 +1143,17 @@
   }
 
   /* =====================================================
-     3. FETCH ACTIVITY & STUDENT SUBMISSION (DUAL-SCHEMA)
+      3. FETCH ACTIVITY & STUDENT SUBMISSION (DUAL-SCHEMA)
   ===================================================== */
   async function loadActivityAndSubmissionDetails() {
     const client = getSupabaseClient();
     if (!client) return;
 
-    const rawActId = localStorage.getItem("selectedActivityId");
-    const actSearchIds = getDualTypeIds([rawActId]);
+    const actSearchIds = getDualTypeIds([selectedActivityId]);
 
     if (actSearchIds.length === 0) {
-      alert("No activity selected! Redirecting to classroom.");
-      window.location.href = classPageUrl;
+      alert("No activity selected! Redirecting to dashboard.");
+      window.location.href = homeUrl;
       return;
     }
 
@@ -1158,13 +1166,15 @@
     if (actErr || !activity) {
       console.error("Error fetching activity:", actErr);
       document.getElementById("activityTitle").textContent = "Activity Not Found";
-      document.getElementById("activityDescription").textContent = "Could not load activity guidelines from database. Please return to Classroom and select the activity again.";
+      document.getElementById("activityDescription").textContent = "Could not load activity guidelines from the database. Please return to your classes and select the activity again.";
       return;
     }
 
     currentActivityData = activity;
 
     let subjectName = selectedCode || "Course";
+    let teacherIdCandidate = activity.teacher_id || null;
+
     if (activity.class_id) {
       const classSearchIds = getDualTypeIds([activity.class_id]);
       const { data: clsData } = await client
@@ -1176,29 +1186,29 @@
       if (clsData) {
         subjectName = clsData.subject;
         if (clsData.code) localStorage.setItem("selectedClass", clsData.code);
+        if (!teacherIdCandidate && clsData.teacher_id) teacherIdCandidate = clsData.teacher_id;
 
         if (clsData.status === 'archived' || localStorage.getItem("isArchivedView") === "true") {
           isClassArchived = true;
           localStorage.setItem("isArchivedView", "true");
         }
+      }
+    }
 
-        if (clsData.teacher_id) {
-          const teacherSearchIds = getDualTypeIds([clsData.teacher_id]);
-          const { data: tProfile } = await client
-            .from('users')
-            .select('id, full_name, email')
-            .in('id', teacherSearchIds)
-            .maybeSingle();
+    // Resolve teacher profile for communication shortcut
+    if (teacherIdCandidate) {
+      const teacherSearchIds = getDualTypeIds([teacherIdCandidate]);
+      const { data: tProfile } = await client
+        .from('users')
+        .select('id, full_name, email')
+        .in('id', teacherSearchIds)
+        .maybeSingle();
 
-          if (tProfile) {
-            currentTeacherProfile = tProfile;
-            const msgBtn = document.getElementById("msgTeacherBtn");
-            if (msgBtn && userRole === "STUDENT") {
-              msgBtn.style.display = "inline-flex";
-              msgBtn.innerHTML = `<i class="fa-solid fa-comment-dots"></i> Message ${escapeHtml(tProfile.full_name || 'Teacher')}`;
-            }
-          }
-        }
+      currentTeacherProfile = tProfile || { id: teacherIdCandidate, full_name: "Course Instructor" };
+      const msgBtn = document.getElementById("msgTeacherBtn");
+      if (msgBtn && userRole === "STUDENT") {
+        msgBtn.style.display = "inline-flex";
+        msgBtn.innerHTML = `<i class="fa-solid fa-comment-dots"></i> Message ${escapeHtml(currentTeacherProfile.full_name || 'Teacher')}`;
       }
     }
 
@@ -1277,32 +1287,16 @@
       }
     }
 
+    // Parallel lookup for student submission
     if (userRole === "STUDENT" && currentUserId) {
       const userSearchIds = getDualTypeIds([currentUserId]);
 
-      let submission = null;
-      const { data: subUser } = await client
-        .from('submissions')
-        .select('*')
-        .in('activity_id', actSearchIds)
-        .in('user_id', userSearchIds)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const [subUserResp, subStudentResp] = await Promise.all([
+        client.from('submissions').select('*').in('activity_id', actSearchIds).in('user_id', userSearchIds).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+        client.from('submissions').select('*').in('activity_id', actSearchIds).in('student_id', userSearchIds).order('created_at', { ascending: false }).limit(1).maybeSingle()
+      ]);
 
-      if (subUser) {
-        submission = subUser;
-      } else {
-        const { data: subStudent } = await client
-          .from('submissions')
-          .select('*')
-          .in('activity_id', actSearchIds)
-          .in('student_id', userSearchIds)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        submission = subStudent;
-      }
+      const submission = subUserResp.data || subStudentResp.data || null;
 
       if (submission) {
         currentSubmissionData = submission;
@@ -1337,7 +1331,7 @@
   }
 
   /* =====================================================
-     4. HARD DEADLINE LOCKOUT & EVALUATION DISPLAY
+      4. HARD DEADLINE LOCKOUT & EVALUATION DISPLAY
   ===================================================== */
   function updateFormState(submitted, submissionObj = null) {
     const statusBadge = document.getElementById("statusBadge");
@@ -1503,7 +1497,7 @@
   }
 
   /* =====================================================
-     5. SUBMISSION BUTTON HANDLER (HARD DEADLINE ENFORCED)
+      5. SUBMISSION BUTTON HANDLER (HARD DEADLINE ENFORCED)
   ===================================================== */
   async function handleSubmissionButtonClick() {
     if (isClassArchived) {
@@ -1535,7 +1529,7 @@
 
     const submitBtn = document.getElementById("submitBtn");
 
-    // CASE A: STUDENT CLICKS UNSUBMIT WORK
+    // CASE A: UNSUBMIT WORK
     if (isCurrentlySubmitted) {
       const isGraded = currentSubmissionData && (
         currentSubmissionData.status === 'graded' ||
@@ -1579,7 +1573,7 @@
       return;
     }
 
-    // CASE B: STUDENT CLICKS TURN IN WORK
+    // CASE B: TURN IN WORK
     const commentsEl = document.getElementById("studentComments");
     const linkEl = document.getElementById("studentLink");
     const fileInput = document.getElementById("studentFiles");
@@ -1587,7 +1581,7 @@
     const comments = commentsEl ? commentsEl.value.trim() : "";
     const linkInput = linkEl ? linkEl.value.trim() : "";
 
-    // 1. Validate Comments with Multilingual AI Safety Check
+    // 1. Multilingual AI Content Safety Check
     if (comments) {
       try {
         const aiResp = await fetch('/api/ai-moderate', {
@@ -1664,25 +1658,30 @@
         const fileName = `turnin_${currentUserId}_${Date.now()}.${fileExt}`;
         const filePath = `activity_${selectedActivityId}/${fileName}`;
 
-        let uploadBucket = 'student-submissions';
-        let { data: uploadData, error: uploadError } = await client.storage
-          .from(uploadBucket)
-          .upload(filePath, pickedFile);
+        // Resilient 3-tier bucket fallback
+        const candidateBuckets = ['student-submissions', 'lesson-files', 'group-files'];
+        let uploadSuccess = false;
+        let lastUploadError = null;
 
-        if (uploadError) {
-          uploadBucket = 'lesson-files';
-          const retry = await client.storage.from(uploadBucket).upload(filePath, pickedFile);
-          uploadData = retry.data;
-          uploadError = retry.error;
+        for (const bucket of candidateBuckets) {
+          const { data: uploadData, error: uploadError } = await client.storage
+            .from(bucket)
+            .upload(filePath, pickedFile);
+
+          if (!uploadError && uploadData) {
+            const { data: urlData } = client.storage.from(bucket).getPublicUrl(filePath);
+            uploadedFileUrl = urlData.publicUrl;
+            uploadedStoragePath = filePath;
+            uploadedBucketName = bucket;
+            uploadSuccess = true;
+            break;
+          } else {
+            lastUploadError = uploadError;
+          }
         }
 
-        if (!uploadError && uploadData) {
-          const { data: urlData } = client.storage.from(uploadBucket).getPublicUrl(filePath);
-          uploadedFileUrl = urlData.publicUrl;
-          uploadedStoragePath = filePath;
-          uploadedBucketName = uploadBucket;
-        } else {
-          throw new Error(uploadError?.message || "Storage upload failure");
+        if (!uploadSuccess) {
+          throw new Error(lastUploadError?.message || "Storage upload failure across buckets");
         }
       } catch (err) {
         alert("Upload Error: " + err.message);
@@ -1694,7 +1693,7 @@
       }
     }
 
-    // 3. Vision Safety Check on Uploaded Image Deliverables
+    // 3. Vision Safety Check on Uploaded Image
     if (uploadedFileUrl && pickedFile) {
       const isImg = ['png', 'jpg', 'jpeg', 'webp'].includes(pickedFile.name.split('.').pop().toLowerCase());
       if (isImg) {
@@ -1739,24 +1738,11 @@
 
     let targetSubId = currentSubmissionData?.id;
     if (!targetSubId) {
-      const { data: existingSubUser } = await client
-        .from('submissions')
-        .select('id')
-        .in('activity_id', getDualTypeIds([parsedActId]))
-        .in('user_id', getDualTypeIds([parsedUid]))
-        .maybeSingle();
-
-      if (existingSubUser?.id) {
-        targetSubId = existingSubUser.id;
-      } else {
-        const { data: existingSubStudent } = await client
-          .from('submissions')
-          .select('id')
-          .in('activity_id', getDualTypeIds([parsedActId]))
-          .in('student_id', getDualTypeIds([parsedUid]))
-          .maybeSingle();
-        if (existingSubStudent?.id) targetSubId = existingSubStudent.id;
-      }
+      const [uMatch, sMatch] = await Promise.all([
+        client.from('submissions').select('id').in('activity_id', getDualTypeIds([parsedActId])).in('user_id', getDualTypeIds([parsedUid])).maybeSingle(),
+        client.from('submissions').select('id').in('activity_id', getDualTypeIds([parsedActId])).in('student_id', getDualTypeIds([parsedUid])).maybeSingle()
+      ]);
+      targetSubId = uMatch.data?.id || sMatch.data?.id || null;
     }
 
     if (targetSubId) {
@@ -1862,7 +1848,7 @@
         }
       }
 
-      // 5. Purge lingering deadline reminders for this student & activity
+      // 5. Complete Purge of Reminders & In-App Alerts for this Assignment
       try {
         fetch('/api/clear-activity-reminders', {
           method: 'POST',
@@ -1872,12 +1858,12 @@
 
         const userSearchIds = getDualTypeIds([currentUserId]);
         const actSearchIds = getDualTypeIds([parsedActId]);
+        const actStringId = String(parsedActId);
         
-        await client
-          .from('notifications')
-          .delete()
-          .in('user_id', userSearchIds)
-          .in('activity_id', actSearchIds);
+        await Promise.all([
+          client.from('notifications').delete().in('user_id', userSearchIds).in('activity_id', actSearchIds),
+          client.from('notifications').delete().in('user_id', userSearchIds).eq('target_id', actStringId)
+        ]);
       } catch (cleanErr) {
         console.warn("Notice clearing reminders:", cleanErr);
       }
@@ -1890,16 +1876,19 @@
   }
 
   /* =====================================================
-     6. DIRECT PRIVATE CONSULTATION SHORTCUT
+      6. DIRECT PRIVATE CONSULTATION SHORTCUT
   ===================================================== */
   function askTeacherAboutActivity() {
-    if (!currentTeacherProfile) {
-      alert("Teacher information is currently loading or unavailable.");
+    let teacherId = currentTeacherProfile?.id || currentActivityData?.teacher_id;
+    let teacherName = currentTeacherProfile?.full_name || "Instructor";
+
+    if (!teacherId) {
+      alert("Teacher information is unavailable for this activity.");
       return;
     }
 
-    localStorage.setItem("chatTargetTeacherId", String(currentTeacherProfile.id));
-    localStorage.setItem("chatTargetTeacherName", currentTeacherProfile.full_name || "Instructor");
+    localStorage.setItem("chatTargetTeacherId", String(teacherId));
+    localStorage.setItem("chatTargetTeacherName", teacherName);
     localStorage.setItem("chatTargetStudentId", String(currentUserId));
     localStorage.setItem("chatTargetStudentName", userName);
     localStorage.setItem("updateType", "private-chat");
@@ -1907,7 +1896,7 @@
   }
 
   /* =====================================================
-     7. TEACHER ACTION DROPDOWN & UTILITIES
+      7. TEACHER ACTION DROPDOWN & UTILITIES
   ===================================================== */
   function toggleDropdown(e) {
     e.stopPropagation();
@@ -1961,7 +1950,7 @@
   }
 
   /* =====================================================
-     8. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA)
+      8. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA SAFE)
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
@@ -1984,14 +1973,15 @@
           .order('created_at', { ascending: false });
         myClasses = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
-        const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
-        const { data: mems, error: memErr } = await client
-          .from('class_memberships')
-          .select('class_id')
-          .or(`user_id.in.(${userIdsFormatted}),student_id.in.(${userIdsFormatted})`);
+        const [memUser, memStudent] = await Promise.all([
+          client.from('class_memberships').select('class_id').in('user_id', userSearchIds),
+          client.from('class_memberships').select('class_id').in('student_id', userSearchIds)
+        ]);
 
-        if (!memErr && mems && mems.length > 0) {
-          const classSearchIds = getDualTypeIds(mems.map(m => m.class_id));
+        const combinedMems = [...(memUser.data || []), ...(memStudent.data || [])];
+
+        if (combinedMems.length > 0) {
+          const classSearchIds = getDualTypeIds(combinedMems.map(m => m.class_id));
           if (classSearchIds.length > 0) {
             const { data: fetchedClasses } = await client
               .from('classes')
@@ -2066,14 +2056,15 @@
           .order('created_at', { ascending: false });
         myGroups = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
-        const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
-        const { data: mems, error: memErr } = await client
-          .from('group_memberships')
-          .select('group_id')
-          .or(`user_id.in.(${userIdsFormatted}),student_id.in.(${userIdsFormatted})`);
+        const [memUser, memStudent] = await Promise.all([
+          client.from('group_memberships').select('group_id').in('user_id', userSearchIds),
+          client.from('group_memberships').select('group_id').in('student_id', userSearchIds)
+        ]);
 
-        if (!memErr && mems && mems.length > 0) {
-          const groupSearchIds = getDualTypeIds(mems.map(m => m.group_id));
+        const combinedMems = [...(memUser.data || []), ...(memStudent.data || [])];
+
+        if (combinedMems.length > 0) {
+          const groupSearchIds = getDualTypeIds(combinedMems.map(m => m.group_id));
           if (groupSearchIds.length > 0) {
             const { data: fetchedGroups } = await client
               .from('groups')
