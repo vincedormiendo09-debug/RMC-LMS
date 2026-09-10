@@ -1070,12 +1070,10 @@
 
 <body>
 
-  <!-- MOBILE MENU BUTTON -->
   <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
     <i class="fa-solid fa-bars"></i>
   </button>
 
-  <!-- SIDEBAR NAVIGATION -->
   <aside class="sidebar" id="sidebar">
     <h2>Regis Marie College</h2>
 
@@ -1101,17 +1099,15 @@
     </a>
   </aside>
 
-  <!-- MAIN CHAT CONTAINER -->
   <main class="main-content">
     <div class="container">
       
       <div class="chat-box">
-        <!-- CHAT HEADER -->
         <div class="chat-header">
           <div class="chat-header-left">
-                      <a id="smartBackBtn" href="{{ url_for('private_message_page') }}" class="back-btn" title="Back to Messages">
-  <i class="fa-solid fa-arrow-left"></i>
-</a>
+            <a id="smartBackBtn" href="{{ url_for('private_message_page') }}" class="back-btn" title="Back to Messages">
+              <i class="fa-solid fa-arrow-left"></i>
+            </a>
             <div class="rmc-header-badge" title="Regis Marie College">
               <img src="{{ url_for('static', filename='rmc.jpg') }}" alt="RMC Logo" onerror="this.src='/static/rmc.png'">
             </div>
@@ -1137,13 +1133,11 @@
           </div>
         </div>
 
-        <!-- MODERATION WARNING TOAST -->
         <div class="moderation-toast" id="moderationToast">
           <i class="fa-solid fa-triangle-exclamation"></i>
           <span id="moderationToastText">Prohibited content detected.</span>
         </div>
 
-        <!-- MESSAGES FEED -->
         <div class="messages-feed" id="messagesFeed">
           <div class="msg-row received" id="systemNotice">
             <span class="msg-sender">Academic Assistant</span>
@@ -1156,7 +1150,6 @@
           </div>
         </div>
 
-        <!-- INPUT BAR -->
         <div class="input-bar">
           <label for="fileAttachment" class="action-icon-btn" title="Attach Document">
             <i class="fa-solid fa-paperclip"></i>
@@ -1166,10 +1159,10 @@
           <label for="imageAttachment" class="action-icon-btn" title="Attach Photo">
             <i class="fa-solid fa-image"></i>
           </label>
-          <input type="file" id="imageAttachment" accept="image/*" style="display: none;">
+          <input type="file" id="imageAttachment" accept="image/png,image/jpeg,image/webp" style="display: none;">
 
           <div class="input-wrapper">
-            <input type="text" id="chatInput" placeholder="Type a message or clarification...">
+            <input type="text" id="chatInput" placeholder="Type a message or clarification..." autocomplete="off">
           </div>
           <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send Message">
             <i class="fa-solid fa-paper-plane"></i>
@@ -1177,7 +1170,6 @@
         </div>
       </div>
 
-      <!-- MESSENGER INFO SIDE PANEL -->
       <div class="info-panel" id="infoPanel">
         <div class="info-header">
           <div class="info-avatar" id="panelAvatar">👥</div>
@@ -1185,7 +1177,6 @@
           <p id="panelPartnerSubtitle">Regis Marie College</p>
         </div>
 
-        <!-- MEDIA & FILES TAB CONTENT -->
         <div id="mediaContent" style="padding: 16px; overflow-y: auto; flex: 1;">
           <div class="section-subtitle">Shared Documents</div>
           <ul id="sharedFiles">
@@ -1202,7 +1193,6 @@
     </div>
   </main>
 
-  <!-- IMAGE ZOOM / LIGHTBOX MODAL (MESSENGER STYLE) -->
   <div id="imageZoomModal" class="image-zoom-modal" onclick="closeImageModal()">
     <button class="zoom-close-btn" onclick="closeImageModal()" title="Close Viewer">
       <i class="fa-solid fa-xmark"></i>
@@ -1262,7 +1252,6 @@
     return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
-  // Safe file downloader helper
   function downloadFileDirectly(url, filename) {
     if (!url) return;
     const a = document.createElement('a');
@@ -1287,7 +1276,6 @@
   if (roleBadge) roleBadge.textContent = userRole;
   if (nameDisplay) nameDisplay.textContent = userName;
 
-  // Flask Route URLs
   const homeUrl = "{{ url_for('landpage') }}";
   const createUrl = "{{ url_for('create_page') }}";
   const joinUrl = "{{ url_for('join_page') }}";
@@ -1391,7 +1379,6 @@
   let targetStudentName = localStorage.getItem("chatTargetStudentName") || "Student";
   let realtimeChannel = null;
 
-  // Media tracking caches
   const mediaImagesSet = new Set();
   const mediaFilesSet = new Set();
 
@@ -1418,12 +1405,13 @@
   }
 
   /* =====================================================
-     3. CONTENT MODERATION ENGINE & WHITELISTS
+     3. CLIENT HEURISTIC GATE & PROHIBITED PATTERNS
   ===================================================== */
   const bannedKeywords = [
     "fuck", "shit", "bitch", "asshole", "bastard", "dick", "pussy", "cunt", "porn", "xxx", "nude",
     "tangina", "tang ina", "gago", "bobo", "tanga", "ulol", "pukina", "puta", "tarantado", "inutil", 
-    "bwisit", "hayop", "walanghiya", "siraulo", "leche", "kupal", "pakyu", "tae", "yawa", "bilat", "bayot"
+    "bwisit", "hayop", "walanghiya", "siraulo", "leche", "kupal", "pakyu", "tae", "yawa", "bilat", "bayot",
+    "mf", "mofo", "stfu", "wtf", "kys"
   ];
 
   const dangerousExtensions = new Set([
@@ -1437,36 +1425,74 @@
   ]);
 
   const ALLOWED_IMG_EXTENSIONS = new Set([
-    'png', 'jpg', 'jpeg', 'webp', 'gif'
+    'png', 'jpg', 'jpeg', 'webp' // .gif strictly prohibited
   ]);
 
   const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB Limit
 
   const urlPattern = /\b(?:https?:\/\/|www\.)\S+|\b[a-zA-Z0-9-]+\.(?:com|net|org|edu|gov|io|xyz|ru|cn|me|co|link|info|biz|top|ph)\b/gi;
 
-  function evaluateContentSafety(text, fileName = "") {
-    const lower = String(text || "").toLowerCase();
+  function evaluateClientContentSafety(text, fileName = "") {
+    const raw = String(text || "");
+    const lower = raw.toLowerCase();
     const lowerFileName = String(fileName || "").toLowerCase();
 
+    // 1. External Links & Domain Blocking
     if (urlPattern.test(lower) || lower.includes(".com") || lower.includes("http://") || lower.includes("https://")) {
-      return { safe: false, reason: "External links and web domains are restricted in consultation messages." };
+      return { safe: false, reason: "External links and web domains are restricted in private consultation." };
     }
 
+    // 2. Prohibited Emojis & Gestures
+    if (/🖕|👉\s*👌|(?:🍆|🍌|🌭|🥒)\s*(?:💦|💧|👅|🍑|🍩|👄)|(?:🍑|🍒)\s*(?:💦|👅|🍆)/u.test(raw)) {
+      return { safe: false, reason: "School Policy Violation: Offensive or suggestive emojis detected." };
+    }
+
+    // 3. ASCII Art Genitalia Drawings (8==(-), 8===D, c===3)
+    if (/(?:8|c|C)[=\-_~]{1,}(?:D|\([-\)]*\)|>|3|o|O)/i.test(raw) || /\(\s*\.\s*[yY]\s*\.\s*\)/.test(raw)) {
+      return { safe: false, reason: "School Policy Violation: Inappropriate ASCII drawings detected." };
+    }
+
+    // 4. Client-side Morse Pattern Detection
+    const morseTokens = raw.replace(/_/g, '-').trim().split(/\s+/).filter(t => /^[.\-]+$/.test(t));
+    if (morseTokens.length >= 2) {
+      return { safe: false, reason: "School Policy Violation: Obfuscated or Morse code messages are prohibited." };
+    }
+
+    // 5. Decoded Leetspeak & Filipino Slang Normalization
+    let translated = lower
+      .replace(/[\u200B-\u200D\uFEFF\u00AD\u2060\u180E]/g, '')
+      .replace(/8/g, 'b').replace(/0/g, 'o').replace(/6/g, 'g').replace(/9/g, 'g')
+      .replace(/@/g, 'a').replace(/4/g, 'a').replace(/3/g, 'e').replace(/1/g, 'i')
+      .replace(/!/g, 'i').replace(/\$/g, 's').replace(/5/g, 's').replace(/7/g, 't');
+
+    // Collapse spaced letters: "m f" -> "mf", "you m f" -> "you mf"
+    const condensedWords = translated.replace(/(?<=\b\w)\s+(?=\w\b)/g, '');
+    const denseClean = translated.replace(/[^a-z0-9]/g, '');
+    const squashedClean = denseClean.replace(/(.)\1{2,}/g, '$1');
+
+    // 6. Vulgar Acronyms & Short forms
+    const acronymPattern = /\b(mf|mofo|stfu|wtf|sob|fck|fuk|fk|fu|bs|kys|pos)\b/i;
+    if (acronymPattern.test(lower) || acronymPattern.test(condensedWords) || acronymPattern.test(denseClean) || acronymPattern.test(squashedClean)) {
+      return { safe: false, reason: "School Policy Violation: Offensive abbreviations or acronyms detected." };
+    }
+
+    // 7. Keywords & Slur Inspection
     for (const badWord of bannedKeywords) {
       const wordRegex = new RegExp(`\\b${badWord}\\b`, "gi");
-      if (wordRegex.test(lower)) {
-        return { safe: false, reason: "Your message contains prohibited words or inappropriate language." };
+      if (wordRegex.test(lower) || wordRegex.test(condensedWords) || denseClean.includes(badWord) || squashedClean.includes(badWord)) {
+        return { safe: false, reason: "School Policy Violation: Prohibited words or vulgar language detected." };
       }
     }
 
+    // 8. Attached File Name Safety
     if (fileName) {
       const ext = lowerFileName.split('.').pop();
       if (dangerousExtensions.has(ext)) {
-        return { safe: false, reason: `The file format (.${ext}) is prohibited to prevent malware and suspicious uploads.` };
+        return { safe: false, reason: `File type (.${ext}) is prohibited to protect campus infrastructure.` };
       }
       for (const badWord of bannedKeywords) {
         if (lowerFileName.includes(badWord)) {
-          return { safe: false, reason: "The attached filename contains inappropriate words." };
+          return { safe: false, reason: "The attached filename contains inappropriate language." };
         }
       }
     }
@@ -1498,13 +1524,11 @@
     const panelPartnerSubtitle = document.getElementById("panelPartnerSubtitle");
     const inputEl = document.getElementById("chatInput");
 
-    // Resolve Participant Identification
     if (userRole === "STUDENT" || userRole === "ADMIN") {
       targetStudentId = currentUserId;
       if (!targetTeacherId) {
         targetTeacherId = localStorage.getItem("chatTargetTeacherId") || localStorage.getItem("lastGroupTeacherId");
         
-        // Auto-detect teacher from student's enrolled classes if not yet set in localStorage
         if (!targetTeacherId) {
           const userSearchIds = getDualTypeIds([currentUserId]);
           const userIdsFormatted = userSearchIds.map(id => `"${id}"`).join(',');
@@ -1538,7 +1562,6 @@
       return;
     }
 
-    // Dynamic Partner Profile Lookup
     const partnerIdToLookup = (userRole === "STUDENT" || userRole === "ADMIN") ? tId : sId;
     const searchIds = getDualTypeIds([partnerIdToLookup]);
     
@@ -1560,7 +1583,6 @@
       }
     }
 
-    // Dynamic Header & Input Placeholders
     if (userRole === "TEACHER") {
       if (partnerRoleUpper === "ADMIN") {
         if (partnerTitle) partnerTitle.textContent = `Administrator: ${targetStudentName}`;
@@ -1616,7 +1638,6 @@
     const sSearch = getDualTypeIds([sId]);
     const tSearch = getDualTypeIds([tId]);
 
-    // Bidirectional query: supports conversations initiated in either direction
     const [dir1, dir2] = await Promise.all([
       client.from('private_messages').select('*').in('student_id', sSearch).in('teacher_id', tSearch),
       client.from('private_messages').select('*').in('student_id', tSearch).in('teacher_id', sSearch)
@@ -1668,7 +1689,6 @@
       client.removeChannel(realtimeChannel);
     }
 
-    // Normalizing channel ID pair so both users connect to the exact same WebSocket room
     const sortedPair = [String(sId), String(tId)].sort().join('_');
     const channelRoom = `private_chat_${sortedPair}`;
 
@@ -1761,24 +1781,28 @@
   }
 
   /* =====================================================
-     7. SEND PRIVATE MESSAGE WITH AI SAFETY FILTER
+     7. SEND PRIVATE MESSAGE WITH HARDENED AI SAFETY GATE
   ===================================================== */
   async function sendMessage() {
     const input = document.getElementById("chatInput");
-    if (!input) return;
+    const sendBtn = document.getElementById("sendBtn");
+    if (!input || !sendBtn) return;
+    
     const text = input.value.trim();
     if (!text) return;
 
-    // 1. Instant local validation
-    const safetyCheck = evaluateContentSafety(text);
+    // 1. Instant local heuristic validation (0ms feedback)
+    const safetyCheck = evaluateClientContentSafety(text);
     if (!safetyCheck.safe) {
-      showModerationToast(`⚠️ Blocked by System: ${safetyCheck.reason}`);
-      input.value = "";
+      showModerationToast(`🛑 ${safetyCheck.reason}`);
       return;
     }
 
-    // 2. Multilingual AI Content Safety Pre-flight Check
+    sendBtn.disabled = true;
+    input.disabled = true;
+
     try {
+      // 2. Multi-tier Backend Inspection
       const aiResponse = await fetch('/api/ai-moderate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1788,22 +1812,30 @@
       if (aiResponse.ok) {
         const aiData = await aiResponse.json();
         if (!aiData.allowed) {
-          showModerationToast(`🛑 ${aiData.reason || 'Prohibited message detected across languages.'}`);
-          input.value = "";
+          showModerationToast(`🛑 ${aiData.reason || 'Message blocked by campus conduct filter.'}`);
           return;
         }
+      } else {
+        showModerationToast("⚠️ Safety gate offline. Message held for compliance.");
+        return;
       }
-    } catch (err) {
-      console.warn("AI moderation check bypassed due to network issue:", err);
-    }
 
-    // 3. Dispatch only if verified safe
-    dispatchPrivateMessage(text);
-    input.value = "";
+      // 3. Dispatch only after full clearance
+      input.value = "";
+      await dispatchPrivateMessage(text);
+
+    } catch (err) {
+      console.error("AI Moderation error:", err);
+      showModerationToast("❌ Unable to verify message safety. Please try again.");
+    } finally {
+      sendBtn.disabled = false;
+      input.disabled = false;
+      input.focus();
+    }
   }
 
   /* =====================================================
-     IMAGE UPLOAD & MULTIMODAL NSFW AI MODERATION
+     8. FAIL-CLOSED IMAGE UPLOAD & VISION MODERATION
   ===================================================== */
   const imageAttachment = document.getElementById("imageAttachment");
   if (imageAttachment) {
@@ -1811,56 +1843,57 @@
       if (this.files.length > 0) {
         const fileObj = this.files[0];
 
-        // 1. File size verification (25MB Limit)
         if (fileObj.size > MAX_FILE_SIZE) {
           showModerationToast("🛑 File Limit Exceeded: Maximum image upload size is 25MB.");
           this.value = "";
           return;
         }
 
-        // 2. Format whitelisting
         const ext = fileObj.name.split('.').pop().toLowerCase();
         if (!ALLOWED_IMG_EXTENSIONS.has(ext)) {
-          showModerationToast(`🛑 Format Denied: Please upload a valid image file (PNG, JPG, JPEG, WEBP, GIF).`);
+          showModerationToast("🛑 Format Denied: Allowed formats: PNG, JPG, JPEG, WEBP. (Animated GIFs prohibited).");
           this.value = "";
           return;
         }
         
-        // 3. Local content validation
-        const safetyCheck = evaluateContentSafety("", fileObj.name);
+        const safetyCheck = evaluateClientContentSafety("", fileObj.name);
         if (!safetyCheck.safe) {
           showModerationToast(`⚠️ Attachment Rejected: ${safetyCheck.reason}`);
           this.value = "";
           return;
         }
 
-        // 4. Server-side extension check
+        // Server-side pre-upload extension check (Fail-Closed)
         try {
           const extCheckResp = await fetch('/api/ai-moderate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ file_name: fileObj.name })
           });
-          if (extCheckResp.ok) {
-            const extData = await extCheckResp.json();
-            if (!extData.allowed) {
-              showModerationToast(`🛑 ${extData.reason}`);
-              this.value = "";
-              return;
-            }
+          if (!extCheckResp.ok) {
+            showModerationToast("⚠️ Safety gate unavailable. Upload cancelled.");
+            this.value = "";
+            return;
+          }
+          const extData = await extCheckResp.json();
+          if (!extData.allowed) {
+            showModerationToast(`🛑 ${extData.reason}`);
+            this.value = "";
+            return;
           }
         } catch (e) {
-          console.warn("Server file check warning:", e);
+          showModerationToast("❌ Verification offline. Upload cancelled.");
+          this.value = "";
+          return;
         }
 
         showModerationToast("🔍 Validating image content with AI Safety filter...");
 
-        // 5. Upload to Supabase Storage
         const uploadResult = await uploadMediaToStorage(fileObj);
         const uploadedUrl = uploadResult.url;
         const storagePath = uploadResult.path;
 
-        // 6. Multimodal Vision Safety Check
+        // Multimodal Vision Safety Check (Fail-Closed)
         try {
           const aiResponse = await fetch('/api/ai-moderate', {
             method: 'POST',
@@ -1871,34 +1904,38 @@
             })
           });
 
-          if (aiResponse.ok) {
-            const aiData = await aiResponse.json();
-            if (!aiData.allowed) {
-              showModerationToast(`🛑 Image Blocked: ${aiData.reason || 'Explicit or inappropriate image detected.'}`);
-              
-              if (storagePath) {
-                const client = getSupabaseClient();
-                if (client) {
-                  await client.storage.from('group-files').remove([storagePath]);
-                }
-              }
-              this.value = "";
-              return;
+          if (!aiResponse.ok) {
+            throw new Error("Vision moderation service offline");
+          }
+
+          const aiData = await aiResponse.json();
+          if (!aiData.allowed) {
+            showModerationToast(`🛑 Image Blocked: ${aiData.reason || 'Explicit image detected.'}`);
+            if (storagePath) {
+              const client = getSupabaseClient();
+              if (client) await client.storage.from('group-files').remove([storagePath]);
             }
+            this.value = "";
+            return;
           }
         } catch (err) {
-          console.warn("AI Image moderation network issue:", err);
+          showModerationToast("❌ Safety filter unreachable. Image was not delivered.");
+          if (storagePath) {
+            const client = getSupabaseClient();
+            if (client) await client.storage.from('group-files').remove([storagePath]);
+          }
+          this.value = "";
+          return;
         }
 
-        // 7. Dispatch if safe
-        dispatchPrivateMessage(`📷 Shared Image: ${fileObj.name}`, uploadedUrl, 'image', fileObj.name);
+        await dispatchPrivateMessage(`📷 Shared Image: ${fileObj.name}`, uploadedUrl, 'image', fileObj.name);
         this.value = "";
       }
     });
   }
 
   /* =====================================================
-     DOCUMENT UPLOAD & MALWARE/VIRUS EXTENSION FILTER
+     9. FAIL-CLOSED DOCUMENT UPLOAD & MALWARE FILTER
   ===================================================== */
   const fileAttachment = document.getElementById("fileAttachment");
   if (fileAttachment) {
@@ -1906,36 +1943,33 @@
       if (this.files.length > 0) {
         const fileObj = this.files[0];
 
-        // 1. File size verification (25MB Limit)
         if (fileObj.size > MAX_FILE_SIZE) {
           showModerationToast("🛑 File Limit Exceeded: Maximum document upload size is 25MB.");
           this.value = "";
           return;
         }
 
-        // 2. Prohibited extension check & whitelisting
         const ext = fileObj.name.split('.').pop().toLowerCase();
         if (dangerousExtensions.has(ext)) {
-          showModerationToast(`🛑 Security Alert: The file type (.${ext}) is prohibited to prevent malware.`);
+          showModerationToast(`🛑 Security Alert: The file type (.${ext}) is prohibited.`);
           this.value = "";
           return;
         }
 
         if (!ALLOWED_DOC_EXTENSIONS.has(ext)) {
-          showModerationToast(`🛑 Format Denied: Allowed document formats are PDF, Word, PowerPoint, Excel, and Text.`);
+          showModerationToast("🛑 Format Denied: Allowed document formats: PDF, Word, PowerPoint, Excel, and Text.");
           this.value = "";
           return;
         }
 
-        // 3. Local safety validation
-        const safetyCheck = evaluateContentSafety("", fileObj.name);
+        const safetyCheck = evaluateClientContentSafety("", fileObj.name);
         if (!safetyCheck.safe) {
           showModerationToast(`⚠️ File Rejected: ${safetyCheck.reason}`);
           this.value = "";
           return;
         }
 
-        // 4. Server-side security check
+        // Server-side pre-upload inspection (Fail-Closed)
         try {
           const aiResponse = await fetch('/api/ai-moderate', {
             method: 'POST',
@@ -1943,27 +1977,34 @@
             body: JSON.stringify({ file_name: fileObj.name })
           });
           
-          if (aiResponse.ok) {
-            const aiData = await aiResponse.json();
-            if (!aiData.allowed) {
-              showModerationToast(`🛑 ${aiData.reason || 'Prohibited file type.'}`);
-              this.value = "";
-              return;
-            }
+          if (!aiResponse.ok) {
+            showModerationToast("⚠️ Compliance server offline. Document held.");
+            this.value = "";
+            return;
+          }
+
+          const aiData = await aiResponse.json();
+          if (!aiData.allowed) {
+            showModerationToast(`🛑 ${aiData.reason || 'Prohibited file type.'}`);
+            this.value = "";
+            return;
           }
         } catch (err) {
-          console.warn("AI file check warning:", err);
+          showModerationToast("❌ File scan failed. Upload cancelled.");
+          this.value = "";
+          return;
         }
 
-        // 5. Upload and dispatch
         const uploadResult = await uploadMediaToStorage(fileObj);
-        dispatchPrivateMessage(`📎 Shared File: ${fileObj.name}`, uploadResult.url, 'file', fileObj.name);
+        await dispatchPrivateMessage(`📎 Shared File: ${fileObj.name}`, uploadResult.url, 'file', fileObj.name);
         this.value = "";
       }
     });
   }
 
-  /* UPLOAD HELPER FOR SUPABASE STORAGE WITH METADATA TRACKING */
+  /* =====================================================
+     10. STORAGE UPLOAD HELPERS & LIGHTBOX MODAL
+  ===================================================== */
   async function uploadMediaToStorage(file) {
     const client = getSupabaseClient();
     const ext = file.name.split('.').pop();
@@ -1999,7 +2040,6 @@
     });
   }
 
-  /* MESSENGER-STYLE IMAGE ZOOM / LIGHTBOX */
   let currentZoomedImgUrl = "";
 
   function openImageModal(src) {
@@ -2034,7 +2074,9 @@
     }
   });
 
-  /* DISPATCH & BROADCAST PRIVATE MESSAGE */
+  /* =====================================================
+     11. DISPATCH & RENDER FUNCTIONS
+  ===================================================== */
   async function dispatchPrivateMessage(text, mediaUrl = null, mediaType = null, fileName = null) {
     const client = getSupabaseClient();
     const sId = (userRole === "STUDENT" || userRole === "ADMIN") ? currentUserId : targetStudentId;
@@ -2048,10 +2090,8 @@
     const tempId = `temp_${Date.now()}`;
     const createdAt = new Date().toISOString();
 
-    // 1. Optimistic Local Render
     appendMessageBubble(text, 'sent', mediaUrl, mediaType, fileName, userName, tempId, createdAt);
 
-    // 2. Persist to Supabase Database
     let persistedId = tempId;
     if (client) {
       const payload = {
@@ -2084,10 +2124,9 @@
           tempRow.style.opacity = '0.5';
           tempRow.title = "Failed to deliver: " + insertErr.message;
         }
-        return; // Halt broadcast so ghost messages are not distributed
+        return;
       }
 
-      // 3. Dispatch Recipient In-App Notification
       try {
         const recipientId = (String(currentUserId) === String(sId)) ? tId : sId;
         await client.from('notifications').insert([{
@@ -2098,11 +2137,10 @@
           created_at: new Date().toISOString()
         }]);
       } catch (notifErr) {
-        console.warn("Recipient in-app notification notice:", notifErr);
+        console.warn("Recipient notification notice:", notifErr);
       }
     }
 
-    // 4. Broadcast to Realtime WebSocket Channel
     if (realtimeChannel) {
       realtimeChannel.send({
         type: 'broadcast',
@@ -2123,7 +2161,6 @@
     }
   }
 
-  /* RENDER MESSAGE BUBBLE IN FEED */
   function appendMessageBubble(text, mode, mediaUrl = null, mediaType = null, fileName = null, sender = "User", msgId = null, timeIso = null) {
     const feed = document.getElementById("messagesFeed");
     const sharedFiles = document.getElementById('sharedFiles');
@@ -2228,7 +2265,6 @@
     feed.scrollTop = feed.scrollHeight;
   }
 
-  /* UNSEND MESSAGE */
   async function unsendPrivateMessage(msgId, rowElement) {
     if (confirm("Unsend this private message?")) {
       rowElement.remove();
@@ -2260,7 +2296,7 @@
   }
 
   /* =====================================================
-     8. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA)
+     12. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA)
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
