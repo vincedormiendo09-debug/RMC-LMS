@@ -1405,13 +1405,23 @@
   }
 
   /* =====================================================
-     3. CLIENT HEURISTIC GATE & PROHIBITED PATTERNS
+     3. CLIENT HEURISTIC GATE (MULTI-DIALECT & ANTI-EVASION)
   ===================================================== */
   const bannedKeywords = [
-    "fuck", "shit", "bitch", "asshole", "bastard", "dick", "pussy", "cunt", "porn", "xxx", "nude",
-    "tangina", "tang ina", "gago", "bobo", "tanga", "ulol", "pukina", "puta", "tarantado", "inutil", 
-    "bwisit", "hayop", "walanghiya", "siraulo", "leche", "kupal", "pakyu", "tae", "yawa", "bilat", "bayot",
-    "mf", "mofo", "stfu", "wtf", "kys"
+    // English & International Slurs / Acronyms
+    "fuck", "shit", "bitch", "asshole", "bastard", "dick", "pussy", "cunt", "porn", "xxx", "nude", "nudes",
+    "mf", "mofo", "stfu", "wtf", "kys", "pos", "sob", "fck", "fuk", "fukin",
+    // Tagalog / National Slurs & Anatomy
+    "tangina", "tang ina", "tngina", "putangina", "ptngina", "gago", "gaga", "bobo", "tanga", "ulol", 
+    "pukina", "puta", "pota", "tarantado", "inutil", "bwisit", "hayop", "walanghiya", "siraulo", "leche", 
+    "kupal", "pakyu", "pakshet", "tae", "kantot", "kntot", "titi", "burat", "puke", "pekpek", "pokpok", 
+    "bayag", "tamod", "bulbol",
+    // Bisaya / Cebuano Slurs
+    "yawa", "bilat", "pisti", "peste", "atay", "kayat", "buang", "boang", "bwang", "oten", "utin", "lubot", "bayot",
+    // Ilocano Slurs
+    "ukinam", "okinam", "ukinana", "okinana", "bagtit", "buto",
+    // Hiligaynon, Waray, Kapampangan, Bicolano
+    "linti", "lintian", "buray", "yudiputa", "taksyapo", "danayda", "iyot", "iyotan"
   ];
 
   const dangerousExtensions = new Set([
@@ -1432,59 +1442,91 @@
 
   const urlPattern = /\b(?:https?:\/\/|www\.)\S+|\b[a-zA-Z0-9-]+\.(?:com|net|org|edu|gov|io|xyz|ru|cn|me|co|link|info|biz|top|ph)\b/gi;
 
+  function decodeClientBinary(str) {
+    const rawBinary = str.replace(/[^01]/g, '').trim();
+    if (rawBinary.length >= 16 && rawBinary.length % 8 === 0) {
+      try {
+        let decoded = "";
+        for (let i = 0; i < rawBinary.length; i += 8) {
+          decoded += String.fromCharCode(parseInt(rawBinary.substr(i, 8), 2));
+        }
+        return decoded.toLowerCase();
+      } catch (e) {
+        return "";
+      }
+    }
+    return "";
+  }
+
   function evaluateClientContentSafety(text, fileName = "") {
     const raw = String(text || "");
     const lower = raw.toLowerCase();
     const lowerFileName = String(fileName || "").toLowerCase();
 
-    // 1. External Links & Domain Blocking
+    // 1. External Links & Web Domains
     if (urlPattern.test(lower) || lower.includes(".com") || lower.includes("http://") || lower.includes("https://")) {
       return { safe: false, reason: "External links and web domains are restricted in private consultation." };
     }
 
-    // 2. Prohibited Emojis & Gestures
+    // 2. Animated Meme / GIF Links
+    if (/(giphy\.com|tenor\.com|\.gif(\?.*)?$)/i.test(lower)) {
+      return { safe: false, reason: "School Policy Violation: Animated GIFs and meme links are prohibited." };
+    }
+
+    // 3. Prohibited Emojis & Gestures
     if (/🖕|👉\s*👌|(?:🍆|🍌|🌭|🥒)\s*(?:💦|💧|👅|🍑|🍩|👄)|(?:🍑|🍒)\s*(?:💦|👅|🍆)/u.test(raw)) {
       return { safe: false, reason: "School Policy Violation: Offensive or suggestive emojis detected." };
     }
 
-    // 3. ASCII Art Genitalia Drawings (8==(-), 8===D, c===3)
+    // 4. ASCII Genitalia Drawings (8==(-), 8===D, c===3, (.Y.))
     if (/(?:8|c|C)[=\-_~]{1,}(?:D|\([-\)]*\)|>|3|o|O)/i.test(raw) || /\(\s*\.\s*[yY]\s*\.\s*\)/.test(raw)) {
       return { safe: false, reason: "School Policy Violation: Inappropriate ASCII drawings detected." };
     }
 
-    // 4. Client-side Morse Pattern Detection
+    // 5. Morse Code Token Detection
     const morseTokens = raw.replace(/_/g, '-').trim().split(/\s+/).filter(t => /^[.\-]+$/.test(t));
     if (morseTokens.length >= 2) {
-      return { safe: false, reason: "School Policy Violation: Obfuscated or Morse code messages are prohibited." };
+      return { safe: false, reason: "School Policy Violation: Obfuscated Morse code messages are prohibited." };
     }
 
-    // 5. Decoded Leetspeak & Filipino Slang Normalization
-    let translated = lower
-      .replace(/[\u200B-\u200D\uFEFF\u00AD\u2060\u180E]/g, '')
-      .replace(/8/g, 'b').replace(/0/g, 'o').replace(/6/g, 'g').replace(/9/g, 'g')
-      .replace(/@/g, 'a').replace(/4/g, 'a').replace(/3/g, 'e').replace(/1/g, 'i')
-      .replace(/!/g, 'i').replace(/\$/g, 's').replace(/5/g, 's').replace(/7/g, 't');
+    // 6. Binary String Evasion Check
+    const decodedBin = decodeClientBinary(raw);
 
-    // Collapse spaced letters: "m f" -> "mf", "you m f" -> "you mf"
-    const condensedWords = translated.replace(/(?<=\b\w)\s+(?=\w\b)/g, '');
-    const denseClean = translated.replace(/[^a-z0-9]/g, '');
-    const squashedClean = denseClean.replace(/(.)\1{2,}/g, '$1');
+    // 7. Normalization (Homoglyphs, Leetspeak, Invisible bytes, Elongations)
+    let cleaned = lower.replace(/[\u200B-\u200D\uFEFF\u00AD\u2060\u180E]/g, '');
 
-    // 6. Vulgar Acronyms & Short forms
-    const acronymPattern = /\b(mf|mofo|stfu|wtf|sob|fck|fuk|fk|fu|bs|kys|pos)\b/i;
-    if (acronymPattern.test(lower) || acronymPattern.test(condensedWords) || acronymPattern.test(denseClean) || acronymPattern.test(squashedClean)) {
-      return { safe: false, reason: "School Policy Violation: Offensive abbreviations or acronyms detected." };
+    const homoglyphs = { 'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'у': 'y', 'х': 'x', 'і': 'i' };
+    for (const [cyr, lat] of Object.entries(homoglyphs)) {
+      cleaned = cleaned.split(cyr).join(lat);
     }
 
-    // 7. Keywords & Slur Inspection
+    const leetMap = {
+      '8': 'b', '0': 'o', '6': 'g', '9': 'g',
+      '@': 'a', '4': 'a', '3': 'e', '1': 'i',
+      '!': 'i', '$': 's', '5': 's', '7': 't'
+    };
+    for (const [num, char] of Object.entries(leetMap)) {
+      cleaned = cleaned.split(num).join(char);
+    }
+
+    const condensedWords = cleaned.replace(/(?<=\b\w)\s+(?=\w\b)/g, '');
+    const denseClean = cleaned.replace(/[^a-z0-9]/g, '');
+    const squashedClean = denseClean.replace(/(.)\1+/g, '$1'); // Squashes mffff -> mf, bobooo -> bobo
+
+    // 8. Multi-Dialect Profanity & Acronym Verification
+    const inspectionCandidates = [lower, condensedWords, denseClean, squashedClean];
+    if (decodedBin) inspectionCandidates.push(decodedBin);
+
     for (const badWord of bannedKeywords) {
-      const wordRegex = new RegExp(`\\b${badWord}\\b`, "gi");
-      if (wordRegex.test(lower) || wordRegex.test(condensedWords) || denseClean.includes(badWord) || squashedClean.includes(badWord)) {
-        return { safe: false, reason: "School Policy Violation: Prohibited words or vulgar language detected." };
+      const wordRegex = new RegExp(`\\b${badWord}\\b`, "i");
+      for (const cand of inspectionCandidates) {
+        if (wordRegex.test(cand) || cand.includes(badWord)) {
+          return { safe: false, reason: `School Policy Violation: Prohibited language or regional slur detected ("${badWord}").` };
+        }
       }
     }
 
-    // 8. Attached File Name Safety
+    // 9. Attached File Name Safety
     if (fileName) {
       const ext = lowerFileName.split('.').pop();
       if (dangerousExtensions.has(ext)) {
@@ -1791,18 +1833,19 @@
     const text = input.value.trim();
     if (!text) return;
 
-    // 1. Instant local heuristic validation (0ms feedback)
+    // 1. Instant local heuristic validation (0ms local gate)
     const safetyCheck = evaluateClientContentSafety(text);
     if (!safetyCheck.safe) {
       showModerationToast(`🛑 ${safetyCheck.reason}`);
       return;
     }
 
+    // Lock UI to prevent spam or double submissions during inspection
     sendBtn.disabled = true;
     input.disabled = true;
 
     try {
-      // 2. Multi-tier Backend Inspection
+      // 2. Parallel Tri-AI Backend Inspection (Conduct Judge + Web Scout + Safety Guard)
       const aiResponse = await fetch('/api/ai-moderate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1842,6 +1885,8 @@
     imageAttachment.addEventListener("change", async function () {
       if (this.files.length > 0) {
         const fileObj = this.files[0];
+        const inputEl = document.getElementById("chatInput");
+        const sendBtn = document.getElementById("sendBtn");
 
         if (fileObj.size > MAX_FILE_SIZE) {
           showModerationToast("🛑 File Limit Exceeded: Maximum image upload size is 25MB.");
@@ -1862,6 +1907,9 @@
           this.value = "";
           return;
         }
+
+        if (sendBtn) sendBtn.disabled = true;
+        if (inputEl) inputEl.disabled = true;
 
         // Server-side pre-upload extension check (Fail-Closed)
         try {
@@ -1885,6 +1933,9 @@
           showModerationToast("❌ Verification offline. Upload cancelled.");
           this.value = "";
           return;
+        } finally {
+          if (sendBtn) sendBtn.disabled = false;
+          if (inputEl) inputEl.disabled = false;
         }
 
         showModerationToast("🔍 Validating image content with AI Safety filter...");
@@ -1942,6 +1993,8 @@
     fileAttachment.addEventListener("change", async function () {
       if (this.files.length > 0) {
         const fileObj = this.files[0];
+        const inputEl = document.getElementById("chatInput");
+        const sendBtn = document.getElementById("sendBtn");
 
         if (fileObj.size > MAX_FILE_SIZE) {
           showModerationToast("🛑 File Limit Exceeded: Maximum document upload size is 25MB.");
@@ -1969,6 +2022,9 @@
           return;
         }
 
+        if (sendBtn) sendBtn.disabled = true;
+        if (inputEl) inputEl.disabled = true;
+
         // Server-side pre-upload inspection (Fail-Closed)
         try {
           const aiResponse = await fetch('/api/ai-moderate', {
@@ -1993,6 +2049,9 @@
           showModerationToast("❌ File scan failed. Upload cancelled.");
           this.value = "";
           return;
+        } finally {
+          if (sendBtn) sendBtn.disabled = false;
+          if (inputEl) inputEl.disabled = false;
         }
 
         const uploadResult = await uploadMediaToStorage(fileObj);
