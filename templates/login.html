@@ -383,7 +383,7 @@
         <p>Enter your registered credentials to access your dashboard.</p>
       </div>
 
-      <!-- FLASHED ALERT MESSAGES (VALIDATOR-SAFE, NO VS CODE WARNINGS) -->
+      <!-- FLASHED ALERT MESSAGES -->
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
           {% for category, message in messages %}
@@ -408,6 +408,9 @@
         {% endif %}
       {% endwith %}
 
+      <div id="dynamicResetAlert" style="display: none; text-align: center; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 13.5px; font-weight: 500; background-color: #dcfce7; color: #166534; border: 1px solid #86efac;">
+      </div>
+
       <form action="{{ url_for('login') }}" method="POST">
 
         <div class="form-group">
@@ -416,7 +419,12 @@
         </div>
 
         <div class="form-group">
-          <label for="loginPassword">Password</label>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label for="loginPassword" style="margin: 0;">Password</label>
+            <a href="javascript:void(0);" onclick="openForgotPasswordModal()" style="font-size: 12.5px; color: #2563eb; text-decoration: none; font-weight: 600;">
+              Forgot password?
+            </a>
+          </div>
           <input type="password" id="loginPassword" name="password" placeholder="••••••••" required>
         </div>
 
@@ -437,87 +445,348 @@
     </div>
   </div>
 
-  <!-- AUTHENTICATION & REGISTRATION SCRIPTS -->
-<script>
-  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
-  window.addEventListener('pageshow', function (event) {
-    if (event.persisted) {
-      window.location.reload();
-    }
-  });
+  <!-- PASSWORD RECOVERY MODAL -->
+  <div id="forgotPwdModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); z-index: 99999; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(4px);">
+    <div style="background: #ffffff; border-radius: 12px; max-width: 420px; width: 100%; padding: 26px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); box-sizing: border-box;">
+      
+      <!-- STAGE 1: ENTER EMAIL -->
+      <div id="resetStageEmail">
+        <div style="text-align: center; margin-bottom: 18px;">
+          <div style="font-size: 38px; margin-bottom: 6px;">🔑</div>
+          <h3 style="font-size: 18px; font-weight: 700; color: #1e293b; margin: 0 0 6px 0;">Reset Password</h3>
+          <p style="font-size: 13px; color: #64748b; margin: 0;">Enter your registered school email to receive a 6-digit verification code.</p>
+        </div>
 
-  /* =====================================================
-     1. REGISTRATION NOTICE REDIRECT HANDLER
-  ===================================================== */
-  function handleRegistrationNotice(event) {
-    const noticeMessage = 
-      "Kindly message this person about registration so you can fill up online and wait for your account to be processed. You will receive an email within 24hrs - 72hrs.\n\nClick OK to proceed to Facebook.";
-    
-    const userConfirmed = confirm(noticeMessage);
-    if (!userConfirmed) {
-      event.preventDefault();
-    }
-  }
+        <div style="margin-bottom: 16px;">
+          <label for="resetEmailInput" style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 6px;">Registered Email Address:</label>
+          <input type="email" id="resetEmailInput" placeholder="name@regismarie.edu.ph" style="width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box; outline: none;">
+        </div>
 
-  /* =====================================================
-     2. AUTO-LOGIN CHECK & REMEMBER ME PERSISTENCE
-  ===================================================== */
-  document.addEventListener("DOMContentLoaded", async () => {
-    const emailInput = document.querySelector('input[name="email"]') || document.getElementById('email');
-    const passwordInput = document.querySelector('input[name="password"]') || document.getElementById('password');
-    const rememberCheckbox = document.getElementById('rememberMeCheckbox') || document.querySelector('input[name="remember_me"]');
-    const loginForm = document.querySelector('form');
+        <div id="resetEmailError" style="color: #ef4444; font-size: 12.5px; margin-bottom: 12px; display: none; font-weight: 600;"></div>
 
-    // 1. Check if user already has an active session on the server
-    try {
-      const resp = await fetch('/api/current-user');
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.authenticated && data.user_id) {
-          window.location.replace("{{ url_for('landpage') }}");
-          return;
-        }
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" onclick="closeForgotPasswordModal()" style="padding: 9px 16px; font-size: 13px; font-weight: 600; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; border-radius: 6px; cursor: pointer;">Cancel</button>
+          <button type="button" id="sendOtpBtn" onclick="submitResetEmail()" style="padding: 9px 18px; font-size: 13px; font-weight: 600; border: none; background: #2563eb; color: #ffffff; border-radius: 6px; cursor: pointer;">Send Code</button>
+        </div>
+      </div>
+
+      <!-- STAGE 2: ENTER 6-DIGIT CODE -->
+      <div id="resetStageCode" style="display: none;">
+        <div style="text-align: center; margin-bottom: 18px;">
+          <div style="font-size: 38px; margin-bottom: 6px;">📩</div>
+          <h3 style="font-size: 18px; font-weight: 700; color: #1e293b; margin: 0 0 6px 0;">Verify 6-Digit Code</h3>
+          <p style="font-size: 13px; color: #64748b; margin: 0;">We dispatched a code to: <strong id="sentEmailDisplay" style="color: #0f172a;"></strong></p>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <input type="text" id="resetOtpInput" maxlength="6" placeholder="······"
+            style="width: 100%; text-align: center; font-size: 28px; font-family: monospace; font-weight: 700; letter-spacing: 10px; padding: 10px; border: 2px solid #94a3b8; border-radius: 8px; outline: none; box-sizing: border-box; background: #f8fafc;"
+            oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+          <div id="resetCodeError" style="color: #ef4444; font-size: 12.5px; margin-top: 6px; text-align: center; display: none; font-weight: 600;"></div>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" onclick="closeForgotPasswordModal()" style="padding: 9px 16px; font-size: 13px; font-weight: 600; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; border-radius: 6px; cursor: pointer;">Cancel</button>
+          <button type="button" id="verifyOtpBtn" onclick="submitResetOtp()" style="padding: 9px 18px; font-size: 13px; font-weight: 600; border: none; background: #2563eb; color: #ffffff; border-radius: 6px; cursor: pointer;">Verify Code</button>
+        </div>
+
+        <div style="text-align: center; margin-top: 14px;">
+          <a href="javascript:void(0);" onclick="resendLoginOtp()" style="font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 600;">Didn't receive code? Resend</a>
+        </div>
+      </div>
+
+      <!-- STAGE 3: NEW PASSWORD -->
+      <div id="resetStageNewPassword" style="display: none;">
+        <div style="text-align: center; margin-bottom: 18px;">
+          <div style="font-size: 38px; margin-bottom: 6px;">🔒</div>
+          <h3 style="font-size: 18px; font-weight: 700; color: #1e293b; margin: 0 0 6px 0;">Create New Password</h3>
+          <p style="font-size: 13px; color: #64748b; margin: 0;">Choose a secure password with at least 6 characters.</p>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label for="resetNewPassword" style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 4px;">New Password:</label>
+          <input type="password" id="resetNewPassword" placeholder="Minimum 6 characters" style="width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box; outline: none;">
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label for="resetConfirmPassword" style="display: block; font-size: 12.5px; font-weight: 600; color: #334155; margin-bottom: 4px;">Confirm New Password:</label>
+          <input type="password" id="resetConfirmPassword" placeholder="Re-type new password" style="width: 100%; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 6px; font-size: 14px; box-sizing: border-box; outline: none;">
+        </div>
+
+        <div id="resetPasswordError" style="color: #ef4444; font-size: 12.5px; margin-bottom: 12px; display: none; font-weight: 600;"></div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" onclick="closeForgotPasswordModal()" style="padding: 9px 16px; font-size: 13px; font-weight: 600; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; border-radius: 6px; cursor: pointer;">Cancel</button>
+          <button type="button" id="saveNewPasswordBtn" onclick="submitNewPassword()" style="padding: 9px 18px; font-size: 13px; font-weight: 600; border: none; background: #16a34a; color: #ffffff; border-radius: 6px; cursor: pointer;">Save Password</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- AUTHENTICATION & RECOVERY SCRIPTS -->
+  <script>
+    /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        window.location.reload();
       }
-    } catch (err) {
-      console.warn("Session check bypass:", err);
+    });
+
+    /* =====================================================
+        1. REGISTRATION NOTICE REDIRECT HANDLER
+    ===================================================== */
+    function handleRegistrationNotice(event) {
+      const noticeMessage = 
+        "Kindly message this person about registration so you can fill up online and wait for your account to be processed. You will receive an email within 24hrs - 72hrs.\n\nClick OK to proceed to Facebook.";
+      
+      const userConfirmed = confirm(noticeMessage);
+      if (!userConfirmed) {
+        event.preventDefault();
+      }
     }
 
-    // 2. Autofill credentials from localStorage if previously saved
-    const savedEmail = localStorage.getItem("rmc_saved_email");
-    const savedPassword = localStorage.getItem("rmc_saved_password");
-    const rememberPref = localStorage.getItem("rmc_remember_me");
+    /* =====================================================
+        2. FORGOT PASSWORD MULTI-STAGE RECOVERY
+    ===================================================== */
+    let currentResetEmail = "";
 
-    if (savedEmail && emailInput) {
-      emailInput.value = savedEmail;
-    }
-    if (savedPassword && passwordInput) {
-      passwordInput.value = savedPassword;
-    }
-    if (rememberCheckbox) {
-      rememberCheckbox.checked = rememberPref !== "false";
+    function openForgotPasswordModal() {
+      const modal = document.getElementById("forgotPwdModal");
+      const emailInput = document.getElementById("loginEmail");
+      const resetEmailInput = document.getElementById("resetEmailInput");
+
+      // Auto-populate from login field if already entered
+      if (emailInput && emailInput.value.trim()) {
+        resetEmailInput.value = emailInput.value.trim();
+      }
+
+      // Reset stages
+      document.getElementById("resetStageEmail").style.display = "block";
+      document.getElementById("resetStageCode").style.display = "none";
+      document.getElementById("resetStageNewPassword").style.display = "none";
+      document.getElementById("resetEmailError").style.display = "none";
+
+      if (modal) modal.style.display = "flex";
+      if (resetEmailInput) resetEmailInput.focus();
     }
 
-    // 3. Save or clear credentials upon form submission
-    if (loginForm) {
-      loginForm.addEventListener("submit", () => {
-        const shouldRemember = rememberCheckbox ? rememberCheckbox.checked : true;
-        if (shouldRemember) {
+    function closeForgotPasswordModal() {
+      const modal = document.getElementById("forgotPwdModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    async function submitResetEmail() {
+      const emailInput = document.getElementById("resetEmailInput");
+      const errBox = document.getElementById("resetEmailError");
+      const btn = document.getElementById("sendOtpBtn");
+      const emailVal = (emailInput ? emailInput.value : "").trim();
+
+      if (!emailVal || !emailVal.includes("@")) {
+        errBox.textContent = "Please enter a valid email address.";
+        errBox.style.display = "block";
+        return;
+      }
+
+      errBox.style.display = "none";
+      btn.disabled = true;
+      btn.textContent = "Sending Code...";
+
+      try {
+        const resp = await fetch('/api/send-password-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: emailVal })
+        });
+        const result = await resp.json();
+
+        if (resp.ok && result.success) {
+          currentResetEmail = emailVal;
+          document.getElementById("sentEmailDisplay").textContent = emailVal;
+          document.getElementById("resetStageEmail").style.display = "none";
+          document.getElementById("resetStageCode").style.display = "block";
+          document.getElementById("resetOtpInput").value = "";
+          document.getElementById("resetOtpInput").focus();
+        } else {
+          errBox.textContent = result.message || "Failed to dispatch verification email.";
+          errBox.style.display = "block";
+        }
+      } catch (err) {
+        errBox.textContent = "Network error reaching mail server. Please try again.";
+        errBox.style.display = "block";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Send Code";
+      }
+    }
+
+    async function resendLoginOtp() {
+      if (!currentResetEmail) return;
+      try {
+        await fetch('/api/send-password-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: currentResetEmail })
+        });
+        alert(`📨 A fresh 6-digit code has been sent to ${currentResetEmail}`);
+      } catch (e) {
+        alert("Failed to resend code.");
+      }
+    }
+
+    async function submitResetOtp() {
+      const otpInput = document.getElementById("resetOtpInput");
+      const errBox = document.getElementById("resetCodeError");
+      const btn = document.getElementById("verifyOtpBtn");
+      const codeVal = (otpInput ? otpInput.value : "").trim();
+
+      if (!codeVal || codeVal.length !== 6) {
+        errBox.textContent = "Please enter the complete 6-digit code.";
+        errBox.style.display = "block";
+        return;
+      }
+
+      errBox.style.display = "none";
+      btn.disabled = true;
+      btn.textContent = "Verifying...";
+
+      try {
+        const resp = await fetch('/api/verify-password-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: codeVal })
+        });
+        const result = await resp.json();
+
+        if (resp.ok && result.valid) {
+          document.getElementById("resetStageCode").style.display = "none";
+          document.getElementById("resetStageNewPassword").style.display = "block";
+          document.getElementById("resetNewPassword").value = "";
+          document.getElementById("resetConfirmPassword").value = "";
+          document.getElementById("resetNewPassword").focus();
+        } else {
+          errBox.textContent = result.message || "Invalid or expired code.";
+          errBox.style.display = "block";
+        }
+      } catch (err) {
+        errBox.textContent = "Verification server error. Please try again.";
+        errBox.style.display = "block";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Verify Code";
+      }
+    }
+
+    async function submitNewPassword() {
+      const newPwd = document.getElementById("resetNewPassword")?.value.trim();
+      const confirmPwd = document.getElementById("resetConfirmPassword")?.value.trim();
+      const errBox = document.getElementById("resetPasswordError");
+      const btn = document.getElementById("saveNewPasswordBtn");
+
+      if (!newPwd || !confirmPwd) {
+        errBox.textContent = "Please fill in both password fields.";
+        errBox.style.display = "block";
+        return;
+      }
+
+      if (newPwd.length < 6) {
+        errBox.textContent = "Password must be at least 6 characters.";
+        errBox.style.display = "block";
+        return;
+      }
+
+      if (newPwd !== confirmPwd) {
+        errBox.textContent = "Passwords do not match.";
+        errBox.style.display = "block";
+        return;
+      }
+
+      errBox.style.display = "none";
+      btn.disabled = true;
+      btn.textContent = "Saving...";
+
+      try {
+        const resp = await fetch('/api/complete-password-reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ new_password: newPwd })
+        });
+        const result = await resp.json();
+
+        if (resp.ok && result.success) {
+          closeForgotPasswordModal();
+
+          // Display success notice and pre-populate login form
+          const alertBox = document.getElementById("dynamicResetAlert");
+          if (alertBox) {
+            alertBox.textContent = "✅ Password reset successfully! You can now sign in.";
+            alertBox.style.display = "block";
+          }
+
+          const loginEmail = document.getElementById("loginEmail");
+          const loginPass = document.getElementById("loginPassword");
+          if (loginEmail) loginEmail.value = currentResetEmail;
+          if (loginPass) {
+            loginPass.value = newPwd;
+            loginPass.focus();
+          }
+        } else {
+          errBox.textContent = result.message || "Could not update password.";
+          errBox.style.display = "block";
+        }
+      } catch (err) {
+        errBox.textContent = "Network error updating password. Please try again.";
+        errBox.style.display = "block";
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Save Password";
+      }
+    }
+
+    /* =====================================================
+        3. AUTO-LOGIN CHECK & REMEMBER ME PERSISTENCE
+    ===================================================== */
+    document.addEventListener("DOMContentLoaded", async () => {
+      const emailInput = document.getElementById('loginEmail');
+      const passwordInput = document.getElementById('loginPassword');
+      const loginForm = document.querySelector('form');
+
+      // 1. Check if user already has an active session on the server
+      try {
+        const resp = await fetch('/api/current-user');
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data.authenticated && data.user_id) {
+            window.location.replace("{{ url_for('landpage') }}");
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn("Session check bypass:", err);
+      }
+
+      // 2. Autofill credentials from localStorage if previously saved
+      const savedEmail = localStorage.getItem("rmc_saved_email");
+      const savedPassword = localStorage.getItem("rmc_saved_password");
+
+      if (savedEmail && emailInput && !emailInput.value) {
+        emailInput.value = savedEmail;
+      }
+      if (savedPassword && passwordInput && !passwordInput.value) {
+        passwordInput.value = savedPassword;
+      }
+
+      // 3. Save credentials upon form submission
+      if (loginForm) {
+        loginForm.addEventListener("submit", () => {
           if (emailInput && emailInput.value.trim()) {
             localStorage.setItem("rmc_saved_email", emailInput.value.trim());
           }
           if (passwordInput && passwordInput.value.trim()) {
             localStorage.setItem("rmc_saved_password", passwordInput.value.trim());
           }
-          localStorage.setItem("rmc_remember_me", "true");
-        } else {
-          localStorage.removeItem("rmc_saved_email");
-          localStorage.removeItem("rmc_saved_password");
-          localStorage.setItem("rmc_remember_me", "false");
-        }
-      });
-    }
-  });
-</script>
-
+        });
+      }
+    });
+  </script>
 </body>
-</html>

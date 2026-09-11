@@ -866,8 +866,28 @@
         },
         payload => {
           if (payload.new) {
-            notificationsList.unshift(payload.new);
-            renderNotifications();
+            if (!notificationsList.some(n => String(n.id) === String(payload.new.id))) {
+              notificationsList.unshift(payload.new);
+              renderNotifications();
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${parsedUid}`
+        },
+        payload => {
+          if (payload.new) {
+            const idx = notificationsList.findIndex(n => String(n.id) === String(payload.new.id));
+            if (idx !== -1) {
+              notificationsList[idx] = payload.new;
+              renderNotifications();
+            }
           }
         }
       )
@@ -892,13 +912,14 @@
   function getIcon(title = '', type = '') {
     const lower = String(title).toLowerCase();
     const typeLower = String(type).toLowerCase();
+    if (typeLower === 'group_mention' || lower.includes('@all') || lower.includes('📢')) return '📢';
     if (typeLower === 'private_message' || lower.includes('message') || lower.includes('chat') || lower.includes('💬')) return '💬';
+    if (typeLower === 'student_submission' || lower.includes('submission') || lower.includes('turned in') || lower.includes('submitted')) return '📥';
     if (lower.includes('penalty') || lower.includes('critical') || lower.includes('missed')) return '🚨';
     if (lower.includes('left') || lower.includes('warning') || lower.includes('deadline') || lower.includes('minutes') || lower.includes('hours')) return '⏰';
-    if (lower.includes('submission') || lower.includes('turned in') || lower.includes('submitted')) return '📥';
-    if (type === 'activity' || lower.includes('activity') || lower.includes('assignment') || lower.includes('quiz')) return '📝';
-    if (type === 'lesson' || lower.includes('lesson') || lower.includes('material')) return '📚';
-    if (type === 'grade' || lower.includes('grade') || lower.includes('score') || lower.includes('evaluated')) return '💯';
+    if (typeLower === 'activity' || lower.includes('activity') || lower.includes('assignment') || lower.includes('quiz')) return '📝';
+    if (typeLower === 'lesson' || lower.includes('lesson') || lower.includes('material')) return '📚';
+    if (typeLower === 'grade' || lower.includes('grade') || lower.includes('score') || lower.includes('evaluated')) return '💯';
     if (lower.includes('joined') || lower.includes('enrolled')) return '👥';
     return '🔔';
   }
@@ -971,46 +992,8 @@
       const card = document.createElement('div');
       card.className = `notif-card ${!isRead ? 'unread' : ''}`;
 
-      const lowerTitle = String(notif.title || '').toLowerCase();
-      const notifType = String(notif.type || '').toLowerCase();
-      let defaultLink = homeUrl;
-
-      const isChat = notifType === 'private_message' || 
-                     lowerTitle.includes('message') || 
-                     lowerTitle.includes('consultation') || 
-                     lowerTitle.includes('chat') || 
-                     lowerTitle.includes('💬');
-
-      if (isChat) {
-        defaultLink = messageTeacherUrl;
-      } else if (userRole === "TEACHER" || userRole === "ADMIN") {
-        if (lowerTitle.includes('submission') || lowerTitle.includes('turned in')) {
-          defaultLink = submissionsUrl;
-        } else if (lowerTitle.includes('grade') || lowerTitle.includes('score')) {
-          defaultLink = gradesUrl;
-        } else {
-          defaultLink = homeUrl;
-        }
-      } else {
-        // STUDENT POV
-        if (lowerTitle.includes('grade') || lowerTitle.includes('score')) {
-          defaultLink = reviewUrl;
-        } else if (lowerTitle.includes('lesson')) {
-          defaultLink = lessonsUrl;
-        } else if (notif.activity_id || lowerTitle.includes('activity') || lowerTitle.includes('deadline') || lowerTitle.includes('penalty') || lowerTitle.includes('left')) {
-          defaultLink = activitySubmitUrl;
-        } else {
-          defaultLink = studentGradesUrl;
-        }
-      }
-
-      const targetLink = notif.link || defaultLink;
-      const actId = notif.activity_id || notif.target_id || '';
-      const subId = notif.submission_id || '';
-      const classCode = notif.class_code || '';
-
       card.innerHTML = `
-        <div class="notif-content" onclick="handleNotificationClick('${escapeJsString(notif.id)}', '${escapeJsString(targetLink)}', ${isRead}, '${escapeJsString(actId)}', '${escapeJsString(subId)}', '${escapeJsString(classCode)}', ${index})">
+        <div class="notif-content" onclick="handleNotificationClick('${escapeJsString(notif.id)}', event, ${index})">
           <div class="notif-title-row">
             <span class="notif-type-icon">${getIcon(notif.title, notif.type)}</span>
             <span class="notif-title">${escapeHtml(notif.title || 'Notification')}</span>
@@ -1029,7 +1012,7 @@
   }
 
   /* =====================================================
-      4. NOTIFICATION USER ACTIONS (CHAT-AWARE)
+      4. NOTIFICATION USER ACTIONS & INTELLIGENT ROUTING
   ===================================================== */
   window.filterNotifications = function (filter) {
     currentFilter = filter;
@@ -1040,41 +1023,46 @@
     renderNotifications();
   };
 
-  window.handleNotificationClick = async function (id, targetLink, isAlreadyRead, activityId, submissionId, classCode, notifIndex) {
+  window.handleNotificationClick = async function (id, eventOrLink, notifIndex) {
     const client = getSupabaseClient();
-    if (client && !isAlreadyRead) {
+    const notif = (typeof notifIndex === 'number' && notificationsList[notifIndex]) 
+      ? notificationsList[notifIndex] 
+      : (notificationsList.find(n => String(n.id) === String(id)) || {});
+
+    const isAlreadyRead = notif.is_read || notif.read || false;
+
+    if (client && !isAlreadyRead && id) {
       const notifSearchIds = getDualTypeIds([id]);
       await client
         .from('notifications')
         .update({ is_read: true })
         .in('id', notifSearchIds);
+      notif.is_read = true;
+      notif.read = true;
     }
-
-    const notif = (typeof notifIndex === 'number' && notificationsList[notifIndex]) 
-      ? notificationsList[notifIndex] 
-      : (notificationsList.find(n => String(n.id) === String(id)) || {});
 
     const lowerTitle = String(notif.title || '').toLowerCase();
     const notifType = String(notif.type || '').toLowerCase();
+    const actId = notif.activity_id || notif.target_id || '';
+    const subId = notif.submission_id || '';
+    const classCode = notif.class_code || '';
+
+    // 1. Private Chat Notification Routing
     const isChat = notifType === 'private_message' || 
                    lowerTitle.includes('message') || 
                    lowerTitle.includes('consultation') || 
                    lowerTitle.includes('chat') || 
                    lowerTitle.includes('💬');
 
-    // 💬 CHAT ROUTING LOGIC: Set localStorage context and open consultation room
     if (isChat) {
       let partnerName = notif.sender_name || '';
       if (!partnerName && notif.title) {
         const match = notif.title.match(/(?:from|ni)\s+(.+)$/i);
-        if (match && match[1]) {
-          partnerName = match[1].trim();
-        }
+        if (match && match[1]) partnerName = match[1].trim();
       }
 
       let partnerId = notif.sender_id || null;
 
-      // If sender_id was not recorded, resolve user ID by full_name
       if (!partnerId && partnerName && client) {
         try {
           const { data: userMatch } = await client
@@ -1082,15 +1070,12 @@
             .select('id, full_name')
             .ilike('full_name', partnerName)
             .maybeSingle();
-          if (userMatch && userMatch.id) {
-            partnerId = userMatch.id;
-          }
+          if (userMatch && userMatch.id) partnerId = userMatch.id;
         } catch (e) {
           console.warn("Could not resolve sender by name:", e);
         }
       }
 
-      // Fallback: Query private_messages for the latest exchange with the current user
       if (!partnerId && client) {
         try {
           const myIds = getDualTypeIds([currentUserId]);
@@ -1134,23 +1119,79 @@
       }
     }
 
-    // Standard Academic Flow
-    if (activityId && activityId !== 'undefined' && activityId !== 'null' && activityId !== '') {
-      localStorage.setItem("selectedActivityId", String(activityId));
-    }
-    if (submissionId && submissionId !== 'undefined' && submissionId !== 'null' && submissionId !== '') {
-      localStorage.setItem("selectedSubmissionId", String(submissionId));
-    }
-    if (classCode && classCode !== 'undefined' && classCode !== 'null' && classCode !== '') {
-      localStorage.setItem("selectedClass", classCode);
-    }
-    localStorage.removeItem("isArchivedView");
+    // 2. Intelligent Academic & Group Routing
+    let finalTargetUrl = notif.link || "";
 
-    window.location.href = targetLink;
+    if (!finalTargetUrl) {
+      if (notifType === 'group_mention' || lowerTitle.includes('@all')) {
+        finalTargetUrl = classCode ? `${groupPageUrl}?code=${encodeURIComponent(classCode)}` : groupPageUrl;
+      } else if (userRole === "TEACHER" || userRole === "ADMIN") {
+        if (notifType === 'student_submission' || lowerTitle.includes('turned in') || lowerTitle.includes('work submitted') || lowerTitle.includes('submission')) {
+          if (actId) {
+            finalTargetUrl = `${studentWorkUrl}?activity_id=${encodeURIComponent(actId)}&submission_id=${encodeURIComponent(subId)}&class_code=${encodeURIComponent(classCode)}`;
+          } else {
+            finalTargetUrl = submissionsUrl;
+          }
+        } else if (notifType === 'activity' || lowerTitle.includes('activity') || lowerTitle.includes('assignment')) {
+          // Teacher viewing submissions for the created activity
+          finalTargetUrl = actId ? `${submissionsUrl}?activity_id=${encodeURIComponent(actId)}&class_code=${encodeURIComponent(classCode)}` : submissionsUrl;
+        } else if (lowerTitle.includes('grade') || lowerTitle.includes('score')) {
+          finalTargetUrl = gradesUrl;
+        } else {
+          finalTargetUrl = homeUrl;
+        }
+      } else {
+        // STUDENT POV
+        if (lowerTitle.includes('grade') || lowerTitle.includes('score') || lowerTitle.includes('evaluated')) {
+          finalTargetUrl = actId ? `${activitySubmitUrl}?activity_id=${encodeURIComponent(actId)}` : reviewUrl;
+        } else if (notifType === 'lesson' || lowerTitle.includes('lesson')) {
+          finalTargetUrl = lessonsUrl;
+        } else if (actId || notifType === 'activity' || lowerTitle.includes('activity') || lowerTitle.includes('deadline') || lowerTitle.includes('penalty') || lowerTitle.includes('left')) {
+          finalTargetUrl = actId ? `${activitySubmitUrl}?activity_id=${encodeURIComponent(actId)}` : activitySubmitUrl;
+        } else {
+          finalTargetUrl = studentGradesUrl;
+        }
+      }
+    }
+
+    // 3. Synchronize Context in localStorage
+    if (actId) localStorage.setItem("selectedActivityId", String(actId));
+    if (subId) localStorage.setItem("selectedSubmissionId", String(subId));
+    if (classCode) {
+      localStorage.setItem("selectedClass", classCode);
+      localStorage.setItem("selectedGroup", classCode);
+    }
+
+    // Parse URL query parameters to ensure complete context sync
+    try {
+      const parsedUrl = new URL(finalTargetUrl, window.location.origin);
+      const qAct = parsedUrl.searchParams.get('activity_id');
+      const qSub = parsedUrl.searchParams.get('submission_id');
+      const qStu = parsedUrl.searchParams.get('student_id');
+      const qCls = parsedUrl.searchParams.get('class_id');
+      const qCode = parsedUrl.searchParams.get('class_code') || parsedUrl.searchParams.get('code') || parsedUrl.searchParams.get('group');
+
+      if (qAct) localStorage.setItem("selectedActivityId", String(qAct));
+      if (qSub) localStorage.setItem("selectedSubmissionId", String(qSub));
+      if (qStu) {
+        localStorage.setItem("selectedStudentId", String(qStu));
+        localStorage.setItem("gradingStudentId", String(qStu));
+      }
+      if (qCls) localStorage.setItem("selectedClassId", String(qCls));
+      if (qCode) {
+        localStorage.setItem("selectedClass", qCode);
+        localStorage.setItem("selectedGroup", qCode);
+      }
+    } catch (e) {
+      console.warn("Target URL parsing notice:", e);
+    }
+
+    localStorage.removeItem("isArchivedView");
+    window.location.href = finalTargetUrl;
   };
 
   window.deleteNotification = async function (e, id) {
-    e.stopPropagation();
+    if (e) e.stopPropagation();
     const client = getSupabaseClient();
     if (client) {
       const notifSearchIds = getDualTypeIds([id]);
@@ -1200,7 +1241,7 @@
   };
 
   /* =====================================================
-      5. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA)
+      5. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA SAFE)
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();

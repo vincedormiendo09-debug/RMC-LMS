@@ -540,8 +540,8 @@
         </div>
       </div>
 
+      <!-- PERSONAL & ACADEMIC DETAILS FORM -->
       <form id="accountForm">
-        <!-- PERSONAL INFORMATION SECTION -->
         <div class="section-title">Personal Details</div>
 
         <label for="fullName">Full Name:</label>
@@ -558,7 +558,7 @@
 
         <!-- ACADEMIC DETAILS SECTION (STUDENTS ONLY) -->
         <div id="studentAcademicSection" style="display: none;">
-          <div class="section-title">Academic Profile</div>
+          <div class="section-title" style="margin-top: 24px;">Academic Profile</div>
 
           <label for="studentId">Student ID Number:</label>
           <input type="text" id="studentId" disabled placeholder="RMC-2026-XXXX">
@@ -596,578 +596,980 @@
         <!-- LOCK NOTICE FOR TEACHERS AND ADMINS -->
         <div class="lock-notice" id="lockNotice" style="display: none;">
           <i class="fa-solid fa-lock" style="font-size: 18px; color: #64748b;"></i>
-          <span>Account details for Teachers and Administrators are managed by the Registrar. Contact the System Administrator for updates.</span>
+          <span>Official profile records for Teachers and Administrators are managed by the Registrar. Contact the System Administrator for classification updates.</span>
         </div>
 
         <!-- BOTTOM BUTTON BAR -->
-        <div class="btn-row">
+        <div class="btn-row" style="margin-top: 20px;">
           <a href="{{ url_for('landpage') }}" class="back-btn">← Back</a>
           <button type="button" id="actionBtn" class="action-btn" onclick="handleActionClick()" style="display: none;">
             <i class="fa-solid fa-pen-to-square"></i> Update Academic Details
           </button>
         </div>
       </form>
+
+      <!-- ACCOUNT SECURITY / PASSWORD UPDATE SECTION -->
+      <div style="margin-top: 36px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+        <div class="section-title">Account Security</div>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 16px;">
+          Update your login password. Passwords must contain at least 6 characters.
+        </p>
+
+        <form id="passwordForm" onsubmit="event.preventDefault(); handlePasswordActionClick();">
+          <!-- CURRENT / OLD PASSWORD -->
+          <div style="margin-bottom: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <label for="oldPassword" style="margin: 0; font-weight: 600;">Current / Old Password: *</label>
+              <a href="javascript:void(0);" onclick="openForgotPasswordFlow()" style="font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 600;">
+                Forgot your password?
+              </a>
+            </div>
+            <input type="password" id="oldPassword" disabled required placeholder="Locked (Click 'Update Password' or 'Forgot your password?')">
+            <div id="otpBypassNotice" style="display: none; font-size: 12px; color: #16a34a; font-weight: 600; margin-top: 4px;">
+              ✅ Identity verified with 6-digit code. Old password bypassed.
+            </div>
+          </div>
+
+          <!-- NEW PASSWORD -->
+          <label for="newPassword">New Password: *</label>
+          <input type="password" id="newPassword" disabled required placeholder="Enter new password (min. 6 characters)" style="margin-bottom: 12px;">
+
+          <!-- CONFIRM NEW PASSWORD -->
+          <label for="confirmPassword">Confirm New Password: *</label>
+          <input type="password" id="confirmPassword" disabled required placeholder="Re-type new password" style="margin-bottom: 18px;">
+
+          <!-- PASSWORD ACTION BUTTON -->
+          <div class="btn-row">
+            <button type="button" id="passwordActionBtn" class="action-btn" onclick="handlePasswordActionClick()" style="background: #2563eb;">
+              <i class="fa-solid fa-pen-to-square"></i> Update Password
+            </button>
+          </div>
+        </form>
+      </div>
+
     </div>
   </main>
 
- <script>
-  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
-  window.addEventListener('pageshow', function (event) {
-    if (event.persisted) {
-      window.location.reload();
+  <!-- 6-DIGIT VERIFICATION CODE MODAL -->
+  <div id="otpModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); z-index: 99999; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(4px);">
+    <div style="background: #ffffff; border-radius: 12px; max-width: 420px; width: 100%; padding: 26px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); box-sizing: border-box;">
+      <div style="text-align: center; margin-bottom: 18px;">
+        <div style="font-size: 40px; margin-bottom: 6px;">🔐</div>
+        <h3 style="font-size: 18px; font-weight: 700; color: #1e293b; margin: 0 0 6px 0;">Enter 6-Digit Code</h3>
+        <p style="font-size: 13px; color: #64748b; margin: 0; line-height: 1.4;">
+          A temporary 6-digit verification code has been dispatched for account:<br>
+          <strong id="otpTargetEmail" style="color: #0f172a;">user@example.com</strong>
+        </p>
+      </div>
+
+      <div style="margin-bottom: 18px;">
+        <label for="otpInput" style="display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 8px; text-align: center;">Enter 6-Digit Code:</label>
+        <input type="text" id="otpInput" maxlength="6" placeholder="······"
+          style="width: 100%; text-align: center; font-size: 30px; font-family: monospace; font-weight: 700; letter-spacing: 12px; padding: 10px; border: 2px solid #94a3b8; border-radius: 8px; outline: none; box-sizing: border-box; background: #f8fafc;"
+          oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        <div id="otpErrorMsg" style="color: #ef4444; font-size: 12px; margin-top: 6px; text-align: center; display: none; font-weight: 600;"></div>
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button type="button" onclick="closeOtpModal()" style="padding: 10px 16px; font-size: 13px; font-weight: 600; border: 1px solid #cbd5e1; background: #ffffff; color: #475569; border-radius: 6px; cursor: pointer;">
+          Cancel
+        </button>
+        <button type="button" id="verifyOtpBtn" onclick="verifyOtpCode()" style="padding: 10px 18px; font-size: 13px; font-weight: 600; border: none; background: #2563eb; color: #ffffff; border-radius: 6px; cursor: pointer;">
+          Verify & Unlock
+        </button>
+      </div>
+
+      <div style="text-align: center; margin-top: 16px;">
+        <a href="javascript:void(0);" onclick="resendOtpCode()" style="font-size: 12px; color: #2563eb; text-decoration: none; font-weight: 600;">
+          Didn't receive the code? Resend
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    });
+
+    /* =====================================================
+        0. TYPE-SAFE ID HELPERS & ESCAPE UTILITIES
+    ===================================================== */
+    function parseDbId(idVal) {
+      if (!idVal) return idVal;
+      if (typeof idVal === 'number') return idVal;
+      const str = String(idVal).trim();
+      return /^\d+$/.test(str) ? parseInt(str, 10) : str;
     }
-  });
 
-  /* =====================================================
-      0. TYPE-SAFE ID HELPERS
-  ===================================================== */
-  function parseDbId(idVal) {
-    if (!idVal) return idVal;
-    if (typeof idVal === 'number') return idVal;
-    const str = String(idVal).trim();
-    return /^\d+$/.test(str) ? parseInt(str, 10) : str;
-  }
+    function getDualTypeIds(idArray) {
+      const result = new Set();
+      (idArray || []).forEach(id => {
+        if (id !== null && id !== undefined && id !== '') {
+          result.add(String(id));
+          const num = parseDbId(id);
+          if (typeof num === 'number' && !isNaN(num)) {
+            result.add(num);
+          }
+        }
+      });
+      return Array.from(result);
+    }
 
-  function getDualTypeIds(idArray) {
-    const result = new Set();
-    (idArray || []).forEach(id => {
-      if (id !== null && id !== undefined && id !== '') {
-        result.add(String(id));
-        const num = parseDbId(id);
-        if (typeof num === 'number' && !isNaN(num)) {
-          result.add(num);
+    function escapeHtml(text) {
+      if (!text) return "";
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function setSelectValueFuzzy(selectEl, rawVal) {
+      if (!selectEl || !rawVal) return;
+      const target = String(rawVal).trim().toLowerCase();
+      for (let i = 0; i < selectEl.options.length; i++) {
+        const opt = selectEl.options[i];
+        const valLower = opt.value.toLowerCase();
+        const textLower = opt.textContent.toLowerCase();
+        if (valLower === target || textLower === target || textLower.includes(target) || target.includes(valLower)) {
+          selectEl.selectedIndex = i;
+          return;
         }
       }
-    });
-    return Array.from(result);
-  }
-
-  /* =====================================================
-      1. USER SESSION & ROLE PROTECTION
-  ===================================================== */
-  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "STUDENT";
-  const userRole = rawRole.toUpperCase();
-  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
-  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
-
-  const badgeElem = document.getElementById("userRoleBadge");
-  const nameElem = document.getElementById("sidebarUserName");
-  if (badgeElem) badgeElem.textContent = userRole;
-  if (nameElem) nameElem.textContent = userName;
-
-  // Flask Route URLs
-  const homeUrl = "{{ url_for('landpage') }}";
-  const createUrl = "{{ url_for('create_page') }}";
-  const joinUrl = "{{ url_for('join_page') }}";
-  const calendarUrl = "{{ url_for('calendar_page') }}";
-  const myDashboardUrl = "{{ url_for('dashboard_page') }}";
-  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
-  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
-  const privateMessageInboxUrl = "private-message.html";
-  const gradesUrl = "{{ url_for('grades_page') }}";
-  const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
-  const submissionsUrl = "{{ url_for('submissions_page') }}";
-  const archiveUrl = "{{ url_for('archive_page') }}";
-  const notifyUrl = "{{ url_for('notify_page') }}";
-  const accountUrl = "{{ url_for('account_page') }}";
-  const classPageUrl = "{{ url_for('class_page') }}";
-  const groupPageUrl = "{{ url_for('group_page') }}";
-
-  const sidebarMenu = document.getElementById("sidebarMenu");
-
-  if (userRole === "ADMIN") {
-    // 🔒 STANDARDIZED ADMIN AUDITOR MENU
-    sidebarMenu.innerHTML = `
-      <a href="${homeUrl}">🏠 Institutional Hub</a>
-      <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
-      <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
-      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
-      <a href="${gradesUrl}">💯 Master Gradebook</a>
-      <a href="${archiveUrl}">📦 Archival Vault</a>
-      <a href="${notifyUrl}">🔔 System Alerts</a>
-      <a href="${accountUrl}" class="active">👤 Account Profile</a>
-    `;
-  } else if (userRole === "TEACHER") {
-    sidebarMenu.innerHTML = `
-      <a href="${homeUrl}">🏠 Home</a>
-      <a href="${createUrl}">➕ Create Class/Group</a>
-      <a href="${calendarUrl}">📅 Calendar</a>
-      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
-      <a href="${classDashboardUrl}">📊 Class Dashboard</a>
-      <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
-      <a href="${gradesUrl}">💯 Grades</a>
-      <a href="${submissionsUrl}">📝 Submissions</a>
-      <a href="${archiveUrl}">📦 Archive</a>
-      <a href="${notifyUrl}">🔔 Notifications</a>
-      <a href="${accountUrl}" class="active">👤 Account</a>
-    `;
-  } else {
-    // STUDENT POV
-    sidebarMenu.innerHTML = `
-      <a href="${homeUrl}">🏠 Home</a>
-      <a href="${joinUrl}">🔑 Join Class/Group</a>
-      <a href="${calendarUrl}">📅 Calendar</a>
-      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
-      <a href="${myDashboardUrl}">📊 My Dashboard</a>
-      <a href="${studentGradesUrl}">💯 My Grades</a>
-      <a href="${notifyUrl}">🔔 Notifications</a>
-      <a href="${archiveUrl}">📦 Archive</a>
-      <a href="${accountUrl}" class="active">👤 Account</a>
-    `;
-  }
-
-  /* MOBILE SIDEBAR TOGGLE */
-  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-  const sidebar = document.getElementById('sidebar');
-
-  if (mobileMenuBtn && sidebar) {
-    mobileMenuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      sidebar.classList.toggle('active');
-    });
-
-    document.addEventListener('click', (e) => {
-      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
-        sidebar.classList.remove('active');
-      }
-    });
-  }
-
-  function logoutUser() {
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.replace("{{ url_for('logout') }}");
-  }
-
-  /* =====================================================
-      2. SUPABASE INITIALIZATION & USER DATA FETCH
-  ===================================================== */
-  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
-  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
-
-  function getSupabaseClient() {
-    if (window._supabase) return window._supabase;
-    const supabaseLib = window.supabase || window.Supabase;
-    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
-      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
-      return window._supabase;
-    }
-    return null;
-  }
-
-  let isEditMode = false;
-  let currentUserRecord = null;
-
-  document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(() => {
-      fetchUserProfileFromSupabase();
-      loadSidebarClasses();
-      loadSidebarGroups();
-      initPasswordFormListener();
-    }, 100);
-  });
-
-  /* =====================================================
-      3. LOAD USER PROFILE & APPLY ROLE PERMISSIONS
-  ===================================================== */
-  async function fetchUserProfileFromSupabase() {
-    const client = getSupabaseClient();
-    if (!client || !currentUserId) return;
-
-    const userSearchIds = getDualTypeIds([currentUserId]);
-
-    const { data: user, error } = await client
-      .from('users')
-      .select('*')
-      .in('id', userSearchIds)
-      .maybeSingle();
-
-    if (error || !user) {
-      console.error("Error fetching user profile:", error);
-      return;
     }
 
-    currentUserRecord = user;
+    /* =====================================================
+        1. USER SESSION & ROLE PROTECTION
+    ===================================================== */
+    const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "STUDENT";
+    const userRole = rawRole.toUpperCase();
+    const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+    const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
 
-    // Synchronize localStorage with latest database values
-    if (user.full_name) localStorage.setItem("full_name", user.full_name);
-    if (user.role) localStorage.setItem("role", user.role.toUpperCase());
+    const badgeElem = document.getElementById("userRoleBadge");
+    const nameElem = document.getElementById("sidebarUserName");
+    if (badgeElem) badgeElem.textContent = userRole;
+    if (nameElem) nameElem.textContent = userName;
 
-    // Header displays
-    const dispName = document.getElementById("displayUserName");
-    const dispEmail = document.getElementById("displayEmail");
-    if (dispName) dispName.textContent = user.full_name || userName;
-    if (dispEmail) dispEmail.textContent = user.email || "";
+    // Flask Route URLs
+    const homeUrl = "{{ url_for('landpage') }}";
+    const createUrl = "{{ url_for('create_page') }}";
+    const joinUrl = "{{ url_for('join_page') }}";
+    const calendarUrl = "{{ url_for('calendar_page') }}";
+    const myDashboardUrl = "{{ url_for('dashboard_page') }}";
+    const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+    const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+    const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+    const gradesUrl = "{{ url_for('grades_page') }}";
+    const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
+    const submissionsUrl = "{{ url_for('submissions_page') }}";
+    const archiveUrl = "{{ url_for('archive_page') }}";
+    const notifyUrl = "{{ url_for('notify_page') }}";
+    const accountUrl = "{{ url_for('account_page') }}";
+    const classPageUrl = "{{ url_for('class_page') }}";
+    const groupPageUrl = "{{ url_for('group_page') }}";
 
-    const roleBadge = document.getElementById("roleBadge");
-    if (roleBadge) {
-      roleBadge.textContent = userRole;
-      roleBadge.className = `role-badge ${userRole}`;
-    }
+    const sidebarMenu = document.getElementById("sidebarMenu");
 
-    // Core Identity Inputs (Permanently locked for security)
-    const fullNameInput = document.getElementById("fullName");
-    const emailInput = document.getElementById("email");
-    if (fullNameInput) {
-      fullNameInput.value = user.full_name || "";
-      fullNameInput.disabled = true;
-    }
-    if (emailInput) {
-      emailInput.value = user.email || "";
-      emailInput.disabled = true;
-    }
-
-    const actionBtn = document.getElementById("actionBtn");
-    const lockNotice = document.getElementById("lockNotice");
-    const studentSection = document.getElementById("studentAcademicSection");
-    const adminGroup = document.getElementById("adminPositionGroup");
-
-    if (userRole === "STUDENT") {
-      if (studentSection) studentSection.style.display = "block";
-      if (adminGroup) adminGroup.style.display = "none";
-      if (lockNotice) lockNotice.style.display = "none";
-      if (actionBtn) actionBtn.style.display = "inline-flex";
-
-      const sid = document.getElementById("studentId");
-      const crs = document.getElementById("courseProgram");
-      const yr = document.getElementById("yearLevel");
-      const sec = document.getElementById("sectionBlock");
-
-      if (sid) {
-        sid.value = user.student_id || "";
-        sid.disabled = true; // Student ID is issued officially; locked
-      }
-      if (crs) {
-        crs.value = user.course || "";
-        crs.disabled = true;
-      }
-      if (yr) {
-        yr.value = user.year_level || "";
-        yr.disabled = true;
-      }
-      if (sec) {
-        sec.value = user.section || "";
-        sec.disabled = true;
-      }
-
-    } else if (userRole === "ADMIN") {
-      if (studentSection) studentSection.style.display = "none";
-      if (adminGroup) adminGroup.style.display = "block";
-      if (lockNotice) lockNotice.style.display = "flex";
-      if (actionBtn) actionBtn.style.display = "none";
-
-      const pos = document.getElementById("adminPosition");
-      if (pos) {
-        pos.value = user.position || "Institutional Registrar / Administrator";
-        pos.disabled = true;
-      }
-
+    if (userRole === "ADMIN") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Institutional Hub</a>
+        <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
+        <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${gradesUrl}">💯 Master Gradebook</a>
+        <a href="${archiveUrl}">📦 Archival Vault</a>
+        <a href="${notifyUrl}">🔔 System Alerts</a>
+        <a href="${accountUrl}" class="active">👤 Account Profile</a>
+      `;
+    } else if (userRole === "TEACHER") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}">➕ Create Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${gradesUrl}">💯 Grades</a>
+        <a href="${submissionsUrl}">📝 Submissions</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}" class="active">👤 Account</a>
+      `;
     } else {
-      // TEACHER
-      if (studentSection) studentSection.style.display = "none";
-      if (adminGroup) adminGroup.style.display = "none";
-      if (lockNotice) lockNotice.style.display = "flex";
-      if (actionBtn) actionBtn.style.display = "none";
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${joinUrl}">🔑 Join Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${myDashboardUrl}">📊 My Dashboard</a>
+        <a href="${studentGradesUrl}">💯 My Grades</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${accountUrl}" class="active">👤 Account</a>
+      `;
     }
-  }
 
-  /* =====================================================
-      4. STUDENT EDIT/SAVE ACTION LOGIC
-  ===================================================== */
-  async function handleActionClick() {
-    if (userRole !== "STUDENT") return;
+    /* MOBILE SIDEBAR TOGGLE */
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const sidebar = document.getElementById('sidebar');
 
-    const courseSelect = document.getElementById("courseProgram");
-    const yearSelect = document.getElementById("yearLevel");
-    const sectionSelect = document.getElementById("sectionBlock");
-    const actionBtn = document.getElementById("actionBtn");
+    if (mobileMenuBtn && sidebar) {
+      mobileMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sidebar.classList.toggle('active');
+      });
 
-    if (!isEditMode) {
-      isEditMode = true;
-      if (courseSelect) courseSelect.disabled = false;
-      if (yearSelect) yearSelect.disabled = false;
-      if (sectionSelect) sectionSelect.disabled = false;
+      document.addEventListener('click', (e) => {
+        if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+          sidebar.classList.remove('active');
+        }
+      });
+    }
 
-      if (actionBtn) {
-        actionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save Academic Details`;
-        actionBtn.style.background = "var(--success)";
+    function logoutUser() {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace("{{ url_for('logout') }}");
+    }
+
+    /* =====================================================
+        2. SUPABASE INITIALIZATION & USER DATA FETCH
+    ===================================================== */
+    const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+    function getSupabaseClient() {
+      if (window._supabase) return window._supabase;
+      const supabaseLib = window.supabase || window.Supabase;
+      if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+        window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+        return window._supabase;
       }
-    } else {
-      const newCourse = courseSelect ? courseSelect.value.trim() : "";
-      const newYear = yearSelect ? yearSelect.value.trim() : "";
-      const newSection = sectionSelect ? sectionSelect.value.trim() : "";
+      return null;
+    }
 
-      if (!newCourse || !newYear || !newSection) {
-        alert("Please complete all academic details (Course Program, Year Level, and Section).");
-        return;
-      }
+    let isEditMode = false;
+    let isPasswordEditMode = false;
+    let isOtpBypassActive = false;
+    let activeOtpCode = null;
+    let otpExpiryTime = 0;
+    let currentUserRecord = null;
 
+    document.addEventListener("DOMContentLoaded", () => {
+      setTimeout(() => {
+        fetchUserProfileFromSupabase();
+        loadSidebarClasses();
+        loadSidebarGroups();
+      }, 100);
+    });
+
+    /* =====================================================
+        3. LOAD USER PROFILE & APPLY ROLE PERMISSIONS
+    ===================================================== */
+    async function fetchUserProfileFromSupabase() {
       const client = getSupabaseClient();
-      if (!client) return;
-
-      if (actionBtn) {
-        actionBtn.disabled = true;
-        actionBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
-      }
+      if (!client || !currentUserId) return;
 
       const userSearchIds = getDualTypeIds([currentUserId]);
 
-      const { error } = await client
+      const { data: user, error } = await client
         .from('users')
-        .update({
+        .select('*')
+        .in('id', userSearchIds)
+        .maybeSingle();
+
+      if (error || !user) {
+        console.error("Error fetching user profile:", error);
+        return;
+      }
+
+      currentUserRecord = user;
+
+      if (user.full_name) localStorage.setItem("full_name", user.full_name);
+      if (user.role) localStorage.setItem("role", user.role.toUpperCase());
+
+      // Header Displays
+      const dispName = document.getElementById("displayUserName");
+      const dispEmail = document.getElementById("displayEmail");
+      const avatarIcon = document.getElementById("avatarIcon");
+
+      if (dispName) dispName.textContent = user.full_name || userName;
+      if (dispEmail) dispEmail.textContent = user.email || "";
+
+      if (avatarIcon) {
+        if (userRole === "TEACHER") avatarIcon.textContent = "👨‍🏫";
+        else if (userRole === "ADMIN") avatarIcon.textContent = "🏛️";
+        else avatarIcon.textContent = "👨‍🎓";
+      }
+
+      const roleBadge = document.getElementById("roleBadge");
+      if (roleBadge) {
+        roleBadge.textContent = userRole;
+        roleBadge.className = `role-badge ${userRole}`;
+      }
+
+      // Core Identity Inputs (read-only)
+      const fullNameInput = document.getElementById("fullName");
+      const emailInput = document.getElementById("email");
+      if (fullNameInput) {
+        fullNameInput.value = user.full_name || "";
+        fullNameInput.disabled = true;
+      }
+      if (emailInput) {
+        emailInput.value = user.email || "";
+        emailInput.disabled = true;
+      }
+
+      const actionBtn = document.getElementById("actionBtn");
+      const lockNotice = document.getElementById("lockNotice");
+      const studentSection = document.getElementById("studentAcademicSection");
+      const adminGroup = document.getElementById("adminPositionGroup");
+
+      if (userRole === "STUDENT") {
+        if (studentSection) studentSection.style.display = "block";
+        if (adminGroup) adminGroup.style.display = "none";
+        if (lockNotice) lockNotice.style.display = "none";
+        if (actionBtn) actionBtn.style.display = "inline-flex";
+
+        const sid = document.getElementById("studentId");
+        const crs = document.getElementById("courseProgram");
+        const yr = document.getElementById("yearLevel");
+        const sec = document.getElementById("sectionBlock");
+
+        if (sid) {
+          sid.value = user.student_id || "";
+          sid.disabled = true;
+        }
+        if (crs) {
+          setSelectValueFuzzy(crs, user.course || "");
+          crs.disabled = true;
+        }
+        if (yr) {
+          setSelectValueFuzzy(yr, user.year_level || user.year || "");
+          yr.disabled = true;
+        }
+        if (sec) {
+          setSelectValueFuzzy(sec, user.section || "");
+          sec.disabled = true;
+        }
+
+      } else if (userRole === "ADMIN") {
+        if (studentSection) studentSection.style.display = "none";
+        if (adminGroup) adminGroup.style.display = "block";
+        if (lockNotice) lockNotice.style.display = "flex";
+        if (actionBtn) actionBtn.style.display = "none";
+
+        const pos = document.getElementById("adminPosition");
+        if (pos) {
+          pos.value = user.position || user.admin_position || "Institutional Registrar / Administrator";
+          pos.disabled = true;
+        }
+
+      } else {
+        // TEACHER
+        if (studentSection) studentSection.style.display = "none";
+        if (adminGroup) adminGroup.style.display = "none";
+        if (lockNotice) lockNotice.style.display = "flex";
+        if (actionBtn) actionBtn.style.display = "none";
+      }
+    }
+
+    /* =====================================================
+        4. STUDENT EDIT/SAVE ACADEMIC PROFILE
+    ===================================================== */
+    async function handleActionClick() {
+      if (userRole !== "STUDENT") return;
+
+      const courseSelect = document.getElementById("courseProgram");
+      const yearSelect = document.getElementById("yearLevel");
+      const sectionSelect = document.getElementById("sectionBlock");
+      const actionBtn = document.getElementById("actionBtn");
+
+      if (!isEditMode) {
+        isEditMode = true;
+        if (courseSelect) courseSelect.disabled = false;
+        if (yearSelect) yearSelect.disabled = false;
+        if (sectionSelect) sectionSelect.disabled = false;
+
+        if (actionBtn) {
+          actionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save Academic Details`;
+          actionBtn.style.background = "#16a34a";
+        }
+      } else {
+        const newCourse = courseSelect ? courseSelect.value.trim() : "";
+        const newYear = yearSelect ? yearSelect.value.trim() : "";
+        const newSection = sectionSelect ? sectionSelect.value.trim() : "";
+
+        if (!newCourse || !newYear || !newSection) {
+          alert("Please complete all academic details (Course Program, Year Level, and Section).");
+          return;
+        }
+
+        const client = getSupabaseClient();
+        if (!client) {
+          alert("Database connection unavailable.");
+          return;
+        }
+
+        if (actionBtn) {
+          actionBtn.disabled = true;
+          actionBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+        }
+
+        const userSearchIds = getDualTypeIds([currentUserId]);
+
+        let updatePayload = {
           course: newCourse,
           year_level: newYear,
           section: newSection
-        })
-        .in('id', userSearchIds);
+        };
 
-      if (error) {
-        alert("Error updating academic profile: " + error.message);
-        if (actionBtn) {
-          actionBtn.disabled = false;
-          actionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save Academic Details`;
-        }
-      } else {
-        alert("🎉 Academic classification updated successfully!");
+        let { error } = await client
+          .from('users')
+          .update(updatePayload)
+          .in('id', userSearchIds);
 
-        if (courseSelect) courseSelect.disabled = true;
-        if (yearSelect) yearSelect.disabled = true;
-        if (sectionSelect) sectionSelect.disabled = true;
-
-        isEditMode = false;
-        if (actionBtn) {
-          actionBtn.disabled = false;
-          actionBtn.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Update Academic Details`;
-          actionBtn.style.background = "var(--primary)";
+        if (error && (error.code === '42703' || (error.message && error.message.includes('year_level')))) {
+          delete updatePayload.year_level;
+          updatePayload.year = newYear;
+          const retryRes = await client.from('users').update(updatePayload).in('id', userSearchIds);
+          error = retryRes.error;
         }
 
-        fetchUserProfileFromSupabase();
+        if (error) {
+          alert("Error updating academic profile: " + error.message);
+          if (actionBtn) {
+            actionBtn.disabled = false;
+            actionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save Academic Details`;
+          }
+        } else {
+          alert("🎉 Academic classification updated successfully!");
+
+          localStorage.setItem("course", newCourse);
+          localStorage.setItem("year_level", newYear);
+          localStorage.setItem("section", newSection);
+
+          if (courseSelect) courseSelect.disabled = true;
+          if (yearSelect) yearSelect.disabled = true;
+          if (sectionSelect) sectionSelect.disabled = true;
+
+          isEditMode = false;
+          if (actionBtn) {
+            actionBtn.disabled = false;
+            actionBtn.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Update Academic Details`;
+            actionBtn.style.background = "";
+          }
+
+          fetchUserProfileFromSupabase();
+        }
       }
     }
-  }
 
-  /* =====================================================
-      5. OPTIONAL PASSWORD CHANGE FORM HANDLER
-  ===================================================== */
-  function initPasswordFormListener() {
-    const pwdForm = document.getElementById("passwordForm");
-    if (!pwdForm) return;
+    /* =====================================================
+        5. PASSWORD CHANGE & LOCK LOGIC
+    ===================================================== */
+    async function handlePasswordActionClick() {
+      const oldPwdInput = document.getElementById("oldPassword");
+      const newPwdInput = document.getElementById("newPassword");
+      const confirmPwdInput = document.getElementById("confirmPassword");
+      const pwdActionBtn = document.getElementById("passwordActionBtn");
 
-    pwdForm.addEventListener("submit", async function (e) {
-      e.preventDefault();
+      if (!isPasswordEditMode) {
+        // Unlock fields for editing
+        isPasswordEditMode = true;
+        isOtpBypassActive = false;
 
-      const newPwd = document.getElementById("newPassword")?.value.trim();
-      const confirmPwd = document.getElementById("confirmPassword")?.value.trim();
-      const submitBtn = document.getElementById("savePasswordBtn");
+        if (oldPwdInput) {
+          oldPwdInput.disabled = false;
+          oldPwdInput.value = "";
+          oldPwdInput.placeholder = "Enter your current password";
+          oldPwdInput.focus();
+        }
+        if (newPwdInput) {
+          newPwdInput.disabled = false;
+          newPwdInput.value = "";
+        }
+        if (confirmPwdInput) {
+          confirmPwdInput.disabled = false;
+          confirmPwdInput.value = "";
+        }
 
-      if (!newPwd || !confirmPwd) {
-        alert("Please provide both new password and confirmation.");
+        const notice = document.getElementById("otpBypassNotice");
+        if (notice) notice.style.display = "none";
+
+        if (pwdActionBtn) {
+          pwdActionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save New Password`;
+          pwdActionBtn.style.background = "#16a34a";
+        }
+      } else {
+        // Save Mode: Validate and persist
+        const oldPwd = oldPwdInput?.value.trim();
+        const newPwd = newPwdInput?.value.trim();
+        const confirmPwd = confirmPwdInput?.value.trim();
+
+        // If not verified via 6-digit OTP, require the old password
+        if (!isOtpBypassActive && !oldPwd) {
+          alert("Please enter your current/old password to authorize this change.");
+          if (oldPwdInput) oldPwdInput.focus();
+          return;
+        }
+
+        if (!newPwd || !confirmPwd) {
+          alert("Please enter and confirm your new password.");
+          if (newPwdInput) newPwdInput.focus();
+          return;
+        }
+
+        if (newPwd.length < 6) {
+          alert("Password must be at least 6 characters long.");
+          if (newPwdInput) newPwdInput.focus();
+          return;
+        }
+
+        if (newPwd !== confirmPwd) {
+          alert("New password and confirmation do not match.");
+          if (confirmPwdInput) confirmPwdInput.focus();
+          return;
+        }
+
+        const client = getSupabaseClient();
+        if (!client) {
+          alert("Database connection unavailable.");
+          return;
+        }
+
+        if (pwdActionBtn) {
+          pwdActionBtn.disabled = true;
+          pwdActionBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying...';
+        }
+
+        const userSearchIds = getDualTypeIds([currentUserId]);
+
+        // Step 1: Verify old password if OTP bypass was not used
+        if (!isOtpBypassActive) {
+          const { data: userVerify, error: verifyErr } = await client
+            .from('users')
+            .select('password')
+            .in('id', userSearchIds)
+            .maybeSingle();
+
+          if (verifyErr || !userVerify) {
+            alert("Security verification error: Unable to retrieve current user credentials.");
+            if (pwdActionBtn) {
+              pwdActionBtn.disabled = false;
+              pwdActionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save New Password`;
+            }
+            return;
+          }
+
+          if (String(userVerify.password) !== String(oldPwd)) {
+            alert("🛑 Incorrect Current Password: The password you entered does not match our records. Please click 'Forgot your password?' to verify with a 6-digit code.");
+            if (pwdActionBtn) {
+              pwdActionBtn.disabled = false;
+              pwdActionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save New Password`;
+            }
+            if (oldPwdInput) {
+              oldPwdInput.value = "";
+              oldPwdInput.focus();
+            }
+            return;
+          }
+
+          if (oldPwd === newPwd) {
+            alert("Your new password cannot be the same as your current password.");
+            if (pwdActionBtn) {
+              pwdActionBtn.disabled = false;
+              pwdActionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save New Password`;
+            }
+            return;
+          }
+        }
+
+        // Step 2: Persist new password to Supabase
+        if (pwdActionBtn) {
+          pwdActionBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating Password...';
+        }
+
+        const { error: updateErr } = await client
+          .from('users')
+          .update({ password: newPwd })
+          .in('id', userSearchIds);
+
+        if (updateErr) {
+          alert("Error updating password: " + updateErr.message);
+          if (pwdActionBtn) {
+            pwdActionBtn.disabled = false;
+            pwdActionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save New Password`;
+          }
+        } else {
+          alert("🎉 Password updated successfully! Your new password is now active.");
+
+          // Reset values and re-lock inputs
+          if (oldPwdInput) {
+            oldPwdInput.value = "";
+            oldPwdInput.disabled = true;
+            oldPwdInput.placeholder = "Locked (Click 'Update Password' or 'Forgot your password?')";
+          }
+          if (newPwdInput) {
+            newPwdInput.value = "";
+            newPwdInput.disabled = true;
+          }
+          if (confirmPwdInput) {
+            confirmPwdInput.value = "";
+            confirmPwdInput.disabled = true;
+          }
+
+          const notice = document.getElementById("otpBypassNotice");
+          if (notice) notice.style.display = "none";
+
+          isPasswordEditMode = false;
+          isOtpBypassActive = false;
+
+          if (pwdActionBtn) {
+            pwdActionBtn.disabled = false;
+            pwdActionBtn.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Update Password`;
+            pwdActionBtn.style.background = "#2563eb";
+          }
+
+          if (currentUserRecord) {
+            currentUserRecord.password = newPwd;
+          }
+        }
+      }
+    }
+
+    /* =====================================================
+        6. 6-DIGIT VERIFICATION CODE FLOW (EMAIL DISPATCH)
+    ===================================================== */
+    async function openForgotPasswordFlow() {
+      const targetEmail = currentUserRecord?.email || "{{ session.get('email', '') }}";
+      if (!targetEmail) {
+        alert("No registered email address found for this account. Please contact the administrator.");
         return;
       }
 
-      if (newPwd.length < 6) {
-        alert("Password must be at least 6 characters long.");
+      const emailDisplay = document.getElementById("otpTargetEmail");
+      if (emailDisplay) emailDisplay.textContent = targetEmail;
+
+      const otpInput = document.getElementById("otpInput");
+      const errBox = document.getElementById("otpErrorMsg");
+      if (otpInput) otpInput.value = "";
+      if (errBox) errBox.style.display = "none";
+
+      const modal = document.getElementById("otpModal");
+      if (modal) modal.style.display = "flex";
+
+      // Dispatch code securely through the backend mailer
+      try {
+        const resp = await fetch('/api/send-password-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: targetEmail })
+        });
+        const result = await resp.json();
+
+        if (resp.ok && result.success) {
+          alert(`🔐 Verification Code Dispatched:\n\nA 6-digit security code has been sent directly to ${targetEmail}.\n\nPlease check your inbox (and spam folder) and enter the code below to verify ownership.`);
+        } else {
+          alert(`⚠️ ${result.message || 'Could not send verification email. Please try again later.'}`);
+        }
+      } catch (err) {
+        console.error("OTP send error:", err);
+        alert("Network error: Could not reach email dispatch service. Please try again.");
+      }
+
+      if (otpInput) otpInput.focus();
+    }
+
+    function closeOtpModal() {
+      const modal = document.getElementById("otpModal");
+      if (modal) modal.style.display = "none";
+    }
+
+    async function resendOtpCode() {
+      const targetEmail = currentUserRecord?.email || "{{ session.get('email', '') }}";
+      const otpInput = document.getElementById("otpInput");
+      const errBox = document.getElementById("otpErrorMsg");
+      if (errBox) errBox.style.display = "none";
+
+      try {
+        const resp = await fetch('/api/send-password-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: targetEmail })
+        });
+        const result = await resp.json();
+
+        if (resp.ok && result.success) {
+          alert(`📨 Code Resent:\n\nA fresh 6-digit code has been dispatched to ${targetEmail}.`);
+        } else {
+          alert(`⚠️ ${result.message || 'Failed to resend code.'}`);
+        }
+      } catch (err) {
+        alert("Network error: Unable to resend verification email.");
+      }
+
+      if (otpInput) {
+        otpInput.value = "";
+        otpInput.focus();
+      }
+    }
+
+    async function verifyOtpCode() {
+      const otpInput = document.getElementById("otpInput");
+      const errBox = document.getElementById("otpErrorMsg");
+      const verifyBtn = document.getElementById("verifyOtpBtn");
+      const enteredCode = (otpInput ? otpInput.value : "").trim();
+
+      if (!enteredCode || enteredCode.length !== 6) {
+        if (errBox) {
+          errBox.textContent = "Please enter the complete 6-digit code.";
+          errBox.style.display = "block";
+        }
         return;
       }
 
-      if (newPwd !== confirmPwd) {
-        alert("New password and confirmation do not match.");
-        return;
+      if (verifyBtn) {
+        verifyBtn.disabled = true;
+        verifyBtn.textContent = "Verifying...";
       }
 
+      try {
+        const resp = await fetch('/api/verify-password-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: enteredCode })
+        });
+        const result = await resp.json();
+
+        if (resp.ok && result.valid) {
+          // Identity verified exclusively via email receipt
+          closeOtpModal();
+          isPasswordEditMode = true;
+          isOtpBypassActive = true;
+
+          const oldPwdInput = document.getElementById("oldPassword");
+          const newPwdInput = document.getElementById("newPassword");
+          const confirmPwdInput = document.getElementById("confirmPassword");
+          const pwdActionBtn = document.getElementById("passwordActionBtn");
+          const notice = document.getElementById("otpBypassNotice");
+
+          if (oldPwdInput) {
+            oldPwdInput.disabled = true;
+            oldPwdInput.value = "••••••••••••";
+          }
+          if (notice) notice.style.display = "block";
+
+          if (newPwdInput) {
+            newPwdInput.disabled = false;
+            newPwdInput.value = "";
+            newPwdInput.focus();
+          }
+          if (confirmPwdInput) {
+            confirmPwdInput.disabled = false;
+            confirmPwdInput.value = "";
+          }
+
+          if (pwdActionBtn) {
+            pwdActionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save New Password`;
+            pwdActionBtn.style.background = "#16a34a";
+          }
+
+          alert("✅ Email Identity Verified!\n\nYou can now set your new password below.");
+        } else {
+          if (errBox) {
+            errBox.textContent = result.message || "Invalid or expired code. Please check your inbox.";
+            errBox.style.display = "block";
+          }
+        }
+      } catch (err) {
+        if (errBox) {
+          errBox.textContent = "Server verification error. Please try again.";
+          errBox.style.display = "block";
+        }
+      } finally {
+        if (verifyBtn) {
+          verifyBtn.disabled = false;
+          verifyBtn.textContent = "Verify & Unlock";
+        }
+      }
+    }
+
+    /* =====================================================
+        7. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA SAFE)
+    ===================================================== */
+    async function loadSidebarClasses() {
       const client = getSupabaseClient();
       if (!client) return;
 
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating Password...';
-      }
+      const sidebarClassList = document.getElementById("sidebarClassList");
+      if (!sidebarClassList) return;
+      sidebarClassList.innerHTML = "";
 
       const userSearchIds = getDualTypeIds([currentUserId]);
+      let myClasses = [];
 
-      const { error } = await client
-        .from('users')
-        .update({ password: newPwd })
-        .in('id', userSearchIds);
+      try {
+        if (userRole === "TEACHER" && userSearchIds.length > 0) {
+          const { data } = await client
+            .from('classes')
+            .select('id, subject, code, status')
+            .eq('status', 'active')
+            .in('teacher_id', userSearchIds)
+            .order('created_at', { ascending: false });
+          myClasses = data || [];
+        } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+          const [memUser, memStudent] = await Promise.all([
+            client.from('class_memberships').select('class_id').in('user_id', userSearchIds),
+            client.from('class_memberships').select('class_id').in('student_id', userSearchIds)
+          ]);
 
-      if (error) {
-        alert("Error updating password: " + error.message);
-      } else {
-        alert("🎉 Password updated successfully!");
-        pwdForm.reset();
-      }
+          const combinedMems = [...(memUser.data || []), ...(memStudent.data || [])];
 
-      if (submitBtn) {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fa-solid fa-key"></i> Update Password';
-      }
-    });
-  }
-
-  /* =====================================================
-      6. LOAD SIDEBAR CLASSES & GROUPS (TWO-STEP QUERY)
-  ===================================================== */
-  async function loadSidebarClasses() {
-    const client = getSupabaseClient();
-    if (!client) return;
-
-    const sidebarClassList = document.getElementById("sidebarClassList");
-    if (!sidebarClassList) return;
-    sidebarClassList.innerHTML = "";
-
-    const userSearchIds = getDualTypeIds([currentUserId]);
-    let myClasses = [];
-
-    try {
-      if (userRole === "TEACHER" && userSearchIds.length > 0) {
-        const { data } = await client
-          .from('classes')
-          .select('id, subject, code, status')
-          .eq('status', 'active')
-          .in('teacher_id', userSearchIds)
-          .order('created_at', { ascending: false });
-        myClasses = data || [];
-      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
-        const { data: mems, error: memErr } = await client
-          .from('class_memberships')
-          .select('class_id')
-          .in('user_id', userSearchIds);
-
-        if (!memErr && mems && mems.length > 0) {
-          const classSearchIds = getDualTypeIds(mems.map(m => m.class_id));
-          if (classSearchIds.length > 0) {
-            const { data: fetchedClasses } = await client
-              .from('classes')
-              .select('id, subject, code, status')
-              .in('id', classSearchIds);
-            myClasses = fetchedClasses || [];
+          if (combinedMems.length > 0) {
+            const classSearchIds = getDualTypeIds(combinedMems.map(m => m.class_id));
+            if (classSearchIds.length > 0) {
+              const { data: fetchedClasses } = await client
+                .from('classes')
+                .select('id, subject, code, status')
+                .in('id', classSearchIds);
+              myClasses = fetchedClasses || [];
+            }
+          } else {
+            const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
+            if (joinedClasses.length > 0) {
+              const { data: fallbackData } = await client
+                .from('classes')
+                .select('id, subject, code, status')
+                .in('code', joinedClasses);
+              myClasses = fallbackData || [];
+            }
           }
         } else {
-          const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
-          if (joinedClasses.length > 0) {
-            const { data: fallbackData } = await client
-              .from('classes')
-              .select('id, subject, code, status')
-              .in('code', joinedClasses);
-            myClasses = fallbackData || [];
-          }
+          // ADMIN: Views active institutional classes
+          const { data } = await client
+            .from('classes')
+            .select('id, subject, code, status')
+            .eq('status', 'active')
+            .order('created_at', { ascending: false });
+          myClasses = data || [];
         }
-      } else {
-        // ADMIN: Inspects all active institutional classes
-        const { data } = await client
-          .from('classes')
-          .select('id, subject, code, status')
-          .eq('status', 'active')
-          .order('created_at', { ascending: false });
-        myClasses = data || [];
+      } catch (err) {
+        console.error("Sidebar classes error:", err);
       }
-    } catch (err) {
-      console.error("Sidebar classes error:", err);
+
+      myClasses = myClasses.filter(c => c && c.status !== 'archived');
+
+      if (myClasses.length > 0) {
+        const currentSelectedCode = localStorage.getItem("selectedClass");
+        myClasses.forEach(c => {
+          const sideLink = document.createElement("a");
+          sideLink.className = "sidebar-item";
+          if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
+          sideLink.textContent = `📘 ${c.subject}`;
+          sideLink.href = classPageUrl;
+          sideLink.onclick = (e) => {
+            e.preventDefault();
+            localStorage.removeItem("isArchivedView");
+            localStorage.setItem("selectedClass", c.code);
+            localStorage.setItem("selectedClassId", String(c.id));
+            window.location.href = classPageUrl;
+          };
+          sidebarClassList.appendChild(sideLink);
+        });
+      } else {
+        sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
+      }
     }
 
-    myClasses = myClasses.filter(c => c && c.status !== 'archived');
+    async function loadSidebarGroups() {
+      const client = getSupabaseClient();
+      if (!client) return;
 
-    if (myClasses.length > 0) {
-      const currentSelectedCode = localStorage.getItem("selectedClass");
-      myClasses.forEach(c => {
-        const sideLink = document.createElement("a");
-        sideLink.className = "sidebar-item";
-        if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
-        sideLink.textContent = `📘 ${c.subject}`;
-        sideLink.href = classPageUrl;
-        sideLink.onclick = (e) => {
-          e.preventDefault();
-          localStorage.removeItem("isArchivedView");
-          localStorage.setItem("selectedClass", c.code);
-          localStorage.setItem("selectedClassId", String(c.id));
-          window.location.href = classPageUrl;
-        };
-        sidebarClassList.appendChild(sideLink);
-      });
-    } else {
-      sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
-    }
-  }
+      const sidebarGroupList = document.getElementById("sidebarGroupList");
+      if (!sidebarGroupList) return;
+      sidebarGroupList.innerHTML = "";
 
-  async function loadSidebarGroups() {
-    const client = getSupabaseClient();
-    if (!client) return;
+      const userSearchIds = getDualTypeIds([currentUserId]);
+      let myGroups = [];
 
-    const sidebarGroupList = document.getElementById("sidebarGroupList");
-    if (!sidebarGroupList) return;
-    sidebarGroupList.innerHTML = "";
+      try {
+        if (userRole === "TEACHER" && userSearchIds.length > 0) {
+          const { data } = await client
+            .from('groups')
+            .select('id, name, code, status')
+            .eq('status', 'active')
+            .in('teacher_id', userSearchIds)
+            .order('created_at', { ascending: false });
+          myGroups = data || [];
+        } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
+          const [memUser, memStudent] = await Promise.all([
+            client.from('group_memberships').select('group_id').in('user_id', userSearchIds),
+            client.from('group_memberships').select('group_id').in('student_id', userSearchIds)
+          ]);
 
-    const userSearchIds = getDualTypeIds([currentUserId]);
-    let myGroups = [];
+          const combinedMems = [...(memUser.data || []), ...(memStudent.data || [])];
 
-    try {
-      if (userRole === "TEACHER" && userSearchIds.length > 0) {
-        const { data } = await client
-          .from('groups')
-          .select('id, name, code, status')
-          .eq('status', 'active')
-          .in('teacher_id', userSearchIds)
-          .order('created_at', { ascending: false });
-        myGroups = data || [];
-      } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
-        const { data: mems, error: memErr } = await client
-          .from('group_memberships')
-          .select('group_id')
-          .in('user_id', userSearchIds);
-
-        if (!memErr && mems && mems.length > 0) {
-          const groupSearchIds = getDualTypeIds(mems.map(m => m.group_id));
-          if (groupSearchIds.length > 0) {
-            const { data: fetchedGroups } = await client
-              .from('groups')
-              .select('id, name, code, status')
-              .in('id', groupSearchIds);
-            myGroups = fetchedGroups || [];
+          if (combinedMems.length > 0) {
+            const groupSearchIds = getDualTypeIds(combinedMems.map(m => m.group_id));
+            if (groupSearchIds.length > 0) {
+              const { data: fetchedGroups } = await client
+                .from('groups')
+                .select('id, name, code, status')
+                .in('id', groupSearchIds);
+              myGroups = fetchedGroups || [];
+            }
+          } else {
+            const joinedGroups = JSON.parse(localStorage.getItem("joinedGroups") || "[]");
+            if (joinedGroups.length > 0) {
+              const { data: fallbackData } = await client
+                .from('groups')
+                .select('id, name, code, status')
+                .in('code', joinedGroups);
+              myGroups = fallbackData || [];
+            }
           }
         } else {
-          const joinedGroups = JSON.parse(localStorage.getItem("joinedGroups") || "[]");
-          if (joinedGroups.length > 0) {
-            const { data: fallbackData } = await client
-              .from('groups')
-              .select('id, name, code, status')
-              .in('code', joinedGroups);
-            myGroups = fallbackData || [];
-          }
+          // ADMIN: Views active institutional groups
+          const { data } = await client
+            .from('groups')
+            .select('id, name, code, status')
+            .eq('status', 'active')
+            .order('created_at', { ascending: false });
+          myGroups = data || [];
         }
-      } else {
-        // ADMIN: Inspects all active institutional groups
-        const { data } = await client
-          .from('groups')
-          .select('id, name, code, status')
-          .eq('status', 'active')
-          .order('created_at', { ascending: false });
-        myGroups = data || [];
+      } catch (err) {
+        console.error("Sidebar groups error:", err);
       }
-    } catch (err) {
-      console.error("Sidebar groups error:", err);
-    }
 
-    myGroups = myGroups.filter(g => g && g.status !== 'archived');
+      myGroups = myGroups.filter(g => g && g.status !== 'archived');
 
-    if (myGroups.length > 0) {
-      const currentSelectedGroup = localStorage.getItem("selectedGroup");
-      myGroups.forEach(g => {
-        const sideLink = document.createElement("a");
-        sideLink.className = "sidebar-item";
-        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
-        sideLink.textContent = `👥 ${g.name}`;
-        sideLink.href = groupPageUrl;
-        sideLink.onclick = (e) => {
-          e.preventDefault();
-          localStorage.removeItem("isArchivedView");
-          localStorage.setItem("selectedGroup", g.code);
-          localStorage.setItem("selectedGroupId", String(g.id));
-          window.location.href = groupPageUrl;
-        };
-        sidebarGroupList.appendChild(sideLink);
-      });
-    } else {
-      sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
+      if (myGroups.length > 0) {
+        const currentSelectedGroup = localStorage.getItem("selectedGroup");
+        myGroups.forEach(g => {
+          const sideLink = document.createElement("a");
+          sideLink.className = "sidebar-item";
+          if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
+          sideLink.textContent = `👥 ${g.name}`;
+          sideLink.href = groupPageUrl;
+          sideLink.onclick = (e) => {
+            e.preventDefault();
+            localStorage.removeItem("isArchivedView");
+            localStorage.setItem("selectedGroup", g.code);
+            localStorage.setItem("selectedGroupId", String(g.id));
+            window.location.href = groupPageUrl;
+          };
+          sidebarGroupList.appendChild(sideLink);
+        });
+      } else {
+        sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
+      }
     }
-  }
-</script>
+  </script>
+</body>

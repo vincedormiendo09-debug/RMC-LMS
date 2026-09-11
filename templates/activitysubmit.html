@@ -950,6 +950,7 @@
   const gradesUrl = "{{ url_for('grades_page') }}";
   const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
   const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const studentWorkUrl = "/studentwork.html";
   const archiveUrl = "{{ url_for('archive_page') }}";
   const notifyUrl = "{{ url_for('notify_page') }}";
   const accountUrl = "{{ url_for('account_page') }}";
@@ -1022,7 +1023,7 @@
 
   /* =====================================================
       2. SUPABASE INITIALIZATION & RESOLUTION
-  ===================================================== */
+  ==================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
 
@@ -1048,6 +1049,8 @@
   const selectedActivityId = parseDbId(resolvedActId);
   const selectedCode = localStorage.getItem("selectedClass");
   let currentActivityData = null;
+  let currentClassData = null;
+  let currentSubjectName = selectedCode || "Course";
   let currentSubmissionData = null;
   let currentTeacherProfile = null;
   let isCurrentlySubmitted = false;
@@ -1147,7 +1150,7 @@
   }
 
   /* =====================================================
-      3. FETCH ACTIVITY & STUDENT SUBMISSION (DUAL-SCHEMA)
+      3. FETCH ACTIVITY & STUDENT SUBMISSION
   ===================================================== */
   async function loadActivityAndSubmissionDetails() {
     const client = getSupabaseClient();
@@ -1175,20 +1178,20 @@
     }
 
     currentActivityData = activity;
-
-    let subjectName = selectedCode || "Course";
+    currentSubjectName = selectedCode || "Course";
     let teacherIdCandidate = activity.teacher_id || null;
 
     if (activity.class_id) {
       const classSearchIds = getDualTypeIds([activity.class_id]);
       const { data: clsData } = await client
         .from('classes')
-        .select('subject, code, teacher_id, status')
+        .select('id, subject, code, teacher_id, status')
         .in('id', classSearchIds)
         .maybeSingle();
 
       if (clsData) {
-        subjectName = clsData.subject;
+        currentClassData = clsData;
+        currentSubjectName = clsData.subject;
         if (clsData.code) localStorage.setItem("selectedClass", clsData.code);
         if (!teacherIdCandidate && clsData.teacher_id) teacherIdCandidate = clsData.teacher_id;
 
@@ -1231,7 +1234,7 @@
 
     const archiveTag = isClassArchived ? " [Archived]" : "";
     document.getElementById("activityTitle").textContent = `${activity.title || "Untitled Activity"}${archiveTag}`;
-    document.getElementById("activitySubtitle").textContent = `Class: ${subjectName} | View & Submit`;
+    document.getElementById("activitySubtitle").textContent = `Class: ${currentSubjectName} | View & Submit`;
     document.getElementById("scorePoints").textContent = `${activity.total_points || 100} Points`;
     document.getElementById("activityDescription").textContent = activity.description || "No detailed instructions provided for this activity.";
 
@@ -1499,7 +1502,7 @@
   }
 
   /* =====================================================
-      5. SUBMISSION BUTTON HANDLER (PRE-UPLOAD INSPECTION)
+      5. SUBMISSION BUTTON HANDLER & NOTIFICATION
   ===================================================== */
   async function handleSubmissionButtonClick() {
     if (isClassArchived) {
@@ -1812,31 +1815,48 @@
         submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
       }
     } else {
-      if (currentTeacherProfile?.id) {
-        const teacherSearchIds = getDualTypeIds([currentTeacherProfile.id]);
+      // 📢 4. DISPATCH INSTANT TEACHER NOTIFICATION WITH DIRECT DEEP-LINK
+      const targetTeacherId = currentTeacherProfile?.id || currentActivityData?.teacher_id || currentClassData?.teacher_id;
+      if (targetTeacherId) {
+        const teacherSearchIds = getDualTypeIds([targetTeacherId]);
         if (teacherSearchIds.length > 0) {
           try {
-            await client
+            const subjectLabel = currentSubjectName || selectedCode || "Course";
+            const activityTitle = currentActivityData?.title || "Assignment";
+            const currentSubId = currentSubmissionData?.id || targetSubId || "";
+            const classParamId = currentActivityData?.class_id || currentClassData?.id || "";
+
+            const targetLink = `${studentWorkUrl}?activity_id=${encodeURIComponent(parsedActId)}&student_id=${encodeURIComponent(parsedUid)}&submission_id=${encodeURIComponent(currentSubId)}&class_id=${encodeURIComponent(classParamId)}&class_code=${encodeURIComponent(selectedCode || '')}`;
+
+            // Schema-safe payload containing verified columns
+            const teacherNotificationPayload = {
+              user_id: parseDbId(teacherSearchIds[0]),
+              title: `📝 Work Submitted: ${userName}`,
+              message: `${userName} turned in work for "${activityTitle}" (${subjectLabel}).`,
+              type: 'student_submission',
+              link: targetLink,
+              activity_id: parsedActId,
+              is_read: false,
+              created_at: new Date().toISOString()
+            };
+
+            const { error: notifErr } = await client
               .from('notifications')
-              .insert([{
-                user_id: parseDbId(teacherSearchIds[0]),
-                title: `📝 New Submission: ${userName}`,
-                message: `${userName} turned in work for "${currentActivityData?.title || 'Assignment'}".`,
-                type: 'submission',
-                target_id: String(parsedActId),
-                activity_id: parsedActId,
-                submission_id: currentSubmissionData?.id || null,
-                class_code: selectedCode || '',
-                is_read: false,
-                created_at: new Date().toISOString()
-              }]);
+              .insert([teacherNotificationPayload]);
+
+            if (notifErr) {
+              console.warn("Retrying teacher notification with base schema:", notifErr.message);
+              // Fallback to minimal core fields if extra columns fail
+              delete teacherNotificationPayload.activity_id;
+              await client.from('notifications').insert([teacherNotificationPayload]);
+            }
           } catch (tNotifErr) {
             console.warn("Teacher notification error:", tNotifErr);
           }
         }
       }
 
-      // 4. Guaranteed Notification & Reminder Purge
+      // 5. Guaranteed Notification & Reminder Purge for Submitting Student
       try {
         await fetch('/api/clear-activity-reminders', {
           method: 'POST',
@@ -1846,12 +1866,8 @@
 
         const userSearchIds = getDualTypeIds([currentUserId]);
         const actSearchIds = getDualTypeIds([parsedActId]);
-        const actStringId = String(parsedActId);
         
-        await Promise.all([
-          client.from('notifications').delete().in('user_id', userSearchIds).in('activity_id', actSearchIds),
-          client.from('notifications').delete().in('user_id', userSearchIds).eq('target_id', actStringId)
-        ]);
+        await client.from('notifications').delete().in('user_id', userSearchIds).in('activity_id', actSearchIds);
       } catch (cleanErr) {
         console.warn("Notice clearing reminders:", cleanErr);
       }
@@ -1867,7 +1883,7 @@
       6. DIRECT PRIVATE CONSULTATION SHORTCUT
   ===================================================== */
   function askTeacherAboutActivity() {
-    let teacherId = currentTeacherProfile?.id || currentActivityData?.teacher_id;
+    let teacherId = currentTeacherProfile?.id || currentActivityData?.teacher_id || currentClassData?.teacher_id;
     let teacherName = currentTeacherProfile?.full_name || "Instructor";
 
     if (!teacherId) {
@@ -1909,7 +1925,8 @@
 
   function redirectToSubmissions() {
     localStorage.setItem("selectedActivityId", String(selectedActivityId));
-    window.location.href = submissionsUrl;
+    const classParamId = currentActivityData?.class_id || currentClassData?.id || "";
+    window.location.href = `${submissionsUrl}?activity_id=${encodeURIComponent(selectedActivityId)}&class_id=${encodeURIComponent(classParamId)}&class_code=${encodeURIComponent(selectedCode || '')}`;
   }
 
   async function deleteActivity() {
@@ -1938,7 +1955,7 @@
   }
 
   /* =====================================================
-      8. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA SAFE)
+      8. LOAD SIDEBAR CLASSES & GROUPS
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();

@@ -1,5 +1,9 @@
 import os
 import json
+import time
+import random
+import smtplib
+from email.message import EmailMessage
 import urllib.request
 from datetime import datetime, timezone, timedelta
 import requests
@@ -1767,6 +1771,72 @@ def notify_page():
         user_id=session.get('user_id')
     ))
     return prevent_caching(response)
+
+# =====================================================
+# 🔐 PASSWORD RESET & OTP EMAIL DISPATCH ENDPOINTS
+# =====================================================
+
+@app.route('/api/verify-password-otp', methods=['POST'])
+def verify_password_otp():
+    """Validates the 6-digit code against the server session."""
+    data = request.get_json() or {}
+    entered_code = str(data.get('code', '')).strip()
+
+    stored_code = session.get('password_reset_otp')
+    expiry_time = session.get('password_reset_expiry', 0)
+
+    if not stored_code or time.time() > expiry_time:
+        return jsonify({'valid': False, 'message': 'Verification code has expired. Please request a new one.'}), 400
+
+    if entered_code != str(stored_code):
+        return jsonify({'valid': False, 'message': 'Incorrect 6-digit code. Please check your inbox.'}), 400
+
+    # Flag session as verified for the target email and clear OTP
+    session['password_reset_verified'] = True
+    session.pop('password_reset_otp', None)
+    session.pop('password_reset_expiry', None)
+
+    return jsonify({'valid': True, 'message': 'Identity confirmed.'})
+
+
+@app.route('/api/complete-password-reset', methods=['POST'])
+def complete_password_reset():
+    """Updates password for the verified session email."""
+    data = request.get_json() or {}
+    new_password = str(data.get('new_password', '')).strip()
+
+    email = session.get('password_reset_email')
+    if not session.get('password_reset_verified') or not email:
+        return jsonify({'success': False, 'message': 'Session expired or identity verification required.'}), 403
+
+    if len(new_password) < 6:
+        return jsonify({'success': False, 'message': 'Password must be at least 6 characters.'}), 400
+
+    try:
+        # Direct Supabase REST update
+        supa_url = os.environ.get("SUPABASE_URL", "https://wndiqgyuvjenglfydqdt.supabase.co")
+        supa_key = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU")
+        
+        headers = {
+            "apikey": supa_key,
+            "Authorization": f"Bearer {supa_key}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        }
+        resp = requests.patch(
+            f"{supa_url}/rest/v1/users?email=eq.{email}",
+            headers=headers,
+            json={"password": new_password}
+        )
+
+        if resp.status_code in [200, 204]:
+            session.pop('password_reset_verified', None)
+            session.pop('password_reset_email', None)
+            return jsonify({'success': True, 'message': 'Password updated successfully.'})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to update database record.'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 # =========================================
 # 🚀 SERVER STARTUP

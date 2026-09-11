@@ -772,7 +772,7 @@
   });
 
   /* =====================================================
-     0. TYPE-SAFE ID HELPERS & STRING ESCAPERS
+      0. TYPE-SAFE ID HELPERS & STRING ESCAPERS
   ===================================================== */
   function parseDbId(idVal) {
     if (!idVal) return idVal;
@@ -811,7 +811,7 @@
   }
 
   /* =====================================================
-     1. USER SESSION & ROLE PROTECTION
+      1. USER SESSION & ROLE PROTECTION
   ===================================================== */
   const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
   const userRole = rawRole.toUpperCase();
@@ -837,6 +837,7 @@
   const gradesUrl = "{{ url_for('grades_page') }}";
   const studentGradesUrl = "{{ url_for('studentgrades_page') }}";
   const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const activitySubmitUrl = "{{ url_for('activitysubmit_page') }}";
   const archiveUrl = "{{ url_for('archive_page') }}";
   const notifyUrl = "{{ url_for('notify_page') }}";
   const accountUrl = "{{ url_for('account_page') }}";
@@ -899,7 +900,7 @@
   }
 
   /* =====================================================
-     2. SUPABASE CLIENT INITIALIZATION
+      2. SUPABASE INITIALIZATION & PARAMETER EXTRACTION
   ===================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
@@ -914,9 +915,30 @@
     return null;
   }
 
-  const subId = localStorage.getItem("selectedSubmissionId");
+  // 🎯 Extract URL Query Parameters (Deep linking from notify.html & submissions.html)
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramSubId = urlParams.get("submission_id") || urlParams.get("sub_id") || urlParams.get("id");
+  const paramActId = urlParams.get("activity_id");
+  const paramStudentId = urlParams.get("student_id") || urlParams.get("user_id");
+  const paramClassId = urlParams.get("class_id");
+  const paramClassCode = urlParams.get("class_code");
+
+  if (paramSubId) localStorage.setItem("selectedSubmissionId", String(paramSubId));
+  if (paramActId) localStorage.setItem("selectedActivityId", String(paramActId));
+  if (paramStudentId) {
+    localStorage.setItem("selectedStudentId", String(paramStudentId));
+    localStorage.setItem("gradingStudentId", String(paramStudentId));
+  }
+  if (paramClassCode) localStorage.setItem("selectedClass", paramClassCode);
+  if (paramClassId) localStorage.setItem("selectedClassId", String(paramClassId));
+
+  let subId = paramSubId || localStorage.getItem("selectedSubmissionId") || "";
+  let resolvedActId = paramActId || localStorage.getItem("selectedActivityId") || "";
+  let resolvedStudentId = paramStudentId || localStorage.getItem("selectedStudentId") || localStorage.getItem("gradingStudentId") || "";
+
   let currentSubmission = null;
-  let targetStudentUserId = null;
+  let currentActivityData = null;
+  let targetStudentUserId = resolvedStudentId || null;
   let targetStudentEmail = null;
   let targetStudentName = "Student";
   let targetActivityTitle = "Assignment";
@@ -983,38 +1005,56 @@
   }
 
   /* =====================================================
-     3. FETCH STUDENT SUBMISSION FROM SUPABASE
+      3. FETCH STUDENT SUBMISSION FROM SUPABASE
   ===================================================== */
   async function fetchSubmissionDetailsFromSupabase() {
     const client = getSupabaseClient();
     if (!client) return;
 
-    if (!subId) {
-      alert("No student submission selected! Redirecting to submissions queue.");
+    let sub = null;
+
+    // 1. Primary Strategy: Query by submission_id if available
+    if (subId && subId !== 'undefined' && subId !== 'null') {
+      const subSearchIds = getDualTypeIds([subId]);
+      const { data, error } = await client
+        .from('submissions')
+        .select('*')
+        .in('id', subSearchIds)
+        .maybeSingle();
+
+      if (!error && data) {
+        sub = data;
+      }
+    }
+
+    // 2. Fallback Strategy: Lookup by activity_id and student_id
+    if (!sub && resolvedActId && resolvedStudentId) {
+      const actSearchIds = getDualTypeIds([resolvedActId]);
+      const studentSearchIds = getDualTypeIds([resolvedStudentId]);
+
+      const [resUser, resStudent] = await Promise.all([
+        client.from('submissions').select('*').in('activity_id', actSearchIds).in('user_id', studentSearchIds).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+        client.from('submissions').select('*').in('activity_id', actSearchIds).in('student_id', studentSearchIds).order('created_at', { ascending: false }).limit(1).maybeSingle()
+      ]);
+
+      sub = resUser.data || resStudent.data || null;
+      if (sub) {
+        subId = String(sub.id);
+        localStorage.setItem("selectedSubmissionId", subId);
+      }
+    }
+
+    if (!sub) {
+      console.warn("Submission not resolved with IDs:", { subId, resolvedActId, resolvedStudentId });
+      alert("Student submission not found or still pending. Redirecting to submissions queue.");
       window.location.href = submissionsUrl;
       return;
     }
 
-    const subSearchIds = getDualTypeIds([subId]);
-
-    // 1. Query Supabase submissions table
-    const { data: sub, error } = await client
-      .from('submissions')
-      .select('*')
-      .in('id', subSearchIds)
-      .maybeSingle();
-
-    if (error || !sub) {
-      console.error("Error fetching submission details:", error);
-      const titleEl = document.getElementById("swStudentName");
-      if (titleEl) titleEl.textContent = "Submission Not Found";
-      return;
-    }
-
     currentSubmission = sub;
-    targetStudentUserId = sub.user_id || sub.student_id;
+    targetStudentUserId = sub.user_id || sub.student_id || resolvedStudentId;
 
-    // 2. Fetch Student User Profile
+    // 3. Fetch Student User Profile
     if (targetStudentUserId) {
       const userSearchIds = getDualTypeIds([targetStudentUserId]);
       const { data: userProfile } = await client
@@ -1031,10 +1071,12 @@
       }
     }
 
-    // 3. Fetch Activity and Class Details
-    let subjectName = "Subject";
-    if (sub.activity_id) {
-      const actSearchIds = getDualTypeIds([sub.activity_id]);
+    // 4. Fetch Activity and Class Details
+    let subjectName = localStorage.getItem("selectedClass") || "Course";
+    const actToFetch = sub.activity_id || resolvedActId;
+
+    if (actToFetch) {
+      const actSearchIds = getDualTypeIds([actToFetch]);
       const { data: actData } = await client
         .from('activities')
         .select('*')
@@ -1042,6 +1084,7 @@
         .maybeSingle();
 
       if (actData) {
+        currentActivityData = actData;
         targetActivityTitle = actData.title || "Assignment";
         maxPointsLimit = actData.total_points || 100;
 
@@ -1056,6 +1099,7 @@
           if (clsData) {
             subjectName = clsData.subject;
             targetSubjectName = clsData.subject;
+            if (clsData.code) localStorage.setItem("selectedClass", clsData.code);
             if (clsData.status === 'archived' || localStorage.getItem("isArchivedView") === "true") {
               isClassArchived = true;
             }
@@ -1111,7 +1155,6 @@
       }
     }
 
-    // Populate instructor feedback (clean separation from student notes)
     if (feedbackInput) {
       feedbackInput.value = sub.feedback || sub.remarks || sub.teacher_comments || "";
     }
@@ -1140,7 +1183,6 @@
         saveBtn.style.display = "none";
       }
     } else {
-      // Teacher Workspace
       if (isGraded) {
         if (scoreInput) {
           scoreInput.value = currentGrade;
@@ -1166,9 +1208,9 @@
       }
     }
 
-    // Timeliness tag calculation
+    // 🎯 Timeliness calculation (Reads from actual activity metadata)
     let isLate = false;
-    const deadlineDate = sub.activities?.deadline || sub.activities?.due_date;
+    const deadlineDate = currentActivityData?.deadline || currentActivityData?.due_date || sub.activities?.deadline || sub.activities?.due_date;
     const submittedDate = sub.submitted_at || sub.created_at;
 
     if (deadlineDate && submittedDate) {
@@ -1286,7 +1328,7 @@
   }
 
   /* =====================================================
-     4. SAVE SCORE & FEEDBACK (MULTI-CHANNEL DISPATCH)
+      4. SAVE SCORE & FEEDBACK (MULTI-CHANNEL DISPATCH)
   ===================================================== */
   function toggleScoreLock() {
     if (userRole !== "TEACHER" || isClassArchived) {
@@ -1349,13 +1391,31 @@
       updatePayload.feedback = feedbackText;
     }
 
-    const subSearchIds = getDualTypeIds([subId]);
+    const targetSubId = subId || currentSubmission?.id;
+    const subSearchIds = getDualTypeIds([targetSubId]);
 
-    // 1. Update Submissions Table
-    const { error } = await client
+    // 1. Update Submissions Table with Column Fallback Tolerance
+    let { error } = await client
       .from('submissions')
       .update(updatePayload)
       .in('id', subSearchIds);
+
+    if (error && (error.code === '42703' || error.message.includes('score'))) {
+      delete updatePayload.score;
+      const retry = await client.from('submissions').update(updatePayload).in('id', subSearchIds);
+      error = retry.error;
+    } else if (error && (error.code === '42703' || error.message.includes('grade'))) {
+      delete updatePayload.grade;
+      const retry = await client.from('submissions').update(updatePayload).in('id', subSearchIds);
+      error = retry.error;
+    }
+
+    if (error && (error.code === '42703' || error.message.includes('feedback'))) {
+      delete updatePayload.feedback;
+      updatePayload.remarks = feedbackText;
+      const retry = await client.from('submissions').update(updatePayload).in('id', subSearchIds);
+      error = retry.error;
+    }
 
     if (error) {
       alert("Error saving score: " + error.message);
@@ -1366,27 +1426,36 @@
       return;
     }
 
-    // 2. Dispatch Notifications (In-App, Email, and Push)
+    // 2. Dispatch In-App Notification with Direct Link Back to Student
     if (targetStudentUserId) {
       const parsedStudentId = parseDbId(targetStudentUserId);
-      const activityId = currentSubmission?.activity_id ? parseDbId(currentSubmission.activity_id) : null;
-      const parsedSubId = parseDbId(subId);
+      const activityId = currentSubmission?.activity_id ? parseDbId(currentSubmission.activity_id) : parseDbId(resolvedActId);
+      const parsedSubId = parseDbId(targetSubId);
 
-      // In-App Notification
       try {
-        await client
+        const studentNotificationPayload = {
+          user_id: parsedStudentId,
+          title: `💯 Work Graded: ${targetActivityTitle}`,
+          message: `Your score for "${targetActivityTitle}" was recorded: ${numericScore}/${maxPointsLimit}. ${feedbackText ? `Remarks: "${feedbackText}"` : ''}`,
+          type: 'grade',
+          link: `${activitySubmitUrl}?activity_id=${encodeURIComponent(activityId)}`,
+          is_read: false,
+          activity_id: activityId,
+          submission_id: parsedSubId,
+          created_at: new Date().toISOString()
+        };
+
+        const { error: notifErr } = await client
           .from('notifications')
-          .insert([
-            {
-              user_id: parsedStudentId,
-              title: `💯 Work Graded: ${targetActivityTitle}`,
-              message: `Your score for "${targetActivityTitle}" was recorded: ${numericScore}/${maxPointsLimit}. ${feedbackText ? `Remarks: "${feedbackText}"` : ''}`,
-              is_read: false,
-              activity_id: activityId,
-              submission_id: parsedSubId,
-              created_at: new Date().toISOString()
-            }
-          ]);
+          .insert([studentNotificationPayload]);
+
+        if (notifErr) {
+          delete studentNotificationPayload.link;
+          delete studentNotificationPayload.submission_id;
+          delete studentNotificationPayload.activity_id;
+          delete studentNotificationPayload.type;
+          await client.from('notifications').insert([studentNotificationPayload]);
+        }
       } catch (e) {
         console.warn("In-app notification non-blocking warning:", e);
       }
@@ -1428,11 +1497,11 @@
       statusBadge.className = "badge badge-graded";
     }
 
-    alert(`🎉 Score ${numericScore}/${maxPointsLimit} saved successfully! Student has been notified via portal, email, and mobile push.`);
+    alert(`🎉 Score ${numericScore}/${maxPointsLimit} saved successfully! Student has been notified via portal, email, and push.`);
   }
 
   /* =====================================================
-     5. LOAD SIDEBAR CLASSES & GROUPS
+      5. LOAD SIDEBAR CLASSES & GROUPS
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
