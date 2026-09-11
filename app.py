@@ -508,7 +508,7 @@ def decode_binary_if_present(text):
             return "".join(chr(int(b, 2)) for b in chunks).strip()
         except Exception:
             pass
-            
+
     tokens = text.strip().split()
     binary_tokens = [t for t in tokens if len(t) == 8 and re.fullmatch(r'[01]+', t)]
     if len(binary_tokens) >= 2:
@@ -655,6 +655,136 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
         print(f"🛑 Gemini 2.0 Flash Execution Error: {e}")
         return False, "Moderation service temporarily unavailable. Please retry sending."
 
+# --- 5. UNIFIED REAL-TIME MODERATION API ROUTE ---
+@app.route('/api/ai-moderate', methods=['POST'])
+@app.route('/api/ai-moderate/', methods=['POST'])
+def ai_moderate():
+    data = request.get_json(silent=True) or {}
+    message_text = (data.get('message') or data.get('text') or '').strip()
+    file_name = (data.get('file_name') or '').strip()
+    image_b64 = data.get('image_base64') or None
+    image_url = (data.get('image_url') or '').strip()
+    is_teacher_dm = bool(data.get('is_teacher_dm', False))
+    mime_type = data.get('mime_type', 'image/jpeg')
+
+    # Gate 1: 1-on-1 Consultation Hardening
+    if is_teacher_dm:
+        if file_name or image_b64 or image_url:
+            return jsonify({
+                "allowed": False,
+                "reason": "School Policy: Media transfers are strictly prohibited in teacher consultations."
+            }), 200
+        if URL_STRICT_REGEX.search(message_text):
+            return jsonify({
+                "allowed": False,
+                "reason": "School Policy: External links are strictly prohibited in private consultations."
+            }), 200
+
+    # Gate 2: Blocked Extensions
+    if file_name:
+        ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else ''
+        if ext in BLOCKED_EXTENSIONS or (ALLOWED_EXTENSIONS and ext not in ALLOWED_EXTENSIONS):
+            return jsonify({
+                "allowed": False,
+                "reason": f"Security Notice: File format (.{ext}) is prohibited."
+            }), 200
+
+    # Gate 3: Local Heuristics
+    det_ok, det_reason = evaluate_deterministic_gate(message_text)
+    if not det_ok:
+        return jsonify({"allowed": False, "reason": det_reason}), 200
+
+    if not message_text and not image_b64 and not image_url:
+        return jsonify({"allowed": True}), 200
+
+    # Gate 4: Media Payload Setup
+    img_bytes = None
+    if image_b64:
+        try:
+            if "," in image_b64:
+                image_b64 = image_b64.split(",")[1]
+            img_bytes = base64.b64decode(image_b64)
+        except Exception as err:
+            return jsonify({"allowed": False, "reason": "Corrupted image payload received."}), 200
+    elif image_url and not is_teacher_dm:
+        try:
+            resp = requests.get(image_url, timeout=4)
+            if resp.status_code == 200:
+                img_bytes = resp.content
+                header_mime = resp.headers.get('Content-Type')
+                if header_mime:
+                    mime_type = header_mime
+        except Exception:
+            pass
+
+    # Gate 5: Multimodal Gemini 2.0 Flash Inspection
+    allowed, reason = evaluate_with_gemini_flash(
+        text=message_text,
+        image_bytes=img_bytes,
+        mime_type=mime_type
+    )
+
+    if not allowed:
+        return jsonify({"allowed": False, "reason": f"School Policy Violation: {reason}"}), 200
+
+    return jsonify({"allowed": True}), 200
+
+
+# --- 6. AI AUTO-PURGE SENTINEL ROUTE ---
+@app.route('/api/ai-auto-purge', methods=['POST'])
+@app.route('/api/ai-auto-purge/', methods=['POST'])
+def ai_auto_purge():
+    data = request.get_json(silent=True) or {}
+    table_name = data.get('table')
+    message_id = data.get('message_id')
+    message_text = (data.get('message') or data.get('text') or '').strip()
+    media_url = (data.get('media_url') or '').strip()
+    media_type = (data.get('media_type') or '').strip()
+
+    if not message_id or not table_name:
+        return jsonify({"purged": False, "reason": "Missing message_id or table name"}), 400
+
+    det_ok, det_reason = evaluate_deterministic_gate(message_text)
+    is_malicious = not det_ok
+    violation_reason = det_reason
+
+    if not is_malicious and (message_text or (media_url and media_type == 'image')):
+        img_bytes = None
+        mime = "image/jpeg"
+        if media_url and media_type == 'image':
+            try:
+                resp = requests.get(media_url, timeout=4)
+                if resp.status_code == 200:
+                    img_bytes = resp.content
+                    mime = resp.headers.get('Content-Type', 'image/jpeg')
+            except Exception:
+                pass
+
+        allowed, ai_reason = evaluate_with_gemini_flash(
+            text=message_text,
+            image_bytes=img_bytes,
+            mime_type=mime
+        )
+        if not allowed:
+            is_malicious = True
+            violation_reason = ai_reason
+
+    if is_malicious:
+        try:
+            supabase.table(table_name).delete().eq('id', message_id).execute()
+            if media_url and "supabase.co/storage/v1/object/public/" in media_url:
+                try:
+                    parts = media_url.split('/public/')[1].split('/', 1)
+                    bucket, file_path = parts[0], parts[1]
+                    supabase.storage.from_(bucket).remove([file_path])
+                except Exception:
+                    pass
+            return jsonify({"purged": True, "message_id": message_id, "reason": violation_reason}), 200
+        except Exception as db_err:
+            return jsonify({"purged": False, "error": str(db_err)}), 500
+
+    return jsonify({"purged": False, "status": "safe"}), 200
+    
 # =========================================
 # 🏠 CORE DASHBOARD & GLOBAL PORTALS
 # =========================================
