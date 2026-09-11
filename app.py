@@ -605,9 +605,8 @@ OR
 
 def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"):
     """
-    Sub-500ms single multimodal call using Gemini 2.0 Flash.
-    Simultaneously analyzes intent, ethics, visual NSFW safety, and OCR on screenshot text.
-    Catches internal Gemini safety trips gracefully to prevent bypassed explicit content.
+    Multimodal inspection using Gemini API.
+    Simultaneously analyzes intent, ethics, visual NSFW safety, and OCR text.
     """
     if not gemini_client:
         print("⚠️ Gemini client not configured. Proceeding on deterministic gate.")
@@ -622,8 +621,10 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
         if image_bytes:
             contents.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
 
+        target_model = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
+
         response = gemini_client.models.generate_content(
-            model="gemini-2.0-flash",
+            model=target_model,
             contents=contents,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -631,7 +632,6 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
             )
         )
 
-        # Catch native safety blocks (e.g. Gemini blocks explicit nudity at API gateway)
         if hasattr(response, 'candidates') and response.candidates:
             finish_reason = str(getattr(response.candidates[0], 'finish_reason', ''))
             if "SAFETY" in finish_reason:
@@ -653,8 +653,8 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
         err_msg = error_details.lower()
         if "safety" in err_msg or "blocked" in err_msg or "filter" in err_msg:
             return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
-        
-        print(f"🛑 Gemini 2.0 Flash Execution Error: {error_details}", flush=True)
+
+        print(f"🛑 Gemini Execution Error: {error_details}", flush=True)
         return False, f"AI Gateway Error: {error_details[:100]}"
 
 # --- 5. UNIFIED REAL-TIME MODERATION API ROUTE ---
