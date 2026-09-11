@@ -391,25 +391,24 @@ except ImportError:
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 gemini_client = None
-ACTIVE_GEMINI_MODEL = "gemini-1.5-flash-002"
+ACTIVE_GEMINI_MODEL = "gemini-2.5-flash"
 
 if GEMINI_SDK_AVAILABLE and GEMINI_API_KEY:
     try:
-        # Route to v1beta where Flash aliases and multimodal inspection reside
         gemini_client = genai.Client(
             api_key=GEMINI_API_KEY,
             http_options={'api_version': 'v1beta'}
         )
         print("✅ Gemini client initialized successfully on v1beta.", flush=True)
 
-        # Query Google's live catalog to pick an active Flash model for this key
+        # Detect active Flash models while skipping deprecated preview endpoints
         try:
             for m in gemini_client.models.list():
                 raw_name = getattr(m, 'name', '') or ''
                 clean_name = raw_name.replace('models/', '')
-                if 'flash' in clean_name and any(v in clean_name for v in ['1.5', '2.0', '2.5']):
+                if 'flash' in clean_name and clean_name != 'gemini-2.0-flash':
                     ACTIVE_GEMINI_MODEL = clean_name
-                    print(f"🎯 Auto-detected active Gemini model: {ACTIVE_GEMINI_MODEL}", flush=True)
+                    print(f"🎯 Bound to active Gemini model: {ACTIVE_GEMINI_MODEL}", flush=True)
                     break
         except Exception as list_err:
             print(f"⚠️ Model list query note: {list_err}", flush=True)
@@ -628,15 +627,16 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
         print("⚠️ Gemini client not configured. Proceeding on deterministic gate.")
         return True, ""
 
+    # Candidates with retired preview models completely purged
     candidate_models = [
         ACTIVE_GEMINI_MODEL,
         os.environ.get("GEMINI_MODEL", "").strip(),
-        "gemini-1.5-flash-002",
+        "gemini-2.5-flash",
         "gemini-2.0-flash-001",
-        "gemini-1.5-flash",
-        "gemini-2.0-flash"
+        "gemini-1.5-flash-002",
+        "gemini-1.5-flash"
     ]
-    candidate_models = [m for m in candidate_models if m]
+    candidate_models = [m for m in candidate_models if m and m != "gemini-2.0-flash"]
 
     contents = [GEMINI_UNIFIED_PROMPT]
     if text:
