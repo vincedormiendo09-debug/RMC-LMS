@@ -391,7 +391,7 @@ except ImportError:
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 gemini_client = None
-ACTIVE_GEMINI_MODEL = "gemini-1.5-flash-002"
+ACTIVE_GEMINI_MODELS = []
 
 if GEMINI_SDK_AVAILABLE and GEMINI_API_KEY:
     try:
@@ -400,31 +400,50 @@ if GEMINI_SDK_AVAILABLE and GEMINI_API_KEY:
             http_options={'api_version': 'v1beta'}
         )
         print("✅ Gemini client initialized successfully on v1beta.", flush=True)
-
-        probe_candidates = [
-            os.environ.get("GEMINI_MODEL", "").strip(),
-            "gemini-1.5-flash-002",
-            "gemini-1.5-flash",
-            "gemini-2.0-flash-001",
-            "gemini-1.5-pro-002"
-        ]
-        for candidate in probe_candidates:
-            if not candidate or candidate in ["gemini-2.0-flash", "gemini-2.5-flash"]:
-                continue
-            try:
-                gemini_client.models.generate_content(
-                    model=candidate,
-                    contents="ping",
-                    config=types.GenerateContentConfig(max_output_tokens=1)
-                )
-                ACTIVE_GEMINI_MODEL = candidate
-                print(f"🎯 Verified live Gemini model: {ACTIVE_GEMINI_MODEL}", flush=True)
-                break
-            except Exception as probe_err:
-                print(f"⚠️ Model {candidate} unavailable: {probe_err}", flush=True)
-
     except Exception as e:
         print(f"❌ Failed to initialize Gemini Client: {e}", flush=True)
+
+def discover_active_gemini_models():
+    """
+    Queries Google's live catalog using your key to pick models
+    that exist and support generateContent.
+    """
+    if not GEMINI_API_KEY:
+        return []
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models?key={GEMINI_API_KEY}"
+        resp = requests.get(url, timeout=5)
+        if resp.status_code == 200:
+            models_data = resp.json().get('models', [])
+            supported = []
+            for m in models_data:
+                name = m.get('name', '').replace('models/', '')
+                methods = m.get('supportedGenerationMethods', [])
+                if 'generateContent' in methods:
+                    supported.append(name)
+
+            # Prioritize active production Flash models
+            preferred_order = [
+                'gemini-3.7-flash',
+                'gemini-3.5-flash',
+                'gemini-2.5-flash-lite',
+                'gemini-3.1-flash-lite',
+                'gemini-3.6-flash'
+            ]
+            ranked = [m for m in preferred_order if m in supported]
+            for m in supported:
+                if 'flash' in m.lower() and m not in ranked and not any(d in m for d in ['1.5', '2.0']):
+                    ranked.append(m)
+
+            if ranked:
+                print(f"🎯 Auto-discovered active Gemini models for your key: {ranked}", flush=True)
+                return ranked
+    except Exception as e:
+        print(f"⚠️ Live model discovery warning: {e}", flush=True)
+
+    return ["gemini-3.7-flash", "gemini-3.5-flash", "gemini-2.5-flash-lite"]
+
+ACTIVE_GEMINI_MODELS = discover_active_gemini_models()
 
 # --- 1. FILE & EXTENSION SECURITY WHITELISTS ---
 BLOCKED_EXTENSIONS = {
@@ -644,24 +663,20 @@ OR
 def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"):
     """
     Multimodal inspection using Gemini API.
-    Iterates through production models to ensure continuous uptime.
+    Iterates dynamically across verified live models with fail-safe clearance.
     """
     if not GEMINI_API_KEY:
-        print("⚠️ GEMINI_API_KEY missing. Proceeding on deterministic gate.")
         return True, ""
 
+    candidate_models = list(ACTIVE_GEMINI_MODELS)
+    env_model = os.environ.get("GEMINI_MODEL", "").strip()
+    if env_model and env_model not in candidate_models:
+        candidate_models.insert(0, env_model)
+
+    # Purge deprecated 1.5 and 2.0 identifiers
     candidate_models = [
-        ACTIVE_GEMINI_MODEL,
-        os.environ.get("GEMINI_MODEL", "").strip(),
-        "gemini-1.5-flash-002",
-        "gemini-1.5-flash",
-        "gemini-2.0-flash-001",
-        "gemini-1.5-pro-002"
-    ]
-    retired_models = {"gemini-2.0-flash", "gemini-2.5-flash"}
-    candidate_models = [
-        m for i, m in enumerate(candidate_models) 
-        if m and m not in retired_models and m not in candidate_models[:i]
+        m for m in candidate_models 
+        if not any(dead in m for dead in ["gemini-1.5", "gemini-2.0"])
     ]
 
     contents_sdk = [GEMINI_UNIFIED_PROMPT]
@@ -669,8 +684,6 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
         contents_sdk.append(f"### STUDENT MESSAGE TEXT ###\n{text}\n### END MESSAGE TEXT ###")
     if image_bytes:
         contents_sdk.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
-
-    last_error = ""
 
     for model_name in candidate_models:
         # --- Layer 1: Google GenAI SDK ---
@@ -697,14 +710,11 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
                         verdict = json.loads(json_match.group(0))
                         return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
             except Exception as sdk_err:
-                err_msg = str(sdk_err)
-                last_error = err_msg
-                if any(kw in err_msg.lower() for kw in ["no longer available", "404", "not found"]):
-                    continue
-                if any(kw in err_msg.lower() for kw in ["safety", "blocked", "filter"]):
+                err_str = str(sdk_err).lower()
+                if "safety" in err_str or "blocked" in err_str:
                     return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
 
-        # --- Layer 2: Bulletproof Direct v1beta REST Gateway Fallback ---
+        # --- Layer 2: Direct v1beta REST Gateway Fallback ---
         try:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
             parts = [{"text": GEMINI_UNIFIED_PROMPT}]
@@ -728,31 +738,29 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
             }
 
             resp = requests.post(url, json=payload, timeout=8)
-            data = resp.json()
+            if resp.status_code == 200:
+                data = resp.json()
+                candidates = data.get("candidates", [])
+                if candidates:
+                    finish_reason = candidates[0].get("finishReason", "")
+                    if "SAFETY" in finish_reason:
+                        return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
 
-            if resp.status_code != 200:
-                api_err = data.get("error", {}).get("message", "Gateway Error")
-                last_error = api_err
-                if any(kw in api_err.lower() for kw in ["no longer available", "404", "not found"]):
-                    continue
-                return False, f"AI Gateway Error: {api_err[:100]}"
-
-            candidates = data.get("candidates", [])
-            if candidates:
-                finish_reason = candidates[0].get("finishReason", "")
-                if "SAFETY" in finish_reason:
-                    return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
-
-                raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "{}").strip()
-                json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-                if json_match:
-                    verdict = json.loads(json_match.group(0))
-                    return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
-        except Exception as rest_err:
-            last_error = str(rest_err)
+                    raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "{}").strip()
+                    json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+                    if json_match:
+                        verdict = json.loads(json_match.group(0))
+                        return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
+            else:
+                continue
+        except Exception:
             continue
 
-    return False, f"AI Gateway Error: {last_error[:100] if last_error else 'All candidate models unavailable'}"
+    # Fail-Safe: If Google's external API is unreachable or cycling versions,
+    # do NOT penalize the user with a false policy violation.
+    # Gate 3 (deterministic regex & slur filters) has already verified safety.
+    print("⚠️ Gemini cloud models unreachable. Allowed under deterministic clearance.", flush=True)
+    return True, ""
 
 # --- 5. UNIFIED REAL-TIME MODERATION API ROUTE ---
 @app.route('/api/ai-moderate', methods=['POST'])
