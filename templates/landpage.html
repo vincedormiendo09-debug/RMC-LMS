@@ -1108,11 +1108,36 @@
   }
 
   /* =====================================================
-      3. LOGOUT FUNCTION
+      3. SAFE LOGOUT FUNCTION (PRESERVES ALERT LEDGER)
   ===================================================== */
   function logoutUser() {
-    localStorage.clear();
+    // Selectively remove only authentication and session cache
+    const authKeys = [
+      "user_id",
+      "userRole",
+      "role",
+      "full_name",
+      "email",
+      "selectedClass",
+      "selectedClassId",
+      "selectedGroup",
+      "selectedGroupId",
+      "selectedSubmissionId",
+      "selectedActivityId",
+      "selectedStudentId",
+      "gradingStudentId",
+      "updateType",
+      "updateClassId",
+      "updateGroupId",
+      "joinedClasses",
+      "joinedGroups",
+      "isArchivedView"
+    ];
+
+    authKeys.forEach(key => localStorage.removeItem(key));
     sessionStorage.clear();
+
+    // Preserves acknowledged_deadlines_${uid} so you are not spammed on re-login
     window.location.replace("{{ url_for('logout') }}");
   }
 
@@ -1666,23 +1691,36 @@
   let activePendingActivities = [];
   let currentTargetActivity = null;
 
-  // Local storage helpers to track past-due activities shown once
+  // Safe user ID resolver
+  function getSafeUserId() {
+    const id = currentUserId || localStorage.getItem("user_id");
+    return (id && id !== "null" && id !== "undefined") ? String(id).trim() : null;
+  }
+
+  // Retrieve persistent set of acknowledged deadline IDs for current user
   function getAcknowledgedDeadlines() {
     try {
-      const stored = localStorage.getItem(`acknowledged_deadlines_${currentUserId}`);
+      const uid = getSafeUserId();
+      if (!uid) return new Set();
+      const stored = localStorage.getItem(`acknowledged_deadlines_${uid}`);
       return new Set(stored ? JSON.parse(stored) : []);
     } catch (e) {
       return new Set();
     }
   }
 
+  // Permanently record activity so it never pops up again for this user
   function recordAcknowledgedDeadline(activityId) {
-    if (!activityId || !currentUserId) return;
+    if (!activityId) return;
     try {
+      const uid = getSafeUserId();
+      if (!uid) return;
       const set = getAcknowledgedDeadlines();
       set.add(String(activityId));
-      localStorage.setItem(`acknowledged_deadlines_${currentUserId}`, JSON.stringify(Array.from(set)));
-    } catch (e) {}
+      localStorage.setItem(`acknowledged_deadlines_${uid}`, JSON.stringify(Array.from(set)));
+    } catch (e) {
+      console.warn("Could not save deadline acknowledgment:", e);
+    }
   }
 
   async function scanForPendingActivities(studentId) {
@@ -1690,7 +1728,7 @@
     if (!client) return;
 
     try {
-      const mySearchIds = getDualTypeIds([studentId]);
+      const mySearchIds = getDualTypeIds([studentId || currentUserId]);
 
       // 1. Fetch student's enrolled classes
       const [memUser, memStudent] = await Promise.all([
@@ -1739,7 +1777,6 @@
       const combinedSubmissions = [...(subUser.data || []), ...(subStudent.data || [])];
       const submittedActIds = new Set();
 
-      // Anything not explicitly marked 'draft' is counted as turned in
       combinedSubmissions.forEach(sub => {
         const st = String(sub.status || '').trim().toLowerCase();
         if (st !== 'draft') {
@@ -1769,15 +1806,14 @@
       activePendingActivities = activities.filter(act => {
         const actIdStr = String(act.id);
 
-        // RULE A: If turned in, NEVER show it again
+        // RULE A: If turned in, never show it again
         if (submittedActIds.has(actIdStr)) {
           return false;
         }
 
         const deadlineStr = act.deadline || act.due_date;
         if (!deadlineStr) {
-          // Open-ended without cutoff: keep active until submitted
-          return true;
+          return true; // Open-ended without cutoff: keep active until submitted
         }
 
         const deadlineDate = new Date(deadlineStr);
@@ -1787,12 +1823,12 @@
 
         const deadlineMs = deadlineDate.getTime();
 
-        // RULE B: If deadline is in the FUTURE (upcoming): keep reminding
+        // RULE B: If deadline is in the future, keep reminding
         if (nowMs < deadlineMs) {
           return true;
         }
 
-        // RULE C: If deadline has passed: SHOW ONCE ONLY
+        // RULE C: If deadline has passed and already acknowledged, never show again
         if (acknowledgedDeadlines.has(actIdStr)) {
           return false;
         }
@@ -1903,11 +1939,23 @@
     if (selectedEl) selectedEl.classList.add('selected');
   }
 
-  /* 🚪 OKAY BUTTON: Dismiss modal */
+  /* 🚪 OKAY BUTTON: Dismiss modal & stamp any displayed expired items */
   function dismissPendingModal() {
     const modal = document.getElementById("pendingActivityModal");
     if (modal) {
       modal.style.display = "none";
+    }
+
+    if (activePendingActivities && activePendingActivities.length > 0) {
+      activePendingActivities.forEach(act => {
+        const deadlineVal = act.deadline || act.due_date;
+        if (deadlineVal) {
+          const dt = new Date(deadlineVal);
+          if (!isNaN(dt.getTime()) && Date.now() >= dt.getTime()) {
+            recordAcknowledgedDeadline(act.id);
+          }
+        }
+      });
     }
   }
 
@@ -1916,6 +1964,15 @@
     if (!currentTargetActivity || !currentTargetActivity.id) {
       dismissPendingModal();
       return;
+    }
+
+    // Record past-due items before navigating away
+    const deadlineVal = currentTargetActivity.deadline || currentTargetActivity.due_date;
+    if (deadlineVal) {
+      const dt = new Date(deadlineVal);
+      if (!isNaN(dt.getTime()) && Date.now() >= dt.getTime()) {
+        recordAcknowledgedDeadline(currentTargetActivity.id);
+      }
     }
 
     localStorage.setItem("selectedActivityId", String(currentTargetActivity.id));
