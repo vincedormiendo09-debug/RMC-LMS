@@ -649,11 +649,13 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
         return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
 
     except Exception as e:
-        err_msg = str(e).lower()
+        error_details = str(e)
+        err_msg = error_details.lower()
         if "safety" in err_msg or "blocked" in err_msg or "filter" in err_msg:
             return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
-        print(f"🛑 Gemini 2.0 Flash Execution Error: {e}")
-        return False, "Moderation service temporarily unavailable. Please retry sending."
+        
+        print(f"🛑 Gemini 2.0 Flash Execution Error: {error_details}", flush=True)
+        return False, f"AI Gateway Error: {error_details[:100]}"
 
 # --- 5. UNIFIED REAL-TIME MODERATION API ROUTE ---
 @app.route('/api/ai-moderate', methods=['POST'])
