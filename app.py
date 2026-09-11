@@ -391,7 +391,7 @@ except ImportError:
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 gemini_client = None
-ACTIVE_GEMINI_MODEL = "gemini-2.5-flash"
+ACTIVE_GEMINI_MODEL = "gemini-1.5-flash-002"
 
 if GEMINI_SDK_AVAILABLE and GEMINI_API_KEY:
     try:
@@ -401,16 +401,27 @@ if GEMINI_SDK_AVAILABLE and GEMINI_API_KEY:
         )
         print("✅ Gemini client initialized successfully on v1beta.", flush=True)
 
-        try:
-            for m in gemini_client.models.list():
-                raw_name = getattr(m, 'name', '') or ''
-                clean_name = raw_name.replace('models/', '')
-                if 'flash' in clean_name and clean_name != 'gemini-2.0-flash':
-                    ACTIVE_GEMINI_MODEL = clean_name
-                    print(f"🎯 Bound to active Gemini model: {ACTIVE_GEMINI_MODEL}", flush=True)
-                    break
-        except Exception as list_err:
-            print(f"⚠️ Model list query note: {list_err}", flush=True)
+        probe_candidates = [
+            os.environ.get("GEMINI_MODEL", "").strip(),
+            "gemini-1.5-flash-002",
+            "gemini-1.5-flash",
+            "gemini-2.0-flash-001",
+            "gemini-1.5-pro-002"
+        ]
+        for candidate in probe_candidates:
+            if not candidate or candidate in ["gemini-2.0-flash", "gemini-2.5-flash"]:
+                continue
+            try:
+                gemini_client.models.generate_content(
+                    model=candidate,
+                    contents="ping",
+                    config=types.GenerateContentConfig(max_output_tokens=1)
+                )
+                ACTIVE_GEMINI_MODEL = candidate
+                print(f"🎯 Verified live Gemini model: {ACTIVE_GEMINI_MODEL}", flush=True)
+                break
+            except Exception as probe_err:
+                print(f"⚠️ Model {candidate} unavailable: {probe_err}", flush=True)
 
     except Exception as e:
         print(f"❌ Failed to initialize Gemini Client: {e}", flush=True)
@@ -631,94 +642,117 @@ OR
 """
 
 def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"):
+    """
+    Multimodal inspection using Gemini API.
+    Iterates through production models to ensure continuous uptime.
+    """
     if not GEMINI_API_KEY:
         print("⚠️ GEMINI_API_KEY missing. Proceeding on deterministic gate.")
         return True, ""
 
-    model_name = ACTIVE_GEMINI_MODEL or os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+    candidate_models = [
+        ACTIVE_GEMINI_MODEL,
+        os.environ.get("GEMINI_MODEL", "").strip(),
+        "gemini-1.5-flash-002",
+        "gemini-1.5-flash",
+        "gemini-2.0-flash-001",
+        "gemini-1.5-pro-002"
+    ]
+    retired_models = {"gemini-2.0-flash", "gemini-2.5-flash"}
+    candidate_models = [
+        m for i, m in enumerate(candidate_models) 
+        if m and m not in retired_models and m not in candidate_models[:i]
+    ]
 
-    # --- Layer 1: Attempt via google-genai SDK ---
-    if gemini_client and GEMINI_SDK_AVAILABLE:
-        try:
-            contents = [GEMINI_UNIFIED_PROMPT]
-            if text:
-                contents.append(f"### STUDENT MESSAGE TEXT ###\n{text}\n### END MESSAGE TEXT ###")
-            if image_bytes:
-                contents.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
+    contents_sdk = [GEMINI_UNIFIED_PROMPT]
+    if text:
+        contents_sdk.append(f"### STUDENT MESSAGE TEXT ###\n{text}\n### END MESSAGE TEXT ###")
+    if image_bytes:
+        contents_sdk.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
 
-            response = gemini_client.models.generate_content(
-                model=model_name,
-                contents=contents,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.0
+    last_error = ""
+
+    for model_name in candidate_models:
+        # --- Layer 1: Google GenAI SDK ---
+        if gemini_client and GEMINI_SDK_AVAILABLE:
+            try:
+                response = gemini_client.models.generate_content(
+                    model=model_name,
+                    contents=contents_sdk,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.0
+                    )
                 )
-            )
 
-            if hasattr(response, 'candidates') and response.candidates:
-                finish_reason = str(getattr(response.candidates[0], 'finish_reason', ''))
+                if hasattr(response, 'candidates') and response.candidates:
+                    finish_reason = str(getattr(response.candidates[0], 'finish_reason', ''))
+                    if "SAFETY" in finish_reason:
+                        return False, "Explicit adult or prohibited visual content blocked by AI safety proctor."
+
+                response_text = (response.text or "").strip()
+                if response_text:
+                    json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                    if json_match:
+                        verdict = json.loads(json_match.group(0))
+                        return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
+            except Exception as sdk_err:
+                err_msg = str(sdk_err)
+                last_error = err_msg
+                if any(kw in err_msg.lower() for kw in ["no longer available", "404", "not found"]):
+                    continue
+                if any(kw in err_msg.lower() for kw in ["safety", "blocked", "filter"]):
+                    return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
+
+        # --- Layer 2: Bulletproof Direct v1beta REST Gateway Fallback ---
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+            parts = [{"text": GEMINI_UNIFIED_PROMPT}]
+            if text:
+                parts.append({"text": f"### STUDENT MESSAGE TEXT ###\n{text}\n### END MESSAGE TEXT ###"})
+            if image_bytes:
+                b64_data = base64.b64encode(image_bytes).decode("utf-8")
+                parts.append({
+                    "inline_data": {
+                        "mime_type": mime_type,
+                        "data": b64_data
+                    }
+                })
+
+            payload = {
+                "contents": [{"parts": parts}],
+                "generationConfig": {
+                    "response_mime_type": "application/json",
+                    "temperature": 0.0
+                }
+            }
+
+            resp = requests.post(url, json=payload, timeout=8)
+            data = resp.json()
+
+            if resp.status_code != 200:
+                api_err = data.get("error", {}).get("message", "Gateway Error")
+                last_error = api_err
+                if any(kw in api_err.lower() for kw in ["no longer available", "404", "not found"]):
+                    continue
+                return False, f"AI Gateway Error: {api_err[:100]}"
+
+            candidates = data.get("candidates", [])
+            if candidates:
+                finish_reason = candidates[0].get("finishReason", "")
                 if "SAFETY" in finish_reason:
-                    return False, "Explicit adult or prohibited visual content blocked by AI safety proctor."
+                    return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
 
-            response_text = (response.text or "").strip()
-            if response_text:
-                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "{}").strip()
+                json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
                 if json_match:
                     verdict = json.loads(json_match.group(0))
                     return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
-        except Exception as sdk_err:
-            print(f"⚠️ SDK dropped ({sdk_err}). Switching to direct v1beta REST gateway...", flush=True)
+        except Exception as rest_err:
+            last_error = str(rest_err)
+            continue
 
-    # --- Layer 2: Bulletproof Direct v1beta REST Gateway ---
-    try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
-        parts = [{"text": GEMINI_UNIFIED_PROMPT}]
-
-        if text:
-            parts.append({"text": f"### STUDENT MESSAGE TEXT ###\n{text}\n### END MESSAGE TEXT ###"})
-
-        if image_bytes:
-            b64_data = base64.b64encode(image_bytes).decode("utf-8")
-            parts.append({
-                "inline_data": {
-                    "mime_type": mime_type,
-                    "data": b64_data
-                }
-            })
-
-        payload = {
-            "contents": [{"parts": parts}],
-            "generationConfig": {
-                "response_mime_type": "application/json",
-                "temperature": 0.0
-            }
-        }
-
-        resp = requests.post(url, json=payload, timeout=8)
-        data = resp.json()
-
-        if resp.status_code != 200:
-            err_msg = data.get("error", {}).get("message", "Unknown Gateway Error")
-            print(f"🛑 Gemini Direct Gateway Error: {err_msg}", flush=True)
-            return False, f"AI Gateway Error: {err_msg[:100]}"
-
-        candidates = data.get("candidates", [])
-        if candidates:
-            finish_reason = candidates[0].get("finishReason", "")
-            if "SAFETY" in finish_reason:
-                return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
-
-            raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "{}").strip()
-            json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
-            if json_match:
-                verdict = json.loads(json_match.group(0))
-                return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
-
-        return False, "Message rejected: empty evaluation response."
-
-    except Exception as e:
-        print(f"🛑 Fallback Exception: {e}", flush=True)
-        return False, f"AI Gateway Error: {str(e)[:100]}"
+    return False, f"AI Gateway Error: {last_error[:100] if last_error else 'All candidate models unavailable'}"
 
 # --- 5. UNIFIED REAL-TIME MODERATION API ROUTE ---
 @app.route('/api/ai-moderate', methods=['POST'])
