@@ -380,7 +380,7 @@ import base64
 import unicodedata
 import requests
 
-# Google GenAI SDK (Gemini 2.0 Flash)
+# Google GenAI SDK (Gemini Setup)
 try:
     from google import genai
     from google.genai import types
@@ -391,16 +391,31 @@ except ImportError:
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 gemini_client = None
+ACTIVE_GEMINI_MODEL = "gemini-1.5-flash-002"
+
 if GEMINI_SDK_AVAILABLE and GEMINI_API_KEY:
     try:
-        # Route to v1beta where Flash multimodal models are hosted
+        # Route to v1beta where Flash aliases and multimodal inspection reside
         gemini_client = genai.Client(
             api_key=GEMINI_API_KEY,
             http_options={'api_version': 'v1beta'}
         )
-        print("✅ Gemini Client initialized successfully on v1beta.")
+        print("✅ Gemini client initialized successfully on v1beta.", flush=True)
+
+        # Query Google's live catalog to pick an active Flash model for this key
+        try:
+            for m in gemini_client.models.list():
+                raw_name = getattr(m, 'name', '') or ''
+                clean_name = raw_name.replace('models/', '')
+                if 'flash' in clean_name and any(v in clean_name for v in ['1.5', '2.0', '2.5']):
+                    ACTIVE_GEMINI_MODEL = clean_name
+                    print(f"🎯 Auto-detected active Gemini model: {ACTIVE_GEMINI_MODEL}", flush=True)
+                    break
+        except Exception as list_err:
+            print(f"⚠️ Model list query note: {list_err}", flush=True)
+
     except Exception as e:
-        print(f"❌ Failed to initialize Gemini Client: {e}")
+        print(f"❌ Failed to initialize Gemini Client: {e}", flush=True)
 
 # --- 1. FILE & EXTENSION SECURITY WHITELISTS (For Group Chat) ---
 BLOCKED_EXTENSIONS = {
@@ -608,22 +623,18 @@ OR
 """
 
 def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"):
-    """
-    Multimodal inspection using Gemini API.
-    Simultaneously analyzes intent, ethics, visual NSFW safety, and OCR text.
-    Iterates through active Flash model aliases to avoid 404 deprecation errors.
-    """
+    """Multimodal inspection using Gemini API."""
     if not gemini_client:
         print("⚠️ Gemini client not configured. Proceeding on deterministic gate.")
         return True, ""
 
-    # Priority order for active multimodal Flash models
     candidate_models = [
+        ACTIVE_GEMINI_MODEL,
         os.environ.get("GEMINI_MODEL", "").strip(),
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
+        "gemini-1.5-flash-002",
+        "gemini-2.0-flash-001",
         "gemini-1.5-flash",
-        "gemini-1.5-flash-latest"
+        "gemini-2.0-flash"
     ]
     candidate_models = [m for m in candidate_models if m]
 
@@ -645,7 +656,6 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
                 )
             )
 
-            # Catch native safety blockages (e.g., explicit nudity filtered at gateway)
             if hasattr(response, 'candidates') and response.candidates:
                 finish_reason = str(getattr(response.candidates[0], 'finish_reason', ''))
                 if "SAFETY" in finish_reason:
@@ -664,12 +674,10 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
 
         except Exception as exc:
             err_str = str(exc)
-            # If 404 NOT_FOUND, try the next model in candidate_models
             if "404" in err_str or "not found" in err_str.lower():
                 last_err = exc
                 continue
 
-            # Catch explicit safety tripwires raised as API exceptions
             err_msg = err_str.lower()
             if "safety" in err_msg or "blocked" in err_msg or "filter" in err_msg:
                 return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
@@ -677,7 +685,6 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
             print(f"🛑 Gemini Execution Error ({model_name}): {err_str}", flush=True)
             return False, f"AI Gateway Error: {err_str[:100]}"
 
-    # If all models returned 404
     error_details = str(last_err) if last_err else "All candidate models unavailable"
     print(f"🛑 All Gemini Flash models failed: {error_details}", flush=True)
     return False, f"AI Gateway Error: {error_details[:100]}"
