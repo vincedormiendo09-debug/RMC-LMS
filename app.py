@@ -393,8 +393,12 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
 gemini_client = None
 if GEMINI_SDK_AVAILABLE and GEMINI_API_KEY:
     try:
-        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-        print("✅ Gemini 2.0 Flash client initialized successfully.")
+        # Route to v1beta where Flash multimodal models are hosted
+        gemini_client = genai.Client(
+            api_key=GEMINI_API_KEY,
+            http_options={'api_version': 'v1beta'}
+        )
+        print("✅ Gemini Client initialized successfully on v1beta.")
     except Exception as e:
         print(f"❌ Failed to initialize Gemini Client: {e}")
 
@@ -607,55 +611,76 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
     """
     Multimodal inspection using Gemini API.
     Simultaneously analyzes intent, ethics, visual NSFW safety, and OCR text.
+    Iterates through active Flash model aliases to avoid 404 deprecation errors.
     """
     if not gemini_client:
         print("⚠️ Gemini client not configured. Proceeding on deterministic gate.")
         return True, ""
 
-    try:
-        contents = [GEMINI_UNIFIED_PROMPT]
+    # Priority order for active multimodal Flash models
+    candidate_models = [
+        os.environ.get("GEMINI_MODEL", "").strip(),
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-latest"
+    ]
+    candidate_models = [m for m in candidate_models if m]
 
-        if text:
-            contents.append(f"### STUDENT MESSAGE TEXT ###\n{text}\n### END MESSAGE TEXT ###")
+    contents = [GEMINI_UNIFIED_PROMPT]
+    if text:
+        contents.append(f"### STUDENT MESSAGE TEXT ###\n{text}\n### END MESSAGE TEXT ###")
+    if image_bytes:
+        contents.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
 
-        if image_bytes:
-            contents.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
-
-        target_model = os.environ.get("GEMINI_MODEL", "gemini-1.5-flash")
-
-        response = gemini_client.models.generate_content(
-            model=target_model,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.0
+    last_err = None
+    for model_name in candidate_models:
+        try:
+            response = gemini_client.models.generate_content(
+                model=model_name,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.0
+                )
             )
-        )
 
-        if hasattr(response, 'candidates') and response.candidates:
-            finish_reason = str(getattr(response.candidates[0], 'finish_reason', ''))
-            if "SAFETY" in finish_reason:
-                return False, "Explicit adult or prohibited visual content blocked by AI safety proctor."
+            # Catch native safety blockages (e.g., explicit nudity filtered at gateway)
+            if hasattr(response, 'candidates') and response.candidates:
+                finish_reason = str(getattr(response.candidates[0], 'finish_reason', ''))
+                if "SAFETY" in finish_reason:
+                    return False, "Explicit adult or prohibited visual content blocked by AI safety proctor."
 
-        response_text = (response.text or "").strip()
-        if not response_text:
-            return False, "Message rejected: empty or safety-filtered AI response."
+            response_text = (response.text or "").strip()
+            if not response_text:
+                return False, "Message rejected: empty or safety-filtered AI response."
 
-        if response_text.startswith("```"):
-            response_text = re.sub(r'^```(?:json)?\s*', '', response_text)
-            response_text = re.sub(r'\s*```$', '', response_text)
+            if response_text.startswith("```"):
+                response_text = re.sub(r'^```(?:json)?\s*', '', response_text)
+                response_text = re.sub(r'\s*```$', '', response_text)
 
-        verdict = json.loads(response_text)
-        return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
+            verdict = json.loads(response_text)
+            return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
 
-    except Exception as e:
-        error_details = str(e)
-        err_msg = error_details.lower()
-        if "safety" in err_msg or "blocked" in err_msg or "filter" in err_msg:
-            return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
+        except Exception as exc:
+            err_str = str(exc)
+            # If 404 NOT_FOUND, try the next model in candidate_models
+            if "404" in err_str or "not found" in err_str.lower():
+                last_err = exc
+                continue
 
-        print(f"🛑 Gemini Execution Error: {error_details}", flush=True)
-        return False, f"AI Gateway Error: {error_details[:100]}"
+            # Catch explicit safety tripwires raised as API exceptions
+            err_msg = err_str.lower()
+            if "safety" in err_msg or "blocked" in err_msg or "filter" in err_msg:
+                return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
+
+            print(f"🛑 Gemini Execution Error ({model_name}): {err_str}", flush=True)
+            return False, f"AI Gateway Error: {err_str[:100]}"
+
+    # If all models returned 404
+    error_details = str(last_err) if last_err else "All candidate models unavailable"
+    print(f"🛑 All Gemini Flash models failed: {error_details}", flush=True)
+    return False, f"AI Gateway Error: {error_details[:100]}"
 
 # --- 5. UNIFIED REAL-TIME MODERATION API ROUTE ---
 @app.route('/api/ai-moderate', methods=['POST'])
