@@ -914,6 +914,14 @@
     return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
+  function readFileAsDataURL(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+  }
+
   /* =====================================================
       1. USER SESSION & ROLE PROTECTION
   ===================================================== */
@@ -922,7 +930,6 @@
   const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
   const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
 
-  // Restrict Admin Access
   if (userRole === "ADMIN") {
     alert("Access restricted: Administrators do not submit activities directly.");
     window.location.replace("{{ url_for('landpage') }}");
@@ -933,7 +940,6 @@
   if (roleBadge) roleBadge.textContent = userRole;
   if (nameDisplay) nameDisplay.textContent = userName;
 
-  // Flask Route URLs
   const homeUrl = "{{ url_for('landpage') }}";
   const createUrl = "{{ url_for('create_page') }}";
   const joinUrl = "{{ url_for('join_page') }}";
@@ -992,7 +998,6 @@
     if (subSec) subSec.style.display = "block";
   }
 
-  /* MOBILE SIDEBAR TOGGLE */
   const mobileMenuBtn = document.getElementById('mobileMenuBtn');
   const sidebar = document.getElementById('sidebar');
 
@@ -1031,7 +1036,6 @@
     return null;
   }
 
-  // 🎯 Resolve Activity ID from URL Query String or LocalStorage
   const urlParams = new URLSearchParams(window.location.search);
   const rawParamId = urlParams.get("activity_id") || urlParams.get("id");
   const rawStorageId = localStorage.getItem("selectedActivityId");
@@ -1060,7 +1064,7 @@
     'ps1', 'py', 'php', 'asp', 'aspx', 'jsp', 'cgi', 'zip', 'rar', '7z', 'tar', 'gz', 'iso', 'dll'
   ]);
 
-  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25 MB Limit
+  const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
@@ -1195,7 +1199,6 @@
       }
     }
 
-    // Resolve teacher profile for communication shortcut
     if (teacherIdCandidate) {
       const teacherSearchIds = getDualTypeIds([teacherIdCandidate]);
       const { data: tProfile } = await client
@@ -1287,7 +1290,6 @@
       }
     }
 
-    // Parallel lookup for student submission
     if (userRole === "STUDENT" && currentUserId) {
       const userSearchIds = getDualTypeIds([currentUserId]);
 
@@ -1300,9 +1302,9 @@
 
       if (submission) {
         currentSubmissionData = submission;
-        const st = String(submission.status || '').toLowerCase();
+        const st = String(submission.status || '').trim().toLowerCase();
 
-        if (st === 'submitted' || st === 'graded' || st === 'finished') {
+        if (st !== 'draft' && st !== 'unsubmitted') {
           isCurrentlySubmitted = true;
 
           const commentsInput = document.getElementById("studentComments");
@@ -1497,7 +1499,7 @@
   }
 
   /* =====================================================
-      5. SUBMISSION BUTTON HANDLER (HARD DEADLINE ENFORCED)
+      5. SUBMISSION BUTTON HANDLER (PRE-UPLOAD INSPECTION)
   ===================================================== */
   async function handleSubmissionButtonClick() {
     if (isClassArchived) {
@@ -1529,7 +1531,7 @@
 
     const submitBtn = document.getElementById("submitBtn");
 
-    // CASE A: UNSUBMIT WORK
+    // CASE A: UNSUBMIT WORK -> SET TO 'draft'
     if (isCurrentlySubmitted) {
       const isGraded = currentSubmissionData && (
         currentSubmissionData.status === 'graded' ||
@@ -1554,7 +1556,7 @@
 
       const { error } = await client
         .from('submissions')
-        .update({ status: 'unsubmitted' })
+        .update({ status: 'draft' })
         .in('id', subSearchIds);
 
       if (error) {
@@ -1581,13 +1583,17 @@
     const comments = commentsEl ? commentsEl.value.trim() : "";
     const linkInput = linkEl ? linkEl.value.trim() : "";
 
-    // 1. Multilingual AI Content Safety Check
+    // 1. Text Conduct & Policy Check
     if (comments) {
       try {
         const aiResp = await fetch('/api/ai-moderate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: comments })
+          body: JSON.stringify({ 
+            message: comments, 
+            text: comments,
+            is_teacher_dm: false 
+          })
         });
         if (aiResp.ok) {
           const aiData = await aiResp.json();
@@ -1601,8 +1607,10 @@
       }
     }
 
-    // 2. Validate File Selection
+    // 2. Validate & Pre-Inspect File Selection (Base64 Multimodal OCR Check)
     let pickedFile = null;
+    let base64Payload = null;
+
     if (fileInput && fileInput.files && fileInput.files.length > 0) {
       pickedFile = fileInput.files[0];
       const ext = pickedFile.name.split('.').pop().toLowerCase();
@@ -1624,22 +1632,44 @@
         return;
       }
 
+      const isImg = ['png', 'jpg', 'jpeg', 'webp'].includes(ext);
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying Safety...';
+      }
+
       try {
+        if (isImg) {
+          base64Payload = await readFileAsDataURL(pickedFile);
+        }
+
         const fileCheckResp = await fetch('/api/ai-moderate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file_name: pickedFile.name })
+          body: JSON.stringify({ 
+            file_name: pickedFile.name,
+            message: comments || `Submission: ${pickedFile.name}`,
+            image_base64: base64Payload,
+            mime_type: pickedFile.type || 'image/jpeg',
+            is_teacher_dm: false
+          })
         });
+
         if (fileCheckResp.ok) {
           const checkData = await fileCheckResp.json();
           if (!checkData.allowed) {
             alert(`🛑 File Check Failed: ${checkData.reason}`);
             fileInput.value = "";
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
+            }
             return;
           }
         }
       } catch (err) {
-        console.warn("AI file check offline warning:", err);
+        console.warn("AI file check warning:", err);
       }
     }
 
@@ -1649,16 +1679,14 @@
     }
 
     let uploadedFileUrl = currentSubmissionData ? currentSubmissionData.file_url : null;
-    let uploadedStoragePath = null;
-    let uploadedBucketName = null;
 
+    // 3. Upload Clean File to Storage
     if (pickedFile) {
       try {
         const fileExt = pickedFile.name.split('.').pop().toLowerCase();
         const fileName = `turnin_${currentUserId}_${Date.now()}.${fileExt}`;
         const filePath = `activity_${selectedActivityId}/${fileName}`;
 
-        // Resilient 3-tier bucket fallback
         const candidateBuckets = ['student-submissions', 'lesson-files', 'group-files'];
         let uploadSuccess = false;
         let lastUploadError = null;
@@ -1671,8 +1699,6 @@
           if (!uploadError && uploadData) {
             const { data: urlData } = client.storage.from(bucket).getPublicUrl(filePath);
             uploadedFileUrl = urlData.publicUrl;
-            uploadedStoragePath = filePath;
-            uploadedBucketName = bucket;
             uploadSuccess = true;
             break;
           } else {
@@ -1690,43 +1716,6 @@
           submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
         }
         return;
-      }
-    }
-
-    // 3. Vision Safety Check on Uploaded Image
-    if (uploadedFileUrl && pickedFile) {
-      const isImg = ['png', 'jpg', 'jpeg', 'webp'].includes(pickedFile.name.split('.').pop().toLowerCase());
-      if (isImg) {
-        try {
-          const aiVisionResp = await fetch('/api/ai-moderate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              image_url: uploadedFileUrl,
-              file_name: pickedFile.name
-            })
-          });
-
-          if (aiVisionResp.ok) {
-            const visionData = await aiVisionResp.json();
-            if (!visionData.allowed) {
-              alert(`🛑 Image Rejected by Safety Filter: ${visionData.reason || 'Explicit or inappropriate imagery detected.'}`);
-              
-              if (uploadedStoragePath && uploadedBucketName) {
-                await client.storage.from(uploadedBucketName).remove([uploadedStoragePath]);
-              }
-
-              if (fileInput) fileInput.value = "";
-              if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
-              }
-              return;
-            }
-          }
-        } catch (err) {
-          console.warn("Vision moderation error:", err);
-        }
       }
     }
 
@@ -1823,7 +1812,6 @@
         submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
       }
     } else {
-      // 4. Notify Teacher of Submission
       if (currentTeacherProfile?.id) {
         const teacherSearchIds = getDualTypeIds([currentTeacherProfile.id]);
         if (teacherSearchIds.length > 0) {
@@ -1848,13 +1836,13 @@
         }
       }
 
-      // 5. Complete Purge of Reminders & In-App Alerts for this Assignment
+      // 4. Guaranteed Notification & Reminder Purge
       try {
-        fetch('/api/clear-activity-reminders', {
+        await fetch('/api/clear-activity-reminders', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ user_id: currentUserId, activity_id: parsedActId })
-        }).catch(e => console.warn(e));
+        });
 
         const userSearchIds = getDualTypeIds([currentUserId]);
         const actSearchIds = getDualTypeIds([parsedActId]);

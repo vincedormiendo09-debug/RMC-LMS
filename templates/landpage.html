@@ -1174,7 +1174,6 @@
           .order('created_at', { ascending: false });
         classes = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
-        // Parallel queries to support both user_id and student_id enrollment formats
         const [memUser, memStudent] = await Promise.all([
           client.from('class_memberships').select('class_id').in('user_id', userSearchIds),
           client.from('class_memberships').select('class_id').in('student_id', userSearchIds)
@@ -1203,7 +1202,6 @@
           }
         }
       } else {
-        // ADMIN POV: Query all active classes
         const { data } = await client
           .from('classes')
           .select('*')
@@ -1265,7 +1263,6 @@
 
         li.appendChild(btn);
 
-        // Teacher management actions
         if (userRole === "TEACHER") {
           const menuBtn = document.createElement("button");
           menuBtn.className = "menu-btn";
@@ -1377,7 +1374,6 @@
           .order('created_at', { ascending: false });
         groups = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
-        // Parallel queries to support both user_id and student_id enrollment formats
         const [memUser, memStudent] = await Promise.all([
           client.from('group_memberships').select('group_id').in('user_id', userSearchIds),
           client.from('group_memberships').select('group_id').in('student_id', userSearchIds)
@@ -1406,7 +1402,6 @@
           }
         }
       } else {
-        // ADMIN POV: Query all active groups
         const { data } = await client
           .from('groups')
           .select('*')
@@ -1468,7 +1463,6 @@
 
         li.appendChild(btn);
 
-        // Teacher management actions
         if (userRole === "TEACHER") {
           const menuBtn = document.createElement("button");
           menuBtn.className = "menu-btn";
@@ -1618,20 +1612,17 @@
     }
 
     try {
-      // 1. Fetch public VAPID key dynamically from Flask
       const keyResp = await fetch('/api/vapid-public-key');
       if (!keyResp.ok) return;
       const { publicKey } = await keyResp.json();
       if (!publicKey) return;
 
-      // 2. Request permission if not already granted or denied
       if (Notification.permission === 'default') {
         await Notification.requestPermission();
       }
 
       if (Notification.permission !== 'granted') return;
 
-      // 3. Register push subscription with active service worker
       const registration = await navigator.serviceWorker.ready;
       let subscription = await registration.pushManager.getSubscription();
 
@@ -1643,7 +1634,6 @@
         });
       }
 
-      // 4. Save device subscription token to Supabase via backend endpoint
       if (subscription) {
         await fetch('/api/save-subscription', {
           method: 'POST',
@@ -1671,10 +1661,29 @@
   }
 
   /* =====================================================
-      9. AUTOMATED LOGIN MODAL FOR PENDING ACTIVITIES
+      9. AUTOMATED PENDING ACTIVITIES & ONCE-ONLY DEADLINE LOGIC
   ===================================================== */
   let activePendingActivities = [];
   let currentTargetActivity = null;
+
+  // Local storage helpers to track past-due activities shown once
+  function getAcknowledgedDeadlines() {
+    try {
+      const stored = localStorage.getItem(`acknowledged_deadlines_${currentUserId}`);
+      return new Set(stored ? JSON.parse(stored) : []);
+    } catch (e) {
+      return new Set();
+    }
+  }
+
+  function recordAcknowledgedDeadline(activityId) {
+    if (!activityId || !currentUserId) return;
+    try {
+      const set = getAcknowledgedDeadlines();
+      set.add(String(activityId));
+      localStorage.setItem(`acknowledged_deadlines_${currentUserId}`, JSON.stringify(Array.from(set)));
+    } catch (e) {}
+  }
 
   async function scanForPendingActivities(studentId) {
     const client = getSupabaseClient();
@@ -1683,7 +1692,7 @@
     try {
       const mySearchIds = getDualTypeIds([studentId]);
 
-      // 1. Fetch student's enrolled classes (dual-schema safe)
+      // 1. Fetch student's enrolled classes
       const [memUser, memStudent] = await Promise.all([
         client.from('class_memberships').select('class_id').in('user_id', mySearchIds),
         client.from('class_memberships').select('class_id').in('student_id', mySearchIds)
@@ -1719,25 +1728,85 @@
       if (!activities || activities.length === 0) return;
 
       const activityIds = activities.map(a => a.id);
+      const dualActivityIds = getDualTypeIds(activityIds);
 
-      // 4. Fetch existing submissions (dual-schema safe)
+      // 4. Fetch existing submissions (Dual-schema safe)
       const [subUser, subStudent] = await Promise.all([
-        client.from('submissions').select('activity_id, status').in('user_id', mySearchIds).in('activity_id', activityIds),
-        client.from('submissions').select('activity_id, status').in('student_id', mySearchIds).in('activity_id', activityIds)
+        client.from('submissions').select('activity_id, status').in('user_id', mySearchIds).in('activity_id', dualActivityIds),
+        client.from('submissions').select('activity_id, status').in('student_id', mySearchIds).in('activity_id', dualActivityIds)
       ]);
 
       const combinedSubmissions = [...(subUser.data || []), ...(subStudent.data || [])];
       const submittedActIds = new Set();
 
+      // Anything not explicitly marked 'draft' is counted as turned in
       combinedSubmissions.forEach(sub => {
         const st = String(sub.status || '').trim().toLowerCase();
-        if (st === 'submitted' || st === 'graded' || st === 'finished') {
+        if (st !== 'draft') {
           submittedActIds.add(String(sub.activity_id));
+          const numId = parseDbId(sub.activity_id);
+          if (typeof numId === 'number' && !isNaN(numId)) {
+            submittedActIds.add(String(numId));
+          }
         }
       });
 
-      // 5. Filter for unfinished/unsubmitted assignments
-      activePendingActivities = activities.filter(act => !submittedActIds.has(String(act.id)));
+      // 🧼 Auto-purge lingering reminder notifications for activities already turned in
+      if (submittedActIds.size > 0) {
+        submittedActIds.forEach(actId => {
+          fetch('/api/clear-activity-reminders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: currentUserId, activity_id: actId })
+          }).catch(() => {});
+        });
+      }
+
+      // 5. Intelligent Filtering (Active reminders vs. 1-Time Past-Due Notice)
+      const nowMs = Date.now();
+      const acknowledgedDeadlines = getAcknowledgedDeadlines();
+
+      activePendingActivities = activities.filter(act => {
+        const actIdStr = String(act.id);
+
+        // RULE A: If turned in, NEVER show it again
+        if (submittedActIds.has(actIdStr)) {
+          return false;
+        }
+
+        const deadlineStr = act.deadline || act.due_date;
+        if (!deadlineStr) {
+          // Open-ended without cutoff: keep active until submitted
+          return true;
+        }
+
+        const deadlineDate = new Date(deadlineStr);
+        if (isNaN(deadlineDate.getTime())) {
+          return true;
+        }
+
+        const deadlineMs = deadlineDate.getTime();
+
+        // RULE B: If deadline is in the FUTURE (upcoming): keep reminding
+        if (nowMs < deadlineMs) {
+          return true;
+        }
+
+        // RULE C: If deadline has passed: SHOW ONCE ONLY
+        if (acknowledgedDeadlines.has(actIdStr)) {
+          return false;
+        }
+
+        // Automatically retire activities expired more than 3 days ago to avoid historical clutter
+        const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+        if (nowMs - deadlineMs > threeDaysMs) {
+          recordAcknowledgedDeadline(act.id);
+          return false;
+        }
+
+        // Eligible for one-time past-due notice
+        return true;
+      });
 
       if (activePendingActivities.length > 0) {
         activePendingActivities.sort((a, b) => {
@@ -1747,6 +1816,8 @@
         });
 
         displayPendingActivityModal(classMap);
+      } else {
+        dismissPendingModal();
       }
     } catch (err) {
       console.warn("Pending activities scanner notice:", err);
@@ -1761,15 +1832,28 @@
     listContainer.innerHTML = "";
     currentTargetActivity = activePendingActivities[0];
 
+    // Immediately record any expired items so they never show again after this display
+    activePendingActivities.forEach(act => {
+      const deadlineVal = act.deadline || act.due_date;
+      if (deadlineVal) {
+        const dt = new Date(deadlineVal);
+        if (!isNaN(dt.getTime()) && Date.now() >= dt.getTime()) {
+          recordAcknowledgedDeadline(act.id);
+        }
+      }
+    });
+
     activePendingActivities.forEach((act, idx) => {
       const cls = classMap[String(act.class_id)] || {};
       const subjectName = cls.subject || "Course Activity";
       const deadlineVal = act.deadline || act.due_date;
       
       let dueText = "No deadline";
+      let isPastDue = false;
       if (deadlineVal) {
         const dt = new Date(deadlineVal);
         if (!isNaN(dt.getTime())) {
+          isPastDue = Date.now() >= dt.getTime();
           dueText = dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + " · " +
                     dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
         }
@@ -1780,6 +1864,14 @@
       item.id = `pendingItem_${act.id}`;
       item.onclick = () => selectPendingItem(act, cls.code);
 
+      const statusBadge = isPastDue
+        ? `<span style="font-size: 12px; color: #b91c1c; font-weight: 700;">⚠️ Deadline Passed: ${dueText} (Closed)</span>`
+        : `<span style="font-size: 12px; color: #dc2626; font-weight: 600;">⏰ Due: ${dueText}</span>`;
+
+      const pointsBadge = isPastDue
+        ? `<div style="font-size: 11px; font-weight: 700; color: #b91c1c; background: #fee2e2; padding: 4px 8px; border-radius: 6px; white-space: nowrap;">CLOSED</div>`
+        : `<div style="font-size: 11.5px; font-weight: 600; color: #64748b; background: #e2e8f0; padding: 4px 8px; border-radius: 6px; white-space: nowrap;">${act.total_points || 100} pts</div>`;
+
       item.innerHTML = `
         <div style="flex: 1; min-width: 0;">
           <div style="font-size: 11.5px; font-weight: 700; color: #2563eb; text-transform: uppercase; margin-bottom: 2px;">
@@ -1788,13 +1880,9 @@
           <strong style="font-size: 13.5px; color: #0f172a; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
             ${escapeHtml(act.title || 'Untitled Activity')}
           </strong>
-          <span style="font-size: 12px; color: #dc2626; font-weight: 600;">
-            ⏰ Due: ${dueText}
-          </span>
+          ${statusBadge}
         </div>
-        <div style="font-size: 11.5px; font-weight: 600; color: #64748b; background: #e2e8f0; padding: 4px 8px; border-radius: 6px; white-space: nowrap;">
-          ${act.total_points || 100} pts
-        </div>
+        ${pointsBadge}
       `;
 
       listContainer.appendChild(item);
@@ -1815,7 +1903,7 @@
     if (selectedEl) selectedEl.classList.add('selected');
   }
 
-  /* 🚪 OKAY BUTTON: Dismiss modal without navigating */
+  /* 🚪 OKAY BUTTON: Dismiss modal */
   function dismissPendingModal() {
     const modal = document.getElementById("pendingActivityModal");
     if (modal) {
@@ -1823,7 +1911,7 @@
     }
   }
 
-  /* 🚀 GO BUTTON: Direct routing straight into the activity */
+  /* 🚀 GO BUTTON: Direct routing into the activity */
   function navigateToSelectedActivity() {
     if (!currentTargetActivity || !currentTargetActivity.id) {
       dismissPendingModal();

@@ -1102,7 +1102,7 @@
   <main class="main-content">
     <div class="container">
       
-      <div class="chat-box">
+      <div class="chat-box" id="chatBox">
         <div class="chat-header">
           <div class="chat-header-left">
             <a id="smartBackBtn" href="{{ url_for('private_message_page') }}" class="back-btn" title="Back to Messages">
@@ -1127,8 +1127,8 @@
             <div class="consultation-badge">
               <i class="fa-solid fa-lock"></i> Confidential Direct Channel
             </div>
-            <button class="info-btn" id="infoBtn" title="Media & Files">
-              <i class="fa-solid fa-folder-open"></i>
+            <button class="info-btn" id="infoBtn" title="Consultation Details">
+              <i class="fa-solid fa-circle-info"></i>
             </button>
           </div>
         </div>
@@ -1143,7 +1143,7 @@
             <span class="msg-sender">Academic Assistant</span>
             <div class="msg-wrapper">
               <div class="msg-bubble">
-                🔒 <strong>Confidential One-on-One Channel:</strong> Feel free to ask activity clarifications, thesis concerns, or grading inquiries. Messages sent here are private and isolated between both parties.
+                🔒 <strong>Confidential One-on-One Channel:</strong> Text-only consultation. Media uploads, external links, and attachments are disabled for academic integrity.
               </div>
             </div>
             <span class="msg-time">System Protected</span>
@@ -1151,16 +1151,6 @@
         </div>
 
         <div class="input-bar">
-          <label for="fileAttachment" class="action-icon-btn" title="Attach Document">
-            <i class="fa-solid fa-paperclip"></i>
-          </label>
-          <input type="file" id="fileAttachment" style="display: none;">
-
-          <label for="imageAttachment" class="action-icon-btn" title="Attach Photo">
-            <i class="fa-solid fa-image"></i>
-          </label>
-          <input type="file" id="imageAttachment" accept="image/png,image/jpeg,image/webp" style="display: none;">
-
           <div class="input-wrapper">
             <input type="text" id="chatInput" placeholder="Type a message or clarification..." autocomplete="off">
           </div>
@@ -1178,14 +1168,19 @@
         </div>
 
         <div id="mediaContent" style="padding: 16px; overflow-y: auto; flex: 1;">
-          <div class="section-subtitle">Shared Documents</div>
-          <ul id="sharedFiles">
-            <li style="color: var(--muted); font-size: 12px; font-style: italic; padding: 4px 0;">No shared files yet.</li>
+          <div class="section-subtitle">Security Policy</div>
+          <p style="font-size: 12px; color: var(--muted); line-height: 1.6; margin-top: 8px;">
+            This 1-on-1 consultation channel is strictly monitored by AI proctoring. External web links, file uploads, and copied media are restricted to ensure academic honesty.
+          </p>
+
+          <div class="section-subtitle" style="margin-top: 20px;">Prior Documents</div>
+          <ul id="sharedFiles" style="list-style: none; padding: 0;">
+            <li style="color: var(--muted); font-size: 12px; font-style: italic; padding: 4px 0;">No prior files.</li>
           </ul>
 
-          <div class="section-subtitle" style="margin-top: 15px;">Shared Photos</div>
-          <div id="sharedImages">
-            <p style="grid-column: span 3; color: var(--muted); font-size: 12px; font-style: italic;">No shared photos yet.</p>
+          <div class="section-subtitle" style="margin-top: 15px;">Prior Photos</div>
+          <div id="sharedImages" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+            <p style="grid-column: span 3; color: var(--muted); font-size: 12px; font-style: italic;">No prior photos.</p>
           </div>
         </div>
       </div>
@@ -1405,42 +1400,22 @@
   }
 
   /* =====================================================
-     3. CLIENT HEURISTIC GATE (MULTI-DIALECT & ANTI-EVASION)
+     3. CLIENT HEURISTIC GATE (MULTI-DIALECT & ANTI-LINK/EVASION)
   ===================================================== */
   const bannedKeywords = [
-    // English & International Slurs / Acronyms
     "fuck", "shit", "bitch", "asshole", "bastard", "dick", "pussy", "cunt", "porn", "xxx", "nude", "nudes",
     "mf", "mofo", "stfu", "wtf", "kys", "pos", "sob", "fck", "fuk", "fukin",
-    // Tagalog / National Slurs & Anatomy
     "tangina", "tang ina", "tngina", "putangina", "ptngina", "gago", "gaga", "bobo", "tanga", "ulol", 
     "pukina", "puta", "pota", "tarantado", "inutil", "bwisit", "hayop", "walanghiya", "siraulo", "leche", 
     "kupal", "pakyu", "pakshet", "tae", "kantot", "kntot", "titi", "burat", "puke", "pekpek", "pokpok", 
     "bayag", "tamod", "bulbol",
-    // Bisaya / Cebuano Slurs
     "yawa", "bilat", "pisti", "peste", "atay", "kayat", "buang", "boang", "bwang", "oten", "utin", "lubot", "bayot",
-    // Ilocano Slurs
     "ukinam", "okinam", "ukinana", "okinana", "bagtit", "buto",
-    // Hiligaynon, Waray, Kapampangan, Bicolano
     "linti", "lintian", "buray", "yudiputa", "taksyapo", "danayda", "iyot", "iyotan"
   ];
 
-  const dangerousExtensions = new Set([
-    "exe", "bat", "cmd", "sh", "vbs", "vbe", "js", "jse", "wsf", "wsh",
-    "scr", "msi", "com", "pif", "hta", "cpl", "jar", "apk", "bin",
-    "ps1", "py", "php", "asp", "aspx", "jsp", "cgi", "zip", "rar", "7z", "tar", "gz", "iso", "dll"
-  ]);
-
-  const ALLOWED_DOC_EXTENSIONS = new Set([
-    'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'csv'
-  ]);
-
-  const ALLOWED_IMG_EXTENSIONS = new Set([
-    'png', 'jpg', 'jpeg', 'webp' // .gif strictly prohibited
-  ]);
-
-  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB Limit
-
-  const urlPattern = /\b(?:https?:\/\/|www\.)\S+|\b[a-zA-Z0-9-]+\.(?:com|net|org|edu|gov|io|xyz|ru|cn|me|co|link|info|biz|top|ph)\b/gi;
+  // Comprehensive URL & Domain regex including .ph, .com, and protocol prefixes
+  const urlPattern = /\b(?:https?:\/\/|www\.)\S+|\b[a-zA-Z0-9-]+\.(?:com|net|org|edu|gov|io|xyz|ru|cn|me|co|link|info|biz|top|ph|online|site|app|dev)\b/gi;
 
   function decodeClientBinary(str) {
     const rawBinary = str.replace(/[^01]/g, '').trim();
@@ -1458,41 +1433,45 @@
     return "";
   }
 
-  function evaluateClientContentSafety(text, fileName = "") {
+  function evaluateClientContentSafety(text) {
     const raw = String(text || "");
     const lower = raw.toLowerCase();
-    const lowerFileName = String(fileName || "").toLowerCase();
 
-    // 1. External Links & Web Domains
-    if (urlPattern.test(lower) || lower.includes(".com") || lower.includes("http://") || lower.includes("https://")) {
-      return { safe: false, reason: "External links and web domains are restricted in private consultation." };
+    // 1. Strict Link & Domain Blocking (0ms)
+    if (urlPattern.test(lower) || lower.includes(".com") || lower.includes("http://") || lower.includes("https://") || lower.includes("www.")) {
+      return { safe: false, reason: "External links and web domains are strictly prohibited in teacher consultations." };
     }
 
-    // 2. Animated Meme / GIF Links
+    // 2. Base64 / Embedded Image Strings
+    if (lower.includes("data:image/") || lower.includes("base64,")) {
+      return { safe: false, reason: "Pasted media and encoded image strings are strictly prohibited." };
+    }
+
+    // 3. Animated Meme / GIF Links
     if (/(giphy\.com|tenor\.com|\.gif(\?.*)?$)/i.test(lower)) {
       return { safe: false, reason: "School Policy Violation: Animated GIFs and meme links are prohibited." };
     }
 
-    // 3. Prohibited Emojis & Gestures
+    // 4. Prohibited Emojis & Gestures
     if (/🖕|👉\s*👌|(?:🍆|🍌|🌭|🥒)\s*(?:💦|💧|👅|🍑|🍩|👄)|(?:🍑|🍒)\s*(?:💦|👅|🍆)/u.test(raw)) {
       return { safe: false, reason: "School Policy Violation: Offensive or suggestive emojis detected." };
     }
 
-    // 4. ASCII Genitalia Drawings (8==(-), 8===D, c===3, (.Y.))
+    // 5. ASCII Genitalia Drawings
     if (/(?:8|c|C)[=\-_~]{1,}(?:D|\([-\)]*\)|>|3|o|O)/i.test(raw) || /\(\s*\.\s*[yY]\s*\.\s*\)/.test(raw)) {
       return { safe: false, reason: "School Policy Violation: Inappropriate ASCII drawings detected." };
     }
 
-    // 5. Morse Code Token Detection
+    // 6. Morse Code Token Detection
     const morseTokens = raw.replace(/_/g, '-').trim().split(/\s+/).filter(t => /^[.\-]+$/.test(t));
     if (morseTokens.length >= 2) {
       return { safe: false, reason: "School Policy Violation: Obfuscated Morse code messages are prohibited." };
     }
 
-    // 6. Binary String Evasion Check
+    // 7. Binary String Evasion Check
     const decodedBin = decodeClientBinary(raw);
 
-    // 7. Normalization (Homoglyphs, Leetspeak, Invisible bytes, Elongations)
+    // 8. Normalization (Homoglyphs, Leetspeak, Invisible bytes, Squashing)
     let cleaned = lower.replace(/[\u200B-\u200D\uFEFF\u00AD\u2060\u180E]/g, '');
 
     const homoglyphs = { 'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'у': 'y', 'х': 'x', 'і': 'i' };
@@ -1511,9 +1490,9 @@
 
     const condensedWords = cleaned.replace(/(?<=\b\w)\s+(?=\w\b)/g, '');
     const denseClean = cleaned.replace(/[^a-z0-9]/g, '');
-    const squashedClean = denseClean.replace(/(.)\1+/g, '$1'); // Squashes mffff -> mf, bobooo -> bobo
+    const squashedClean = denseClean.replace(/(.)\1+/g, '$1');
 
-    // 8. Multi-Dialect Profanity & Acronym Verification
+    // 9. Multi-Dialect Profanity & Acronym Verification
     const inspectionCandidates = [lower, condensedWords, denseClean, squashedClean];
     if (decodedBin) inspectionCandidates.push(decodedBin);
 
@@ -1522,19 +1501,6 @@
       for (const cand of inspectionCandidates) {
         if (wordRegex.test(cand) || cand.includes(badWord)) {
           return { safe: false, reason: `School Policy Violation: Prohibited language or regional slur detected ("${badWord}").` };
-        }
-      }
-    }
-
-    // 9. Attached File Name Safety
-    if (fileName) {
-      const ext = lowerFileName.split('.').pop();
-      if (dangerousExtensions.has(ext)) {
-        return { safe: false, reason: `File type (.${ext}) is prohibited to protect campus infrastructure.` };
-      }
-      for (const badWord of bannedKeywords) {
-        if (lowerFileName.includes(badWord)) {
-          return { safe: false, reason: "The attached filename contains inappropriate language." };
         }
       }
     }
@@ -1553,7 +1519,55 @@
   }
 
   /* =====================================================
-     4. INITIALIZE CONSULTATION FEED (DYNAMIC ROLES)
+     4. CLIPBOARD PASTE & DRAG-DROP PREVENTION
+  ===================================================== */
+  const chatInputEl = document.getElementById("chatInput");
+
+  if (chatInputEl) {
+    // Intercept clipboard pastes (Ctrl+V)
+    chatInputEl.addEventListener("paste", function (e) {
+      const clipboardData = e.clipboardData || window.clipboardData;
+      if (!clipboardData) return;
+
+      // Intercept clipboard images/files
+      if (clipboardData.items) {
+        for (let i = 0; i < clipboardData.items.length; i++) {
+          const item = clipboardData.items[i];
+          if (item.type.indexOf("image") !== -1 || item.kind === "file") {
+            e.preventDefault();
+            showModerationToast("🛑 Policy Notice: Image pasting and screenshots are strictly disabled in consultations.");
+            return;
+          }
+        }
+      }
+
+      // Intercept pasted web URLs and data URIs
+      const pastedText = clipboardData.getData("text") || "";
+      if (urlPattern.test(pastedText) || pastedText.toLowerCase().includes("data:image/") || pastedText.toLowerCase().includes("base64,")) {
+        e.preventDefault();
+        showModerationToast("🛑 Policy Notice: Pasting links, web domains, or media strings is strictly prohibited.");
+      }
+    });
+
+    chatInputEl.addEventListener("keydown", (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  }
+
+  // Intercept and prevent drag-and-drop of files into the chat window
+  window.addEventListener("dragover", (e) => e.preventDefault(), false);
+  window.addEventListener("drop", (e) => {
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      e.preventDefault();
+      showModerationToast("🛑 Policy Notice: File drag-and-drop is strictly disabled in teacher consultations.");
+    }
+  }, false);
+
+  /* =====================================================
+     5. INITIALIZE CONSULTATION FEED (DYNAMIC ROLES)
   ===================================================== */
   async function initPrivateConsultation() {
     const client = getSupabaseClient();
@@ -1662,7 +1676,7 @@
   }
 
   /* =====================================================
-     5. LOAD PERSISTENT MESSAGES (BIDIRECTIONAL QUERY)
+     6. LOAD PERSISTENT MESSAGES (BIDIRECTIONAL QUERY)
   ===================================================== */
   async function loadPrivateChatHistory(sId, tId) {
     const client = getSupabaseClient();
@@ -1715,13 +1729,13 @@
         );
       });
     } else {
-      if (sharedFiles) sharedFiles.innerHTML = '<li style="color: var(--muted); font-size: 12px; font-style: italic; padding: 4px 0;">No shared files yet.</li>';
-      if (sharedImages) sharedImages.innerHTML = '<p style="grid-column: span 3; color: var(--muted); font-size: 12px; font-style: italic;">No shared photos yet.</p>';
+      if (sharedFiles) sharedFiles.innerHTML = '<li style="color: var(--muted); font-size: 12px; font-style: italic; padding: 4px 0;">No prior files.</li>';
+      if (sharedImages) sharedImages.innerHTML = '<p style="grid-column: span 3; color: var(--muted); font-size: 12px; font-style: italic;">No prior photos.</p>';
     }
   }
 
   /* =====================================================
-     6. CONNECT SUPABASE REALTIME CHANNEL
+     7. CONNECT SUPABASE REALTIME CHANNEL
   ===================================================== */
   function connectRealtimeConsultation(sId, tId) {
     const client = getSupabaseClient();
@@ -1770,12 +1784,14 @@
         schema: 'public',
         table: 'private_messages'
       },
-      payload => {
+      async payload => {
         const newRow = payload.new;
+        if (!newRow) return;
+
         const myIds = getDualTypeIds([currentUserId]).map(String);
         const partnerIds = getDualTypeIds([(userRole === "STUDENT" || userRole === "ADMIN") ? tId : sId]).map(String);
 
-        if (newRow && String(newRow.sender_id) !== String(currentUserId)) {
+        if (String(newRow.sender_id) !== String(currentUserId)) {
           const involvesMe = myIds.includes(String(newRow.student_id)) || myIds.includes(String(newRow.teacher_id));
           const involvesPartner = partnerIds.includes(String(newRow.student_id)) || partnerIds.includes(String(newRow.teacher_id));
 
@@ -1794,6 +1810,39 @@
               );
             }
           }
+        }
+
+        // 🛡️ AI Auto-Purge Sentinel Check for Private Messages
+        try {
+          const checkResp = await fetch('/api/ai-auto-purge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              table: 'private_messages',
+              message_id: newRow.id,
+              message: newRow.message || '',
+              media_url: newRow.media_url || '',
+              media_type: newRow.media_type || ''
+            })
+          });
+
+          if (checkResp.ok) {
+            const checkData = await checkResp.json();
+            if (checkData.purged) {
+              const badRow = document.querySelector(`.msg-row[data-id="${newRow.id}"]`);
+              if (badRow) badRow.remove();
+
+              realtimeChannel.send({
+                type: 'broadcast',
+                event: 'unsend_private_msg',
+                payload: { id: newRow.id }
+              });
+
+              showModerationToast(`🛡️ AI Proctor: Prohibited private message automatically purged.`);
+            }
+          }
+        } catch (sentinelErr) {
+          console.warn("Private chat sentinel error:", sentinelErr);
         }
       }
     );
@@ -1814,6 +1863,15 @@
       }
     );
 
+    // Listen for broadcasted unsend events for private messages
+    realtimeChannel.on('broadcast', { event: 'unsend_private_msg' }, (evt) => {
+      const targetId = evt.payload?.id;
+      if (targetId) {
+        const targetRow = document.querySelector(`.msg-row[data-id="${targetId}"]`);
+        if (targetRow) targetRow.remove();
+      }
+    });
+
     realtimeChannel.subscribe((status) => {
       const conn = document.getElementById("connectionStatus");
       if (status === 'SUBSCRIBED' && conn) {
@@ -1821,9 +1879,8 @@
       }
     });
   }
-
   /* =====================================================
-     7. SEND PRIVATE MESSAGE WITH HARDENED AI SAFETY GATE
+     8. SEND PRIVATE MESSAGE (ALIGNED TO UNIFIED GEMINI GATE)
   ===================================================== */
   async function sendMessage() {
     const input = document.getElementById("chatInput");
@@ -1840,30 +1897,33 @@
       return;
     }
 
-    // Lock UI to prevent spam or double submissions during inspection
     sendBtn.disabled = true;
     input.disabled = true;
 
     try {
-      // 2. Parallel Tri-AI Backend Inspection (Conduct Judge + Web Scout + Safety Guard)
+      // 2. Aligned Unified Multimodal Call (Gemini 2.0 Flash in app.py)
       const aiResponse = await fetch('/api/ai-moderate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ 
+          message: text,
+          text: text,
+          is_teacher_dm: true // Enforces text-only & strict link blocking on server
+        })
       });
       
       if (aiResponse.ok) {
         const aiData = await aiResponse.json();
         if (!aiData.allowed) {
-          showModerationToast(`🛑 ${aiData.reason || 'Message blocked by campus conduct filter.'}`);
+          showModerationToast(`🛑 ${aiData.reason || 'Message blocked by campus conduct proctor.'}`);
           return;
         }
       } else {
-        showModerationToast("⚠️ Safety gate offline. Message held for compliance.");
+        showModerationToast("⚠️ Compliance filter temporarily unavailable. Please retry.");
         return;
       }
 
-      // 3. Dispatch only after full clearance
+      // 3. Dispatch verified text message
       input.value = "";
       await dispatchPrivateMessage(text);
 
@@ -1878,227 +1938,8 @@
   }
 
   /* =====================================================
-     8. FAIL-CLOSED IMAGE UPLOAD & VISION MODERATION
+     9. STORAGE UPLOAD HELPERS & LIGHTBOX MODAL
   ===================================================== */
-  const imageAttachment = document.getElementById("imageAttachment");
-  if (imageAttachment) {
-    imageAttachment.addEventListener("change", async function () {
-      if (this.files.length > 0) {
-        const fileObj = this.files[0];
-        const inputEl = document.getElementById("chatInput");
-        const sendBtn = document.getElementById("sendBtn");
-
-        if (fileObj.size > MAX_FILE_SIZE) {
-          showModerationToast("🛑 File Limit Exceeded: Maximum image upload size is 25MB.");
-          this.value = "";
-          return;
-        }
-
-        const ext = fileObj.name.split('.').pop().toLowerCase();
-        if (!ALLOWED_IMG_EXTENSIONS.has(ext)) {
-          showModerationToast("🛑 Format Denied: Allowed formats: PNG, JPG, JPEG, WEBP. (Animated GIFs prohibited).");
-          this.value = "";
-          return;
-        }
-        
-        const safetyCheck = evaluateClientContentSafety("", fileObj.name);
-        if (!safetyCheck.safe) {
-          showModerationToast(`⚠️ Attachment Rejected: ${safetyCheck.reason}`);
-          this.value = "";
-          return;
-        }
-
-        if (sendBtn) sendBtn.disabled = true;
-        if (inputEl) inputEl.disabled = true;
-
-        // Server-side pre-upload extension check (Fail-Closed)
-        try {
-          const extCheckResp = await fetch('/api/ai-moderate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ file_name: fileObj.name })
-          });
-          if (!extCheckResp.ok) {
-            showModerationToast("⚠️ Safety gate unavailable. Upload cancelled.");
-            this.value = "";
-            return;
-          }
-          const extData = await extCheckResp.json();
-          if (!extData.allowed) {
-            showModerationToast(`🛑 ${extData.reason}`);
-            this.value = "";
-            return;
-          }
-        } catch (e) {
-          showModerationToast("❌ Verification offline. Upload cancelled.");
-          this.value = "";
-          return;
-        } finally {
-          if (sendBtn) sendBtn.disabled = false;
-          if (inputEl) inputEl.disabled = false;
-        }
-
-        showModerationToast("🔍 Validating image content with AI Safety filter...");
-
-        const uploadResult = await uploadMediaToStorage(fileObj);
-        const uploadedUrl = uploadResult.url;
-        const storagePath = uploadResult.path;
-
-        // Multimodal Vision Safety Check (Fail-Closed)
-        try {
-          const aiResponse = await fetch('/api/ai-moderate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              image_url: uploadedUrl,
-              file_name: fileObj.name
-            })
-          });
-
-          if (!aiResponse.ok) {
-            throw new Error("Vision moderation service offline");
-          }
-
-          const aiData = await aiResponse.json();
-          if (!aiData.allowed) {
-            showModerationToast(`🛑 Image Blocked: ${aiData.reason || 'Explicit image detected.'}`);
-            if (storagePath) {
-              const client = getSupabaseClient();
-              if (client) await client.storage.from('group-files').remove([storagePath]);
-            }
-            this.value = "";
-            return;
-          }
-        } catch (err) {
-          showModerationToast("❌ Safety filter unreachable. Image was not delivered.");
-          if (storagePath) {
-            const client = getSupabaseClient();
-            if (client) await client.storage.from('group-files').remove([storagePath]);
-          }
-          this.value = "";
-          return;
-        }
-
-        await dispatchPrivateMessage(`📷 Shared Image: ${fileObj.name}`, uploadedUrl, 'image', fileObj.name);
-        this.value = "";
-      }
-    });
-  }
-
-  /* =====================================================
-     9. FAIL-CLOSED DOCUMENT UPLOAD & MALWARE FILTER
-  ===================================================== */
-  const fileAttachment = document.getElementById("fileAttachment");
-  if (fileAttachment) {
-    fileAttachment.addEventListener("change", async function () {
-      if (this.files.length > 0) {
-        const fileObj = this.files[0];
-        const inputEl = document.getElementById("chatInput");
-        const sendBtn = document.getElementById("sendBtn");
-
-        if (fileObj.size > MAX_FILE_SIZE) {
-          showModerationToast("🛑 File Limit Exceeded: Maximum document upload size is 25MB.");
-          this.value = "";
-          return;
-        }
-
-        const ext = fileObj.name.split('.').pop().toLowerCase();
-        if (dangerousExtensions.has(ext)) {
-          showModerationToast(`🛑 Security Alert: The file type (.${ext}) is prohibited.`);
-          this.value = "";
-          return;
-        }
-
-        if (!ALLOWED_DOC_EXTENSIONS.has(ext)) {
-          showModerationToast("🛑 Format Denied: Allowed document formats: PDF, Word, PowerPoint, Excel, and Text.");
-          this.value = "";
-          return;
-        }
-
-        const safetyCheck = evaluateClientContentSafety("", fileObj.name);
-        if (!safetyCheck.safe) {
-          showModerationToast(`⚠️ File Rejected: ${safetyCheck.reason}`);
-          this.value = "";
-          return;
-        }
-
-        if (sendBtn) sendBtn.disabled = true;
-        if (inputEl) inputEl.disabled = true;
-
-        // Server-side pre-upload inspection (Fail-Closed)
-        try {
-          const aiResponse = await fetch('/api/ai-moderate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ file_name: fileObj.name })
-          });
-          
-          if (!aiResponse.ok) {
-            showModerationToast("⚠️ Compliance server offline. Document held.");
-            this.value = "";
-            return;
-          }
-
-          const aiData = await aiResponse.json();
-          if (!aiData.allowed) {
-            showModerationToast(`🛑 ${aiData.reason || 'Prohibited file type.'}`);
-            this.value = "";
-            return;
-          }
-        } catch (err) {
-          showModerationToast("❌ File scan failed. Upload cancelled.");
-          this.value = "";
-          return;
-        } finally {
-          if (sendBtn) sendBtn.disabled = false;
-          if (inputEl) inputEl.disabled = false;
-        }
-
-        const uploadResult = await uploadMediaToStorage(fileObj);
-        await dispatchPrivateMessage(`📎 Shared File: ${fileObj.name}`, uploadResult.url, 'file', fileObj.name);
-        this.value = "";
-      }
-    });
-  }
-
-  /* =====================================================
-     10. STORAGE UPLOAD HELPERS & LIGHTBOX MODAL
-  ===================================================== */
-  async function uploadMediaToStorage(file) {
-    const client = getSupabaseClient();
-    const ext = file.name.split('.').pop();
-    const uniquePath = `private_${currentUserId}/${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
-
-    if (client) {
-      try {
-        const { data, error } = await client.storage.from('group-files').upload(uniquePath, file);
-        if (!error && data) {
-          const { data: urlData } = client.storage.from('group-files').getPublicUrl(uniquePath);
-          return {
-            url: urlData.publicUrl,
-            path: uniquePath
-          };
-        }
-      } catch (e) {
-        console.warn("Supabase Storage upload fallback to DataURL:", e);
-      }
-    }
-
-    const fallbackDataUrl = await readFileAsDataURL(file);
-    return {
-      url: fallbackDataUrl,
-      path: null
-    };
-  }
-
-  function readFileAsDataURL(file) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.readAsDataURL(file);
-    });
-  }
-
   let currentZoomedImgUrl = "";
 
   function openImageModal(src) {
@@ -2134,7 +1975,7 @@
   });
 
   /* =====================================================
-     11. DISPATCH & RENDER FUNCTIONS
+     10. DISPATCH & RENDER FUNCTIONS
   ===================================================== */
   async function dispatchPrivateMessage(text, mediaUrl = null, mediaType = null, fileName = null) {
     const client = getSupabaseClient();
@@ -2190,8 +2031,8 @@
         const recipientId = (String(currentUserId) === String(sId)) ? tId : sId;
         await client.from('notifications').insert([{
           user_id: parseDbId(recipientId),
-          title: `💬 New Message from ${userName}`,
-          message: text ? (text.length > 80 ? text.substring(0, 80) + '...' : text) : 'Sent an attachment in private consultation.',
+          title: `💬 New Consultation Message from ${userName}`,
+          message: text ? (text.length > 80 ? text.substring(0, 80) + '...' : text) : 'Sent a consultation message.',
           is_read: false,
           created_at: new Date().toISOString()
         }]);
@@ -2252,6 +2093,7 @@
     const msgDiv = document.createElement('div');
     msgDiv.className = 'msg-bubble';
 
+    // Renders existing/historical media from archives without breaking layout
     if (mediaType === 'image' && mediaUrl) {
       const imgEl = document.createElement('img');
       imgEl.src = mediaUrl;
@@ -2262,9 +2104,11 @@
 
       msgDiv.appendChild(imgEl);
       
-      const captionSpan = document.createElement('div');
-      captionSpan.textContent = text;
-      msgDiv.appendChild(captionSpan);
+      if (text) {
+        const captionSpan = document.createElement('div');
+        captionSpan.textContent = text;
+        msgDiv.appendChild(captionSpan);
+      }
 
       if (sharedImages && !mediaImagesSet.has(mediaUrl)) {
         mediaImagesSet.add(mediaUrl);
@@ -2273,6 +2117,9 @@
         const imgThumbnail = document.createElement('img');
         imgThumbnail.src = mediaUrl;
         imgThumbnail.alt = "Thumbnail";
+        imgThumbnail.style.width = "100%";
+        imgThumbnail.style.borderRadius = "4px";
+        imgThumbnail.style.cursor = "pointer";
         imgThumbnail.title = "Click to preview";
         imgThumbnail.onclick = () => openImageModal(mediaUrl);
         sharedImages.appendChild(imgThumbnail);
@@ -2297,7 +2144,7 @@
         li.title = 'Click to download';
         li.onclick = () => downloadFileDirectly(mediaUrl, fileName);
         li.innerHTML = `
-          <div class="shared-file-meta">
+          <div class="shared-file-meta" style="display:flex; align-items:center; gap:8px;">
             <i class="fa-solid fa-file-lines" style="color:var(--primary);"></i>
             <span>${escapeHtml(fileName)}</span>
           </div>
@@ -2344,18 +2191,8 @@
     }
   }
 
-  const chatInput = document.getElementById("chatInput");
-  if (chatInput) {
-    chatInput.addEventListener("keydown", (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
-  }
-
   /* =====================================================
-     12. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA)
+     11. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA)
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
@@ -2521,3 +2358,4 @@
     }
   }
 </script>
+</body>

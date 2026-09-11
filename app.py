@@ -3,6 +3,11 @@ import json
 import urllib.request
 from datetime import datetime, timezone, timedelta
 import requests
+from dotenv import load_dotenv
+
+# ⚡ LOAD ENVIRONMENT VARIABLES FIRST (Reads .env locally)
+load_dotenv()
+
 from flask import (
     Flask,
     render_template,
@@ -366,23 +371,34 @@ def save_subscription():
         return jsonify({"error": str(err)}), 500
 
 # =======================================================
-# 🛡️ TRI-AI ENSEMBLE MODERATION & CONDUCT PIPELINE
+# 🛡️ UNIFIED MULTIMODAL SAFETY & CONDUCT PIPELINE
 # =======================================================
 import re
 import json
 import os
+import base64
 import unicodedata
 import requests
-from concurrent.futures import ThreadPoolExecutor
 
+# Google GenAI SDK (Gemini 2.0 Flash)
 try:
-    from duckduckgo_search import DDGS
-    DDGS_AVAILABLE = True
+    from google import genai
+    from google.genai import types
+    GEMINI_SDK_AVAILABLE = True
 except ImportError:
-    DDGS_AVAILABLE = False
-    print("⚠️ duckduckgo-search not installed. Web scout fallback active.")
+    GEMINI_SDK_AVAILABLE = False
+    print("⚠️ google-genai SDK missing. Ensure google-genai>=1.0.0 is in requirements.txt.")
 
-# --- 1. STRICT FILE EXTENSION WHITELIST & BLACKLIST ---
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+gemini_client = None
+if GEMINI_SDK_AVAILABLE and GEMINI_API_KEY:
+    try:
+        gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+        print("✅ Gemini 2.0 Flash client initialized successfully.")
+    except Exception as e:
+        print(f"❌ Failed to initialize Gemini Client: {e}")
+
+# --- 1. FILE & EXTENSION SECURITY WHITELISTS (For Group Chat) ---
 BLOCKED_EXTENSIONS = {
     'exe', 'bat', 'cmd', 'sh', 'vbs', 'vbe', 'js', 'jse', 'wsf', 'wsh',
     'scr', 'msi', 'com', 'pif', 'hta', 'cpl', 'jar', 'apk', 'bin',
@@ -394,7 +410,12 @@ ALLOWED_EXTENSIONS = {
     'png', 'jpg', 'jpeg', 'webp'
 }
 
-# --- 2. REGEX PATTERNS: ASCII, EMOJIS & MULTI-DIALECT SLURS ---
+# --- 2. DETERMINISTIC REGEX RULES & CIPHER MAPS ---
+URL_STRICT_REGEX = re.compile(
+    r'(https?://\S+|www\.\S+|\b[a-zA-Z0-9.-]+\.(?:com|org|net|edu|gov|ph|io|me|xyz|app|top|online|site|link)\b)',
+    re.IGNORECASE
+)
+
 ASCII_SEXUAL_PATTERNS = [
     r'(?:8|c|C)[=\-_~]{1,}(?:D|\([\-\)]*\)|>|3|o|O)',
     r'(?:D|3)[=\-_~]{1,}(?:8|c|C)',
@@ -409,16 +430,15 @@ EMOJI_PATTERNS = [
 ]
 
 PROFANITY_PATTERNS = [
-    # English Acronyms (Handles elongations like mffff, wtffff)
+    # English Acronyms & Slurs (handles elongations)
     r'\b(m+f+|m+o+f+o+|s+t+f+u+|w+t+f+|s+o+b+|f+c+k+|f+u+k+|f+c+k+i+n+|f+u+k+i+n+|f+k+|k+y+s+|p+o+s+)\b',
-    # English Profanity
     r'\bf+u+c+k+(e+r+|i+n+g+|s+)?\b',
     r'\bs+h+i+t+(s+|t+y+)?\b',
     r'\bb+i+t+c+h+(e+s+)?\b',
     r'\ba+s+s+h+o+l+e+(s+)?\b',
     r'\b(bastard|cunt|dick|pussy|whore|slut|nude|nudes)\b',
 
-    # Tagalog & National Slurs (Handles elongations like bobooo, gagooo)
+    # Tagalog & National Slurs
     r'\bt+a+n+g+i+n+a+\b',
     r'\b(tang-ina|tngina|putangina|ptngina|tangi|puta|pota|pakshet|pakyu)\b',
     r'\bg+a+g+o+\b',
@@ -465,10 +485,7 @@ HOMOGLYPH_MAP = {
     'Р': 'p', 'С': 'c', 'Т': 't', 'Х': 'x', 'і': 'i', 'ї': 'i'
 }
 
-SLANG_CACHE = {}
-
-# --- 3. HARDENED NORMALIZATION & DECODERS ---
-
+# --- 3. NORMALIZERS & DECODERS ---
 def decode_morse_if_present(text):
     cleaned_symbols = text.replace('_', '-').strip()
     tokens = cleaned_symbols.split()
@@ -484,7 +501,6 @@ def decode_morse_if_present(text):
     return ""
 
 def decode_binary_if_present(text):
-    """Decodes both space-separated binary and continuous 8-bit binary strings."""
     raw_binary = re.sub(r'[^01]', '', text.strip())
     if len(raw_binary) >= 16 and len(raw_binary) % 8 == 0:
         try:
@@ -527,296 +543,117 @@ def normalize_deep_moderation(text):
 
     return text, cleaned_words, squashed_dense
 
-def execute_web_research(search_term):
-    term_clean = search_term.strip().lower()
-    if term_clean in SLANG_CACHE:
-        return SLANG_CACHE[term_clean]
+def evaluate_deterministic_gate(message_text):
+    """0ms local heuristic check for slurs, ciphers, and leetspeak."""
+    if not message_text:
+        return True, ""
 
-    if not DDGS_AVAILABLE:
-        return "Search tool unavailable."
+    if re.search(r'(giphy\.com|tenor\.com|\.gif(\?.*)?$)', message_text, re.IGNORECASE):
+        return False, "School Policy Violation: Animated GIFs and external meme links are prohibited."
 
-    query = f"{term_clean} meaning Filipino internet slang urban dictionary definition"
-    try:
-        with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=2))
-            if results:
-                summary = " ".join([r.get('body', '') for r in results])
-                SLANG_CACHE[term_clean] = summary[:600]
-                return SLANG_CACHE[term_clean]
-    except Exception as e:
-        print(f"⚠️ Web research notice: {e}")
+    for pattern in ASCII_SEXUAL_PATTERNS:
+        if re.search(pattern, message_text):
+            return False, "School Policy Violation: Inappropriate ASCII drawings detected."
 
-    return "No slang definition found on public web."
+    for pattern in EMOJI_PATTERNS:
+        if re.search(pattern, message_text):
+            return False, "School Policy Violation: Sexually suggestive or offensive emojis detected."
 
-# --- 4. THE THREE AI AGENTS ---
+    raw_text, cleaned_words, squashed_dense = normalize_deep_moderation(message_text)
+    decoded_morse = decode_morse_if_present(message_text)
+    decoded_binary = decode_binary_if_present(message_text)
 
-def ai_agent_1_conduct_judge(message_text, api_key):
-    """AI Agent 1 (gpt-4o-mini): Academic Conduct, Bribery, Harassment & Insubordination."""
-    try:
-        system_prompt = (
-            "You are the Chief Academic Integrity and Student Conduct Proctor for Regis Marie College LMS.\n"
-            "Inspect private messages from students to instructors. Block messages with ANY malicious intent, even with ZERO profanity.\n\n"
-            "BLOCK CATEGORIES:\n"
-            "1. Academic Bribery: Offering cash, GCash, gifts, or favors for grades; asking teachers to complete assignments/thesis.\n"
-            "2. Sexual Boundary Violations: Flirting, romantic propositions, commenting on physical appearance, outfits, or body.\n"
-            "3. Stalking & Intimidation: Mentioning teacher's residence/car, following them off-campus, unsolicited pickup offers.\n"
-            "4. Extortion & Threats: Threatening freedom wall exposure, 'lagot ka sa tatay ko', blackmailing faculty.\n"
-            "5. Credential Phishing: Asking for faculty OTPs, passwords, or verification codes.\n"
-            "6. Hostile Workplace Harassment: Belittling competence, demanding grade bumps aggressively, telling teachers to resign.\n\n"
-            "Respond strictly in JSON format:\n"
-            "{\"allowed\": true} or {\"allowed\": false, \"reason\": \"<short explanation>\"}"
-        )
+    candidates = [cleaned_words, squashed_dense]
+    if decoded_morse:
+        _, _, morse_dense = normalize_deep_moderation(decoded_morse)
+        candidates.extend([decoded_morse, morse_dense])
+    if decoded_binary:
+        _, _, binary_dense = normalize_deep_moderation(decoded_binary)
+        candidates.extend([decoded_binary, binary_dense])
 
-        resp = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            json={
-                "model": "gpt-4o-mini",
-                "messages": [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"### STUDENT MESSAGE ###\n{message_text}\n### END MESSAGE ###"}
-                ],
-                "response_format": {"type": "json_object"},
-                "temperature": 0.0,
-                "max_tokens": 80
-            },
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            timeout=3
-        )
+    for text_candidate in candidates:
+        for pattern in PROFANITY_PATTERNS:
+            if re.search(pattern, text_candidate):
+                return False, "School Policy Violation: Offensive language, slurs, abbreviations, or evasions detected."
 
-        if resp.status_code == 200:
-            data = json.loads(resp.json()['choices'][0]['message']['content'])
-            return data.get("allowed", True), data.get("reason", "Malicious or inappropriate conduct detected.")
-    except Exception as e:
-        print(f"⚠️ AI Agent 1 notice: {e}")
     return True, ""
 
-def ai_agent_2_web_slang_scout(message_text, api_key):
-    """AI Agent 2 (gpt-4o-mini + DDGS): Live Web Slang & Disguised Meme Scout."""
-    if not DDGS_AVAILABLE:
+# --- 4. UNIFIED GEMINI 2.0 FLASH PROCTOR (Vision + OCR + Explicit NSFW) ---
+GEMINI_UNIFIED_PROMPT = """
+You are the Official Academic Safety & Student Conduct Proctor for Regis Marie College (RMC).
+You enforce an absolute ZERO TOLERANCE policy for adult, explicit, or inappropriate content.
+
+CRITICAL VISUAL NSFW DIRECTIVE:
+- ABSOLUTE ZERO TOLERANCE for nudity, adult anatomy, genitalia (male or female private parts, penis, dick, vagina, breasts), sex toys, sexual acts, or suggestive poses.
+- If ANY nudity or sexual anatomy is visible in an image, you MUST REJECT IT IMMEDIATELY with allowed: false and reason: "Explicit adult content detected."
+
+ACADEMIC CONDUCT RESTRICTIONS:
+1. Academic Bribery: Direct offers of cash, GCash transfers, gift cards, or favors for grade adjustments.
+2. Sexual Boundary Violations: Romantic advances, commenting on body/appearance, asking to meet privately off-campus.
+3. Stalking & Intimidation: Inquiring about personal residence, vehicle, family members, or making threats.
+4. Phishing & Credentials: Inquiring about master LMS passwords, OTPs, or accounts.
+5. Hostile Insubordination: Aggressively demeaning faculty competence or demanding resignations.
+6. Slurs & Regional Profanity: Profanity across English, Tagalog, Bisaya (yawa, bilat, pisti), or Ilocano (ukinam).
+7. OCR Screenshot Inspection: Extract and evaluate all text inside images against the rules above.
+
+RESPONSE FORMAT:
+Respond ONLY with a strict JSON object (no markdown code blocks, no backticks):
+{"allowed": true, "reason": ""}
+OR
+{"allowed": false, "reason": "Specific short violation explanation"}
+"""
+
+def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"):
+    """
+    Sub-500ms single multimodal call using Gemini 2.0 Flash.
+    Simultaneously analyzes intent, ethics, visual NSFW safety, and OCR on screenshot text.
+    Catches internal Gemini safety trips gracefully to prevent bypassed explicit content.
+    """
+    if not gemini_client:
+        print("⚠️ Gemini client not configured. Proceeding on deterministic gate.")
         return True, ""
 
     try:
-        tools = [{
-            "type": "function",
-            "function": {
-                "name": "research_slang_on_web",
-                "description": "Searches the live web and Urban Dictionary for unfamiliar Philippine slang, acronyms, or meme terms.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "term": {"type": "string", "description": "The exact slang or acronym to research."}
-                    },
-                    "required": ["term"]
-                }
-            }
-        }]
+        contents = [GEMINI_UNIFIED_PROMPT]
 
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are a Slang Intelligence Specialist for a Philippine university LMS. "
-                    "Analyze student messages for hidden, emerging, or viral slang across Philippine dialects. "
-                    "If the student uses an unfamiliar abbreviation or suspicious term, call 'research_slang_on_web'. "
-                    "Respond strictly in JSON: {\"allowed\": true} or {\"allowed\": false, \"reason\": \"<slang explanation>\"}."
-                )
-            },
-            {"role": "user", "content": message_text}
-        ]
+        if text:
+            contents.append(f"### STUDENT MESSAGE TEXT ###\n{text}\n### END MESSAGE TEXT ###")
 
-        resp = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            json={
-                "model": "gpt-4o-mini",
-                "messages": messages,
-                "tools": tools,
-                "tool_choice": "auto",
-                "temperature": 0.0,
-                "max_tokens": 120
-            },
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            timeout=4
-        )
+        if image_bytes:
+            contents.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
 
-        if resp.status_code != 200:
-            return True, ""
-
-        choice = resp.json()['choices'][0]['message']
-
-        if choice.get("tool_calls"):
-            tool_call = choice["tool_calls"][0]
-            args = json.loads(tool_call["function"]["arguments"])
-            term = args.get("term", "")
-
-            web_findings = execute_web_research(term)
-
-            messages.append(choice)
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tool_call["id"],
-                "content": f"Web Definition for '{term}':\n{web_findings}"
-            })
-
-            second_resp = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                json={
-                    "model": "gpt-4o-mini",
-                    "messages": messages,
-                    "response_format": {"type": "json_object"},
-                    "temperature": 0.0,
-                    "max_tokens": 60
-                },
-                headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                timeout=4
+        response = gemini_client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=contents,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.0
             )
-            if second_resp.status_code == 200:
-                data = json.loads(second_resp.json()['choices'][0]['message']['content'])
-                return data.get("allowed", True), data.get("reason", "Inappropriate internet slang detected.")
-
-        elif choice.get("content"):
-            content = choice["content"].strip()
-            if content.startswith("{") and content.endswith("}"):
-                data = json.loads(content)
-                return data.get("allowed", True), data.get("reason", "Inappropriate content detected.")
-
-    except Exception as e:
-        print(f"⚠️ AI Agent 2 notice: {e}")
-    return True, ""
-
-def ai_agent_3_multimodal_safety(message_text, image_url, api_key):
-    """AI Agent 3 (omni-moderation-latest): Image and Extreme Safety Guard."""
-    moderation_input = []
-    if message_text:
-        moderation_input.append({"type": "text", "text": message_text})
-    if image_url:
-        moderation_input.append({"type": "image_url", "image_url": {"url": image_url}})
-
-    if not moderation_input:
-        return True, ""
-
-    try:
-        resp = requests.post(
-            "https://api.openai.com/v1/moderations",
-            json={
-                "model": "omni-moderation-latest",
-                "input": moderation_input
-            },
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}"
-            },
-            timeout=4
         )
 
-        if resp.status_code == 200:
-            result = resp.json()
-            analysis = result.get("results", [{}])[0]
+        # Catch native safety blocks (e.g. Gemini blocks explicit nudity at API gateway)
+        if hasattr(response, 'candidates') and response.candidates:
+            finish_reason = str(getattr(response.candidates[0], 'finish_reason', ''))
+            if "SAFETY" in finish_reason:
+                return False, "Explicit adult or prohibited visual content blocked by AI safety proctor."
 
-            if analysis.get("flagged", False):
-                categories = [cat for cat, hit in analysis.get("categories", {}).items() if hit]
-                reason = "Inappropriate content detected."
-                if any("sexual" in cat for cat in categories):
-                    reason = "School Policy Violation: Explicit or revealing imagery/language is prohibited."
-                elif any("hate" in cat or "harassment" in cat for cat in categories):
-                    reason = "School Policy Violation: Harassment or offensive language detected."
-                elif any("violence" in cat for cat in categories):
-                    reason = "School Policy Violation: Threatening or violent content detected."
+        response_text = (response.text or "").strip()
+        if not response_text:
+            return False, "Message rejected: empty or safety-filtered AI response."
 
-                return False, reason
+        if response_text.startswith("```"):
+            response_text = re.sub(r'^```(?:json)?\s*', '', response_text)
+            response_text = re.sub(r'\s*```$', '', response_text)
+
+        verdict = json.loads(response_text)
+        return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
+
     except Exception as e:
-        print(f"⚠️ AI Agent 3 fallback: {e}")
-
-    return True, ""
-
-# --- 5. THE UNIFIED PARALLEL MODERATION ENDPOINT ---
-
-@app.route('/api/ai-moderate', methods=['POST'])
-def ai_moderate():
-    data = request.json or {}
-    message_text = (data.get('message') or '').strip()
-    image_url = (data.get('image_url') or '').strip()
-    file_name = (data.get('file_name') or '').strip()
-
-    # TIER 1: File & Extension Gate
-    if file_name:
-        ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else ''
-        if ext in BLOCKED_EXTENSIONS or (ALLOWED_EXTENSIONS and ext not in ALLOWED_EXTENSIONS):
-            return jsonify({
-                "allowed": False,
-                "reason": f"Security Notice: File format (.{ext}) is prohibited to protect campus infrastructure."
-            }), 200
-
-    # TIER 2: Heuristic Zero-Latency Gate (0ms regex and normalizers)
-    if message_text:
-        if re.search(r'(giphy\.com|tenor\.com|\.gif(\?.*)?$)', message_text, re.IGNORECASE):
-            return jsonify({
-                "allowed": False,
-                "reason": "School Policy Violation: Animated GIFs and external meme links are prohibited."
-            }), 200
-
-        for pattern in ASCII_SEXUAL_PATTERNS:
-            if re.search(pattern, message_text):
-                return jsonify({
-                    "allowed": False,
-                    "reason": "School Policy Violation: Inappropriate ASCII drawings detected."
-                }), 200
-
-        for pattern in EMOJI_PATTERNS:
-            if re.search(pattern, message_text):
-                return jsonify({
-                    "allowed": False,
-                    "reason": "School Policy Violation: Sexually suggestive or offensive emojis detected."
-                }), 200
-
-        raw_text, cleaned_words, squashed_dense = normalize_deep_moderation(message_text)
-        decoded_morse = decode_morse_if_present(message_text)
-        decoded_binary = decode_binary_if_present(message_text)
-
-        candidates = [cleaned_words, squashed_dense]
-        if decoded_morse:
-            _, _, morse_dense = normalize_deep_moderation(decoded_morse)
-            candidates.extend([decoded_morse, morse_dense])
-        if decoded_binary:
-            _, _, binary_dense = normalize_deep_moderation(decoded_binary)
-            candidates.extend([decoded_binary, binary_dense])
-
-        for text_candidate in candidates:
-            for pattern in PROFANITY_PATTERNS:
-                if re.search(pattern, text_candidate):
-                    return jsonify({
-                        "allowed": False,
-                        "reason": "School Policy Violation: Offensive language, slurs, abbreviations, or evasions detected."
-                    }), 200
-
-    if not message_text and not image_url:
-        return jsonify({"allowed": True}), 200
-
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        return jsonify({"allowed": True}), 200
-
-    # TIERS 3, 4, & 5: RUN ALL 3 AI AGENTS CONCURRENTLY
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        future_agent1 = executor.submit(ai_agent_1_conduct_judge, message_text, api_key) if message_text else None
-        future_agent2 = executor.submit(ai_agent_2_web_slang_scout, message_text, api_key) if message_text else None
-        future_agent3 = executor.submit(ai_agent_3_multimodal_safety, message_text, image_url, api_key)
-
-        # Collect verdicts as they complete
-        if future_agent1:
-            allowed1, reason1 = future_agent1.result()
-            if not allowed1:
-                return jsonify({"allowed": False, "reason": f"School Policy Violation: {reason1}"}), 200
-
-        if future_agent2:
-            allowed2, reason2 = future_agent2.result()
-            if not allowed2:
-                return jsonify({"allowed": False, "reason": f"School Policy Violation: {reason2}"}), 200
-
-        allowed3, reason3 = future_agent3.result()
-        if not allowed3:
-            return jsonify({"allowed": False, "reason": reason3}), 200
-
-    return jsonify({"allowed": True}), 200
+        err_msg = str(e).lower()
+        if "safety" in err_msg or "blocked" in err_msg or "filter" in err_msg:
+            return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
+        print(f"🛑 Gemini 2.0 Flash Execution Error: {e}")
+        return False, "Moderation service temporarily unavailable. Please retry sending."
 
 # =========================================
 # 🏠 CORE DASHBOARD & GLOBAL PORTALS

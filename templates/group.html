@@ -1444,7 +1444,7 @@
   const classPageUrl = "{{ url_for('class_page') }}";
   const groupPageUrl = "{{ url_for('group_page') }}";
   const messageTeacherUrl = "{{ url_for('message_teacher_page') }}";
-  const privateMessageInboxUrl = "private-message.html";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
 
   const sidebarMenu = document.getElementById("sidebarMenu");
 
@@ -1555,24 +1555,47 @@
      3. CONTENT MODERATION ENGINE (LOCAL PRE-FLIGHT)
   ===================================================== */
   const bannedKeywords = [
-    "fuck", "shit", "bitch", "asshole", "bastard", "dick", "pussy", "cunt", "porn", "xxx", "nude",
-    "tangina", "tang ina", "gago", "bobo", "tanga", "ulol", "pukina", "puta", "tarantado", "inutil", 
-    "bwisit", "hayop", "walanghiya", "siraulo", "leche", "kupal", "pakyu", "tae", "yawa", "bilat", "bayot"
+    // English & International Slurs
+    "fuck", "shit", "bitch", "asshole", "bastard", "dick", "pussy", "cunt", "porn", "xxx", "nude", "nudes",
+    "mf", "mofo", "stfu", "wtf", "kys", "pos", "sob", "fck", "fuk", "fukin",
+    // Tagalog / National Slurs
+    "tangina", "tang ina", "tngina", "putangina", "ptngina", "gago", "gaga", "bobo", "tanga", "ulol", 
+    "pukina", "puta", "pota", "tarantado", "inutil", "bwisit", "hayop", "walanghiya", "siraulo", "leche", 
+    "kupal", "pakyu", "pakshet", "tae", "kantot", "kntot", "titi", "burat", "puke", "pekpek", "pokpok", 
+    "bayag", "tamod", "bulbol",
+    // Bisaya / Cebuano Slurs
+    "yawa", "bilat", "pisti", "peste", "atay", "kayat", "buang", "boang", "bwang", "oten", "utin", "lubot", "bayot",
+    // Ilocano Slurs
+    "ukinam", "okinam", "ukinana", "okinana", "bagtit", "buto",
+    // Hiligaynon / Waray
+    "linti", "lintian", "buray", "yudiputa", "taksyapo", "danayda", "iyot", "iyotan"
   ];
 
-  // Block scripts, executables, archives, and potential malware payload formats
-  const dangerousExtensions = [
+  // Block scripts, executables, archives, and dangerous formats
+  const dangerousExtensions = new Set([
     "exe", "bat", "cmd", "sh", "vbs", "vbe", "js", "jse", "wsf", "wsh",
     "scr", "msi", "com", "pif", "hta", "cpl", "jar", "apk", "bin",
     "ps1", "py", "php", "asp", "aspx", "jsp", "cgi", "zip", "rar", "7z", "tar", "gz", "iso", "dll"
-  ];
+  ]);
+
+  const ALLOWED_DOC_EXTENSIONS = new Set([
+    'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'csv'
+  ]);
+
+  const ALLOWED_IMG_EXTENSIONS = new Set([
+    'png', 'jpg', 'jpeg', 'webp' // .gif strictly prohibited
+  ]);
+
+  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB Limit
 
   const urlPattern = /\b(?:https?:\/\/|www\.)\S+|\b[a-zA-Z0-9-]+\.(?:com|net|org|edu|gov|io|xyz|ru|cn|me|co|link|info|biz|top|ph)\b/gi;
 
   function evaluateContentSafety(text, fileName = "") {
-    const lowerText = String(text || "").toLowerCase();
+    const raw = String(text || "");
+    const lowerText = raw.toLowerCase();
     const lowerFileName = String(fileName || "").toLowerCase();
 
+    // 1. External Links & Web Domains
     if (urlPattern.test(lowerText) || lowerText.includes(".com") || lowerText.includes("http://") || lowerText.includes("https://")) {
       return {
         safe: false,
@@ -1580,22 +1603,51 @@
       };
     }
 
+    // 2. Prohibited Emojis & Gestures
+    if (/🖕|👉\s*👌|(?:🍆|🍌|🌭|🥒)\s*(?:💦|💧|👅|🍑|🍩|👄)|(?:🍑|🍒)\s*(?:💦|👅|🍆)/u.test(raw)) {
+      return {
+        safe: false,
+        reason: "School Policy Violation: Offensive or suggestive emojis detected."
+      };
+    }
+
+    // 3. Normalization (Homoglyphs & Leetspeak)
+    let cleaned = lowerText.replace(/[\u200B-\u200D\uFEFF\u00AD\u2060\u180E]/g, '');
+    const homoglyphs = { 'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'у': 'y', 'х': 'x', 'і': 'i' };
+    for (const [cyr, lat] of Object.entries(homoglyphs)) {
+      cleaned = cleaned.split(cyr).join(lat);
+    }
+
+    const leetMap = {
+      '8': 'b', '0': 'o', '6': 'g', '9': 'g',
+      '@': 'a', '4': 'a', '3': 'e', '1': 'i',
+      '!': 'i', '$': 's', '5': 's', '7': 't'
+    };
+    for (const [num, char] of Object.entries(leetMap)) {
+      cleaned = cleaned.split(num).join(char);
+    }
+
+    const denseClean = cleaned.replace(/[^a-z0-9]/g, '');
+    const squashedClean = denseClean.replace(/(.)\1+/g, '$1');
+
+    // 4. Keyword Checks
     for (const badWord of bannedKeywords) {
-      const wordRegex = new RegExp(`\\b${badWord}\\b`, "gi");
-      if (wordRegex.test(lowerText)) {
+      const wordRegex = new RegExp(`\\b${badWord}\\b`, "i");
+      if (wordRegex.test(lowerText) || squashedClean.includes(badWord)) {
         return {
           safe: false,
-          reason: "Your message contains prohibited words or inappropriate language."
+          reason: `Your message contains prohibited language ("${badWord}").`
         };
       }
     }
 
+    // 5. File Safety Checks
     if (fileName) {
       const ext = lowerFileName.split('.').pop();
-      if (dangerousExtensions.includes(ext)) {
+      if (dangerousExtensions.has(ext)) {
         return {
           safe: false,
-          reason: `The file format (.${ext}) is prohibited to prevent malware and protect user safety.`
+          reason: `The file format (.${ext}) is prohibited to prevent malware and protect campus safety.`
         };
       }
 
@@ -1603,7 +1655,7 @@
         if (lowerFileName.includes(badWord)) {
           return {
             safe: false,
-            reason: "The attached filename contains inappropriate words."
+            reason: "The attached filename contains inappropriate language."
           };
         }
       }
@@ -1882,7 +1934,7 @@
         if (targetRow) targetRow.remove();
       });
 
-    realtimeChannel.on(
+ realtimeChannel.on(
       'postgres_changes',
       {
         event: 'INSERT',
@@ -1890,9 +1942,12 @@
         table: 'group_messages',
         filter: `group_id=eq.${groupId}`
       },
-      payload => {
+      async (payload) => {
         const newRow = payload.new;
-        if (newRow && String(newRow.user_id) !== String(currentUserId)) {
+        if (!newRow) return;
+
+        // Render message in UI if it belongs to another user
+        if (String(newRow.user_id) !== String(currentUserId)) {
           const exists = document.querySelector(`.message-row[data-id="${newRow.id}"]`);
           if (!exists) {
             appendMessageUI(
@@ -1907,6 +1962,41 @@
               newRow.created_at
             );
           }
+        }
+
+        // 🛡️ AI AUTO-PURGE SENTINEL: Double-check stored record in background
+        try {
+          const checkResp = await fetch('/api/ai-auto-purge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              table: 'group_messages',
+              message_id: newRow.id,
+              message: newRow.message || newRow.text || '',
+              media_url: newRow.media_url || '',
+              media_type: newRow.media_type || ''
+            })
+          });
+
+          if (checkResp.ok) {
+            const checkData = await checkResp.json();
+            if (checkData.purged) {
+              // Vaporize the element from the DOM immediately
+              const badEl = document.querySelector(`.message-row[data-id="${newRow.id}"]`);
+              if (badEl) badEl.remove();
+
+              // Broadcast unsend signal so all group members see it vanish
+              realtimeChannel.send({
+                type: 'broadcast',
+                event: 'unsend_message',
+                payload: { id: newRow.id }
+              });
+
+              showModerationToast(`🛡️ AI Proctor: Prohibited content automatically purged.`);
+            }
+          }
+        } catch (sentinelErr) {
+          console.warn("Sentinel check error:", sentinelErr);
         }
       }
     );
@@ -1927,6 +2017,15 @@
         }
       }
     );
+
+    // Listen for broadcasted unsend events from the AI sentinel or other users
+    realtimeChannel.on('broadcast', { event: 'unsend_message' }, (evt) => {
+      const targetId = evt.payload?.id;
+      if (targetId) {
+        const targetRow = document.querySelector(`.message-row[data-id="${targetId}"]`);
+        if (targetRow) targetRow.remove();
+      }
+    });
 
     realtimeChannel.subscribe((status) => {
       const statusElem = document.getElementById("onlineMembersStatus");
@@ -1997,186 +2096,276 @@
     }
 
     const input = document.getElementById('messageInput');
-    const rawText = input.value.trim();
+    const sendBtn = document.getElementById('sendBtn');
+    if (!input) return;
 
+    const rawText = input.value.trim();
     if (rawText === "") return;
 
-    // 1. Instant local regex & keyword check
+    // 1. Instant local regex & keyword check (0ms)
     const safetyCheck = evaluateContentSafety(rawText);
     if (!safetyCheck.safe) {
       showModerationToast(`⚠️ Blocked by System: ${safetyCheck.reason}`);
-      input.value = "";
       return;
     }
 
-    // 2. Multilingual AI Content Safety Pre-flight Check
+    // Lock UI while validating
+    input.disabled = true;
+    if (sendBtn) sendBtn.disabled = true;
+
+    // 2. Gemini 2.0 Flash Content Safety Check (Aligned to app.py)
     try {
       const aiResponse = await fetch('/api/ai-moderate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: rawText })
+        body: JSON.stringify({ 
+          message: rawText,
+          text: rawText,
+          is_teacher_dm: false
+        })
       });
       
       if (aiResponse.ok) {
         const aiData = await aiResponse.json();
         if (!aiData.allowed) {
           showModerationToast(`🛑 ${aiData.reason || 'Prohibited message detected across languages.'}`);
-          input.value = "";
           return;
         }
+      } else {
+        showModerationToast("⚠️ Compliance server offline. Message held.");
+        return;
       }
-    } catch (err) {
-      console.warn("AI moderation check bypassed due to network issue:", err);
-    }
 
-    // 3. Dispatch only after passing checks
-    dispatchMessage(rawText);
-    input.value = "";
+      // 3. Dispatch only after passing checks
+      input.value = "";
+      dispatchMessage(rawText);
+
+    } catch (err) {
+      console.warn("AI moderation check error:", err);
+      showModerationToast("❌ Unable to verify message safety. Please try again.");
+    } finally {
+      input.disabled = false;
+      if (sendBtn) sendBtn.disabled = false;
+      input.focus();
+    }
   }
 
   /* =====================================================
-     IMAGE UPLOAD & MULTIMODAL NSFW AI MODERATION
+   8. UNIFIED IMAGE MODERATION & BASE64 PRE-UPLOAD
+===================================================== */
+async function handleImageProcessingAndUpload(fileObj) {
+  if (!fileObj) return;
+
+  if (isGroupArchived) {
+    showModerationToast("📦 Uploads are disabled for archived groups.");
+    return;
+  }
+
+  if (userRole === "ADMIN") {
+    showModerationToast("👁️ Administrator accounts operate in spectator mode.");
+    return;
+  }
+
+  const input = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  // 1. File size check (25MB limit)
+  if (fileObj.size > MAX_FILE_SIZE) {
+    showModerationToast("🛑 File Limit Exceeded: Maximum image size is 25MB.");
+    return;
+  }
+
+  // 2. Format check (Prohibit .gif and dangerous formats)
+  const fallbackExt = fileObj.type ? fileObj.type.split('/')[1] : 'png';
+  const fileName = fileObj.name || `screenshot_${Date.now()}.${fallbackExt}`;
+  const ext = fileName.split('.').pop().toLowerCase();
+
+  if (!ALLOWED_IMG_EXTENSIONS.has(ext)) {
+    showModerationToast("🛑 Format Denied: Allowed formats: PNG, JPG, JPEG, WEBP.");
+    return;
+  }
+
+  // Lock UI while AI is scanning
+  if (input) input.disabled = true;
+  if (sendBtn) sendBtn.disabled = true;
+  showModerationToast("🔍 Scanning image & text with Gemini Multimodal AI...");
+
+  try {
+    // 3. Convert image to Base64 BEFORE touching Supabase Storage
+    const base64Data = await readFileAsDataURL(fileObj);
+
+    // 4. Inspect raw bytes for adult anatomy, nudity, bribes, and slurs
+    const aiResponse = await fetch('/api/ai-moderate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `📷 Shared Image: ${fileName}`,
+        text: `📷 Shared Image: ${fileName}`,
+        file_name: fileName,
+        image_base64: base64Data,
+        mime_type: fileObj.type || 'image/png',
+        is_teacher_dm: false
+      })
+    });
+
+    if (aiResponse.ok) {
+      const aiData = await aiResponse.json();
+      if (!aiData.allowed) {
+        showModerationToast(`🛑 Image Blocked: ${aiData.reason || 'Explicit content detected.'}`);
+        return;
+      }
+    } else {
+      showModerationToast("⚠️ Moderation gate unavailable. Upload cancelled.");
+      return;
+    }
+
+    // 5. Upload to Supabase only after full clearance
+    const uploadResult = await uploadMediaToStorage(fileObj);
+    dispatchMessage(`📷 Shared Image: ${fileName}`, uploadResult.url, 'image', fileName);
+
+  } catch (err) {
+    console.error("AI Image scan error:", err);
+    showModerationToast("❌ Unable to verify image safety. Upload cancelled.");
+  } finally {
+    if (input && !isGroupArchived && userRole !== "ADMIN") input.disabled = false;
+    if (sendBtn && !isGroupArchived && userRole !== "ADMIN") sendBtn.disabled = false;
+    if (input) input.focus();
+  }
+}
+
+// File picker event
+const imageAttachment = document.getElementById("imageAttachment");
+if (imageAttachment) {
+  imageAttachment.addEventListener("change", async function () {
+    if (this.files && this.files.length > 0) {
+      await handleImageProcessingAndUpload(this.files[0]);
+      this.value = "";
+    }
+  });
+}
+
+// Clipboard Ctrl+V screenshot paste event
+const groupInputEl = document.getElementById("messageInput");
+if (groupInputEl) {
+  groupInputEl.addEventListener("paste", async function (e) {
+    if (isGroupArchived || userRole === "ADMIN") return;
+
+    const clipboardData = e.clipboardData || window.clipboardData;
+    if (!clipboardData || !clipboardData.items) return;
+
+    for (let i = 0; i < clipboardData.items.length; i++) {
+      const item = clipboardData.items[i];
+      if (item.type.indexOf("image") !== -1) {
+        e.preventDefault();
+        const blob = item.getAsFile();
+        if (blob) {
+          const ext = blob.type.split('/')[1] || 'png';
+          const pastedFile = new File([blob], `screenshot_${Date.now()}.${ext}`, { type: blob.type });
+          await handleImageProcessingAndUpload(pastedFile);
+          return;
+        }
+      }
+    }
+  });
+}
+  /* =====================================================
+     9. DOCUMENT UPLOAD & MALWARE/VIRUS EXTENSION FILTER
   ===================================================== */
-  document.getElementById("imageAttachment").addEventListener("change", async function () {
-    if (isGroupArchived) {
-      showModerationToast("📦 Uploads are disabled for archived groups.");
-      this.value = "";
-      return;
-    }
-
-    if (userRole === "ADMIN") {
-      this.value = "";
-      return;
-    }
-
-    if (this.files.length > 0) {
-      const fileObj = this.files[0];
-      
-      // 1. Local extension and name check
-      const safetyCheck = evaluateContentSafety("", fileObj.name);
-      if (!safetyCheck.safe) {
-        showModerationToast(`⚠️ Attachment Rejected: ${safetyCheck.reason}`);
+  const fileAttachment = document.getElementById("fileAttachment");
+  if (fileAttachment) {
+    fileAttachment.addEventListener("change", async function () {
+      if (isGroupArchived) {
+        showModerationToast("📦 Uploads are disabled for archived groups.");
         this.value = "";
         return;
       }
 
-      // 2. Server-side extension check
-      try {
-        const extCheckResp = await fetch('/api/ai-moderate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file_name: fileObj.name })
-        });
-        if (extCheckResp.ok) {
-          const extData = await extCheckResp.json();
-          if (!extData.allowed) {
-            showModerationToast(`🛑 ${extData.reason}`);
-            this.value = "";
-            return;
-          }
-        }
-      } catch (e) {
-        console.warn("Server file check warning:", e);
+      if (userRole === "ADMIN") {
+        this.value = "";
+        return;
       }
 
-      showModerationToast("🔍 Validating image content with AI Safety filter...");
+      if (this.files.length > 0) {
+        const fileObj = this.files[0];
+        const input = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
 
-      // 3. Upload to storage bucket
-      const uploadResult = await uploadMediaToStorage(fileObj);
-      const uploadedUrl = uploadResult.url;
-      const storagePath = uploadResult.path;
+        // 1. File size limit
+        if (fileObj.size > MAX_FILE_SIZE) {
+          showModerationToast("🛑 File Limit Exceeded: Maximum document upload size is 25MB.");
+          this.value = "";
+          return;
+        }
 
-      // 4. Multimodal Vision Safety Check (Blocks NSFW, topless, and explicit imagery)
-      try {
-        const aiResponse = await fetch('/api/ai-moderate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            image_url: uploadedUrl,
-            file_name: fileObj.name
-          })
-        });
+        // 2. Extension check
+        const ext = fileObj.name.split('.').pop().toLowerCase();
+        if (dangerousExtensions.has(ext)) {
+          showModerationToast(`🛑 Security Alert: The file type (.${ext}) is prohibited.`);
+          this.value = "";
+          return;
+        }
 
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          if (!aiData.allowed) {
-            showModerationToast(`🛑 Image Blocked: ${aiData.reason || 'Explicit or inappropriate image detected.'}`);
-            
-            // Delete prohibited media from Supabase storage
-            if (storagePath) {
-              const client = getSupabaseClient();
-              if (client) {
-                await client.storage.from('group-files').remove([storagePath]);
-              }
+        if (!ALLOWED_DOC_EXTENSIONS.has(ext)) {
+          showModerationToast("🛑 Format Denied: Allowed document formats: PDF, Word, PowerPoint, Excel, and Text.");
+          this.value = "";
+          return;
+        }
+
+        // 3. Local filename check
+        const safetyCheck = evaluateContentSafety("", fileObj.name);
+        if (!safetyCheck.safe) {
+          showModerationToast(`⚠️ File Rejected: ${safetyCheck.reason}`);
+          this.value = "";
+          return;
+        }
+
+        // Lock UI while validating
+        if (input) input.disabled = true;
+        if (sendBtn) sendBtn.disabled = true;
+
+        try {
+          // 4. Server-side security check (malware blocklist via app.py Gate 2)
+          const aiResponse = await fetch('/api/ai-moderate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              file_name: fileObj.name,
+              is_teacher_dm: false
+            })
+          });
+          
+          if (aiResponse.ok) {
+            const aiData = await aiResponse.json();
+            if (!aiData.allowed) {
+              showModerationToast(`🛑 ${aiData.reason || 'Prohibited file type.'}`);
+              this.value = "";
+              return;
             }
+          } else {
+            showModerationToast("⚠️ Compliance server offline. Document held.");
             this.value = "";
             return;
           }
-        }
-      } catch (err) {
-        console.warn("AI Image moderation network issue:", err);
-      }
 
-      // 5. Post to chat if approved
-      dispatchMessage(`📷 Shared Image: ${fileObj.name}`, uploadedUrl, 'image', fileObj.name);
-      this.value = "";
-    }
-  });
+          // 5. Upload to Supabase storage only AFTER full clearance
+          const uploadResult = await uploadMediaToStorage(fileObj);
+          dispatchMessage(`📎 Shared File: ${fileObj.name}`, uploadResult.url, 'file', fileObj.name);
+
+        } catch (err) {
+          console.warn("AI file check warning:", err);
+          showModerationToast("❌ File scan failed. Upload cancelled.");
+        } finally {
+          if (input && !isGroupArchived && userRole !== "ADMIN") input.disabled = false;
+          if (sendBtn && !isGroupArchived && userRole !== "ADMIN") sendBtn.disabled = false;
+          this.value = "";
+        }
+      }
+    });
+  }
 
   /* =====================================================
-     DOCUMENT UPLOAD & MALWARE/VIRUS EXTENSION FILTER
+     10. UPLOAD HELPER FOR SUPABASE STORAGE
   ===================================================== */
-  document.getElementById("fileAttachment").addEventListener("change", async function () {
-    if (isGroupArchived) {
-      showModerationToast("📦 Uploads are disabled for archived groups.");
-      this.value = "";
-      return;
-    }
-
-    if (userRole === "ADMIN") {
-      this.value = "";
-      return;
-    }
-
-    if (this.files.length > 0) {
-      const fileObj = this.files[0];
-
-      // 1. Instant local extension block
-      const safetyCheck = evaluateContentSafety("", fileObj.name);
-      if (!safetyCheck.safe) {
-        showModerationToast(`⚠️ File Rejected: ${safetyCheck.reason}`);
-        this.value = "";
-        return;
-      }
-
-      // 2. Server-side security check (malware & executable blocklist)
-      try {
-        const aiResponse = await fetch('/api/ai-moderate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ file_name: fileObj.name })
-        });
-        
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          if (!aiData.allowed) {
-            showModerationToast(`🛑 ${aiData.reason || 'Prohibited file type.'}`);
-            this.value = "";
-            return;
-          }
-        }
-      } catch (err) {
-        console.warn("AI file check warning:", err);
-      }
-
-      // 3. Upload and dispatch
-      const uploadResult = await uploadMediaToStorage(fileObj);
-      dispatchMessage(`📎 Shared File: ${fileObj.name}`, uploadResult.url, 'file', fileObj.name);
-      this.value = "";
-    }
-  });
-
-  /* UPLOAD HELPER FOR SUPABASE STORAGE WITH METADATA TRACKING */
   async function uploadMediaToStorage(file) {
     const client = getSupabaseClient();
     const ext = file.name.split('.').pop();
@@ -2212,14 +2401,20 @@
     });
   }
 
-  // Enter Key Listener
-  document.getElementById('messageInput').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-      sendMessage();
-    }
-  });
+  // Enter Key Listener (Sends on Enter without Shift)
+  const messageInputEl = document.getElementById('messageInput');
+  if (messageInputEl) {
+    messageInputEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  }
 
-  /* DISPATCH, INSERT TO SUPABASE & BROADCAST */
+  /* =====================================================
+     11. DISPATCH, PERSIST & BROADCAST
+  ===================================================== */
   async function dispatchMessage(text, mediaUrl = null, mediaType = null, fileName = null) {
     if (isGroupArchived) return;
 
@@ -2359,6 +2554,8 @@
     const sharedFiles = document.getElementById('sharedFiles');
     const sharedImages = document.getElementById('sharedImages');
 
+    if (!messagesContainer) return;
+
     const id = msgId || Date.now();
     const timeFormatted = timeStr ? new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -2393,9 +2590,11 @@
 
       msgDiv.appendChild(imgEl);
       
-      const captionSpan = document.createElement('div');
-      captionSpan.textContent = text;
-      msgDiv.appendChild(captionSpan);
+      if (text) {
+        const captionSpan = document.createElement('div');
+        captionSpan.textContent = text;
+        msgDiv.appendChild(captionSpan);
+      }
 
       if (sharedImages && !mediaImagesSet.has(mediaUrl)) {
         mediaImagesSet.add(mediaUrl);
@@ -2486,11 +2685,13 @@
   }
 
   /* =====================================================
-     8. SEARCH & TAB ACTIONS
+     12. SEARCH & TAB ACTIONS
   ===================================================== */
   function toggleSearchBar() {
     const searchWrapper = document.getElementById("searchBarWrapper");
     const searchInput = document.getElementById("searchInput");
+    if (!searchWrapper || !searchInput) return;
+
     searchWrapper.classList.toggle("active");
 
     if (searchWrapper.classList.contains("active")) {
@@ -2539,7 +2740,7 @@
   const peopleContent = document.getElementById('peopleContent');
   const mediaContent = document.getElementById('mediaContent');
 
-  if (peopleTab && mediaTab) {
+  if (peopleTab && mediaTab && peopleContent && mediaContent) {
     peopleTab.onclick = () => {
       peopleTab.classList.add('active');
       mediaTab.classList.remove('active');
@@ -2557,7 +2758,7 @@
 
   function escapeHtml(text) {
     if (!text) return "";
-    return text
+    return String(text)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
@@ -2566,7 +2767,7 @@
   }
 
   /* =====================================================
-     9. LOAD SIDEBAR CLASSES & GROUPS (TWO-STEP QUERY)
+     13. LOAD SIDEBAR CLASSES & GROUPS (TWO-STEP QUERY)
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
