@@ -401,7 +401,6 @@ if GEMINI_SDK_AVAILABLE and GEMINI_API_KEY:
         )
         print("✅ Gemini client initialized successfully on v1beta.", flush=True)
 
-        # Detect active Flash models while skipping deprecated preview endpoints
         try:
             for m in gemini_client.models.list():
                 raw_name = getattr(m, 'name', '') or ''
@@ -416,7 +415,7 @@ if GEMINI_SDK_AVAILABLE and GEMINI_API_KEY:
     except Exception as e:
         print(f"❌ Failed to initialize Gemini Client: {e}", flush=True)
 
-# --- 1. FILE & EXTENSION SECURITY WHITELISTS (For Group Chat) ---
+# --- 1. FILE & EXTENSION SECURITY WHITELISTS ---
 BLOCKED_EXTENSIONS = {
     'exe', 'bat', 'cmd', 'sh', 'vbs', 'vbe', 'js', 'jse', 'wsf', 'wsh',
     'scr', 'msi', 'com', 'pif', 'hta', 'cpl', 'jar', 'apk', 'bin',
@@ -448,7 +447,7 @@ EMOJI_PATTERNS = [
 ]
 
 PROFANITY_PATTERNS = [
-    # English Acronyms & Slurs (handles elongations)
+    # English Acronyms & Slurs
     r'\b(m+f+|m+o+f+o+|s+t+f+u+|w+t+f+|s+o+b+|f+c+k+|f+u+k+|f+c+k+i+n+|f+u+k+i+n+|f+k+|k+y+s+|p+o+s+)\b',
     r'\bf+u+c+k+(e+r+|i+n+g+|s+)?\b',
     r'\bs+h+i+t+(s+|t+y+)?\b',
@@ -480,10 +479,16 @@ PROFANITY_PATTERNS = [
     r'\bo+k+i+n+a+m+\b',
     r'\b(ukinana|okinana|bagtit|buto)\b',
 
-    # Hiligaynon / Waray / Kapampangan / Bicolano
+    # Hiligaynon / Waray / Regional
     r'\bl+i+n+t+i+\b',
     r'\b(lintian|buray|yudiputa|taksyapo|danayda)\b',
     r'\b(iyot|iyotan)\b'
+]
+
+# Unbounded sub-string patterns for squashed/evasive text
+SUBSTRING_PROFANITIES = [
+    "tangina", "putangina", "gago", "bobo", "ulol", "kupal", 
+    "kantot", "burat", "pekpek", "yawa", "bilat", "pisti", "ukinam"
 ]
 
 MORSE_MAP = {
@@ -555,7 +560,7 @@ def normalize_deep_moderation(text):
         translated = translated.replace(char, repl)
 
     dense = re.sub(r'[^a-z0-9]', '', translated)
-    squashed_dense = re.sub(r'(.)\1{2,}', r'\1', dense)
+    squashed_dense = re.sub(r'(.)\1+', r'\1', dense)
     condensed_words = re.sub(r'(?<=\b\w)\s+(?=\w\b)', '', translated)
     cleaned_words = re.sub(r'[^a-z0-9\s]', '', condensed_words)
 
@@ -567,42 +572,46 @@ def evaluate_deterministic_gate(message_text):
         return True, ""
 
     if re.search(r'(giphy\.com|tenor\.com|\.gif(\?.*)?$)', message_text, re.IGNORECASE):
-        return False, "School Policy Violation: Animated GIFs and external meme links are prohibited."
+        return False, "Animated GIFs and external meme links are prohibited."
 
     for pattern in ASCII_SEXUAL_PATTERNS:
         if re.search(pattern, message_text):
-            return False, "School Policy Violation: Inappropriate ASCII drawings detected."
+            return False, "Inappropriate ASCII drawings detected."
 
     for pattern in EMOJI_PATTERNS:
         if re.search(pattern, message_text):
-            return False, "School Policy Violation: Sexually suggestive or offensive emojis detected."
+            return False, "Sexually suggestive or offensive emojis detected."
 
     raw_text, cleaned_words, squashed_dense = normalize_deep_moderation(message_text)
     decoded_morse = decode_morse_if_present(message_text)
     decoded_binary = decode_binary_if_present(message_text)
 
-    candidates = [cleaned_words, squashed_dense]
+    # Check bounded patterns on space-preserved words
+    word_candidates = [cleaned_words]
     if decoded_morse:
-        _, _, morse_dense = normalize_deep_moderation(decoded_morse)
-        candidates.extend([decoded_morse, morse_dense])
+        word_candidates.append(decoded_morse)
     if decoded_binary:
-        _, _, binary_dense = normalize_deep_moderation(decoded_binary)
-        candidates.extend([decoded_binary, binary_dense])
+        word_candidates.append(decoded_binary)
 
-    for text_candidate in candidates:
+    for wc in word_candidates:
         for pattern in PROFANITY_PATTERNS:
-            if re.search(pattern, text_candidate):
-                return False, "School Policy Violation: Offensive language, slurs, abbreviations, or evasions detected."
+            if re.search(pattern, wc):
+                return False, "Offensive language, slurs, or hostile abbreviations detected."
+
+    # Check dense squashed string against sub-string evasions
+    for sub in SUBSTRING_PROFANITIES:
+        if sub in squashed_dense:
+            return False, "Prohibited language or evasive phrasing detected."
 
     return True, ""
 
-# --- 4. UNIFIED GEMINI 2.0 FLASH PROCTOR (Vision + OCR + Explicit NSFW) ---
+# --- 4. UNIFIED GEMINI 2.5 FLASH PROCTOR ---
 GEMINI_UNIFIED_PROMPT = """
 You are the Official Academic Safety & Student Conduct Proctor for Regis Marie College (RMC).
 You enforce an absolute ZERO TOLERANCE policy for adult, explicit, or inappropriate content.
 
 CRITICAL VISUAL NSFW DIRECTIVE:
-- ABSOLUTE ZERO TOLERANCE for nudity, adult anatomy, genitalia (male or female private parts, penis, dick, vagina, breasts), sex toys, sexual acts, or suggestive poses.
+- ABSOLUTE ZERO TOLERANCE for nudity, adult anatomy, genitalia (male or female private parts, penis, vagina, breasts), sex toys, sexual acts, or suggestive poses.
 - If ANY nudity or sexual anatomy is visible in an image, you MUST REJECT IT IMMEDIATELY with allowed: false and reason: "Explicit adult content detected."
 
 ACADEMIC CONDUCT RESTRICTIONS:
@@ -622,31 +631,21 @@ OR
 """
 
 def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"):
-    """Multimodal inspection using Gemini API."""
-    if not gemini_client:
-        print("⚠️ Gemini client not configured. Proceeding on deterministic gate.")
+    if not GEMINI_API_KEY:
+        print("⚠️ GEMINI_API_KEY missing. Proceeding on deterministic gate.")
         return True, ""
 
-    # Candidates with retired preview models completely purged
-    candidate_models = [
-        ACTIVE_GEMINI_MODEL,
-        os.environ.get("GEMINI_MODEL", "").strip(),
-        "gemini-2.5-flash",
-        "gemini-2.0-flash-001",
-        "gemini-1.5-flash-002",
-        "gemini-1.5-flash"
-    ]
-    candidate_models = [m for m in candidate_models if m and m != "gemini-2.0-flash"]
+    model_name = ACTIVE_GEMINI_MODEL or os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 
-    contents = [GEMINI_UNIFIED_PROMPT]
-    if text:
-        contents.append(f"### STUDENT MESSAGE TEXT ###\n{text}\n### END MESSAGE TEXT ###")
-    if image_bytes:
-        contents.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
-
-    last_err = None
-    for model_name in candidate_models:
+    # --- Layer 1: Attempt via google-genai SDK ---
+    if gemini_client and GEMINI_SDK_AVAILABLE:
         try:
+            contents = [GEMINI_UNIFIED_PROMPT]
+            if text:
+                contents.append(f"### STUDENT MESSAGE TEXT ###\n{text}\n### END MESSAGE TEXT ###")
+            if image_bytes:
+                contents.append(types.Part.from_bytes(data=image_bytes, mime_type=mime_type))
+
             response = gemini_client.models.generate_content(
                 model=model_name,
                 contents=contents,
@@ -662,32 +661,64 @@ def evaluate_with_gemini_flash(text="", image_bytes=None, mime_type="image/jpeg"
                     return False, "Explicit adult or prohibited visual content blocked by AI safety proctor."
 
             response_text = (response.text or "").strip()
-            if not response_text:
-                return False, "Message rejected: empty or safety-filtered AI response."
+            if response_text:
+                json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+                if json_match:
+                    verdict = json.loads(json_match.group(0))
+                    return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
+        except Exception as sdk_err:
+            print(f"⚠️ SDK dropped ({sdk_err}). Switching to direct v1beta REST gateway...", flush=True)
 
-            if response_text.startswith("```"):
-                response_text = re.sub(r'^```(?:json)?\s*', '', response_text)
-                response_text = re.sub(r'\s*```$', '', response_text)
+    # --- Layer 2: Bulletproof Direct v1beta REST Gateway ---
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+        parts = [{"text": GEMINI_UNIFIED_PROMPT}]
 
-            verdict = json.loads(response_text)
-            return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
+        if text:
+            parts.append({"text": f"### STUDENT MESSAGE TEXT ###\n{text}\n### END MESSAGE TEXT ###"})
 
-        except Exception as exc:
-            err_str = str(exc)
-            if "404" in err_str or "not found" in err_str.lower():
-                last_err = exc
-                continue
+        if image_bytes:
+            b64_data = base64.b64encode(image_bytes).decode("utf-8")
+            parts.append({
+                "inline_data": {
+                    "mime_type": mime_type,
+                    "data": b64_data
+                }
+            })
 
-            err_msg = err_str.lower()
-            if "safety" in err_msg or "blocked" in err_msg or "filter" in err_msg:
+        payload = {
+            "contents": [{"parts": parts}],
+            "generationConfig": {
+                "response_mime_type": "application/json",
+                "temperature": 0.0
+            }
+        }
+
+        resp = requests.post(url, json=payload, timeout=8)
+        data = resp.json()
+
+        if resp.status_code != 200:
+            err_msg = data.get("error", {}).get("message", "Unknown Gateway Error")
+            print(f"🛑 Gemini Direct Gateway Error: {err_msg}", flush=True)
+            return False, f"AI Gateway Error: {err_msg[:100]}"
+
+        candidates = data.get("candidates", [])
+        if candidates:
+            finish_reason = candidates[0].get("finishReason", "")
+            if "SAFETY" in finish_reason:
                 return False, "Explicit adult or prohibited visual content blocked by AI safety filters."
 
-            print(f"🛑 Gemini Execution Error ({model_name}): {err_str}", flush=True)
-            return False, f"AI Gateway Error: {err_str[:100]}"
+            raw_text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "{}").strip()
+            json_match = re.search(r'\{.*\}', raw_text, re.DOTALL)
+            if json_match:
+                verdict = json.loads(json_match.group(0))
+                return verdict.get("allowed", False), verdict.get("reason", "Prohibited content detected.")
 
-    error_details = str(last_err) if last_err else "All candidate models unavailable"
-    print(f"🛑 All Gemini Flash models failed: {error_details}", flush=True)
-    return False, f"AI Gateway Error: {error_details[:100]}"
+        return False, "Message rejected: empty evaluation response."
+
+    except Exception as e:
+        print(f"🛑 Fallback Exception: {e}", flush=True)
+        return False, f"AI Gateway Error: {str(e)[:100]}"
 
 # --- 5. UNIFIED REAL-TIME MODERATION API ROUTE ---
 @app.route('/api/ai-moderate', methods=['POST'])
@@ -701,7 +732,7 @@ def ai_moderate():
     is_teacher_dm = bool(data.get('is_teacher_dm', False))
     mime_type = data.get('mime_type', 'image/jpeg')
 
-    # Gate 1: 1-on-1 Consultation Hardening
+    # Gate 1: Consultation Boundary Checks
     if is_teacher_dm:
         if file_name or image_b64 or image_url:
             return jsonify({
@@ -726,7 +757,8 @@ def ai_moderate():
     # Gate 3: Local Heuristics
     det_ok, det_reason = evaluate_deterministic_gate(message_text)
     if not det_ok:
-        return jsonify({"allowed": False, "reason": det_reason}), 200
+        clean_reason = det_reason if det_reason.startswith("School Policy") else f"School Policy: {det_reason}"
+        return jsonify({"allowed": False, "reason": clean_reason}), 200
 
     if not message_text and not image_b64 and not image_url:
         return jsonify({"allowed": True}), 200
@@ -738,7 +770,7 @@ def ai_moderate():
             if "," in image_b64:
                 image_b64 = image_b64.split(",")[1]
             img_bytes = base64.b64decode(image_b64)
-        except Exception as err:
+        except Exception:
             return jsonify({"allowed": False, "reason": "Corrupted image payload received."}), 200
     elif image_url and not is_teacher_dm:
         try:
@@ -751,7 +783,7 @@ def ai_moderate():
         except Exception:
             pass
 
-    # Gate 5: Multimodal Gemini 2.0 Flash Inspection
+    # Gate 5: Multimodal Gemini Flash Inspection
     allowed, reason = evaluate_with_gemini_flash(
         text=message_text,
         image_bytes=img_bytes,
@@ -759,24 +791,29 @@ def ai_moderate():
     )
 
     if not allowed:
-        return jsonify({"allowed": False, "reason": f"School Policy Violation: {reason}"}), 200
+        clean_reason = reason if reason.startswith("School Policy") else f"School Policy Violation: {reason}"
+        return jsonify({"allowed": False, "reason": clean_reason}), 200
 
     return jsonify({"allowed": True}), 200
 
-
 # --- 6. AI AUTO-PURGE SENTINEL ROUTE ---
+VALID_PURGE_TABLES = {"group_messages", "private_messages", "chat_messages"}
+
 @app.route('/api/ai-auto-purge', methods=['POST'])
 @app.route('/api/ai-auto-purge/', methods=['POST'])
 def ai_auto_purge():
     data = request.get_json(silent=True) or {}
     table_name = data.get('table')
-    message_id = data.get('message_id')
+    raw_message_id = data.get('message_id')
     message_text = (data.get('message') or data.get('text') or '').strip()
     media_url = (data.get('media_url') or '').strip()
     media_type = (data.get('media_type') or '').strip()
 
-    if not message_id or not table_name:
-        return jsonify({"purged": False, "reason": "Missing message_id or table name"}), 400
+    # Strict whitelist to prevent arbitrary table deletion
+    if not raw_message_id or table_name not in VALID_PURGE_TABLES:
+        return jsonify({"purged": False, "reason": "Invalid purge parameters or unauthorized table"}), 400
+
+    target_id = int(raw_message_id) if str(raw_message_id).isdigit() else raw_message_id
 
     det_ok, det_reason = evaluate_deterministic_gate(message_text)
     is_malicious = not det_ok
@@ -805,7 +842,7 @@ def ai_auto_purge():
 
     if is_malicious:
         try:
-            supabase.table(table_name).delete().eq('id', message_id).execute()
+            supabase.table(table_name).delete().eq('id', target_id).execute()
             if media_url and "supabase.co/storage/v1/object/public/" in media_url:
                 try:
                     parts = media_url.split('/public/')[1].split('/', 1)
@@ -813,7 +850,7 @@ def ai_auto_purge():
                     supabase.storage.from_(bucket).remove([file_path])
                 except Exception:
                     pass
-            return jsonify({"purged": True, "message_id": message_id, "reason": violation_reason}), 200
+            return jsonify({"purged": True, "message_id": target_id, "reason": violation_reason}), 200
         except Exception as db_err:
             return jsonify({"purged": False, "error": str(db_err)}), 500
 

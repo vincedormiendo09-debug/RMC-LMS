@@ -1904,6 +1904,26 @@
   /* =====================================================
      5. REALTIME WEBSOCKET LISTENER
   ===================================================== */
+  function removeMessageFromUI(targetId) {
+    if (!targetId) return;
+    const searchIdStr = String(targetId);
+    
+    // 1. Remove chat bubbles
+    const targetRows = document.querySelectorAll(`.message-row`);
+    targetRows.forEach(row => {
+      if (String(row.dataset.id) === searchIdStr) {
+        row.style.transition = 'all 0.25s ease';
+        row.style.opacity = '0';
+        row.style.transform = 'scale(0.95)';
+        setTimeout(() => row.remove(), 250);
+      }
+    });
+
+    // 2. Remove shared media thumbnails/pills
+    const targetMedia = document.querySelectorAll(`[data-msg-id="${searchIdStr}"]`);
+    targetMedia.forEach(el => el.remove());
+  }
+
   function connectRealtimeMessenger(groupId) {
     const client = getSupabaseClient();
     if (!client) return;
@@ -1918,23 +1938,14 @@
       config: { broadcast: { self: false } }
     });
 
-    realtimeChannel
-      .on('broadcast', { event: 'new_message' }, payload => {
-        const msg = payload.payload;
-        if (String(msg.senderId) !== String(currentUserId)) {
-          const exists = document.querySelector(`.message-row[data-id="${msg.id}"]`);
-          if (!exists) {
-            appendMessageUI(msg.text, 'received', msg.mediaUrl, msg.mediaType, msg.fileName, msg.id, msg.senderName, msg.isCreator, msg.createdAt);
-          }
-        }
-      })
-      .on('broadcast', { event: 'unsend_message' }, payload => {
-        const { id } = payload.payload;
-        const targetRow = document.querySelector(`.message-row[data-id="${id}"]`);
-        if (targetRow) targetRow.remove();
-      });
+    // 1. Listen for peer unsend broadcasts
+    realtimeChannel.on('broadcast', { event: 'unsend_message' }, payload => {
+      const id = payload?.payload?.id;
+      if (id) removeMessageFromUI(id);
+    });
 
- realtimeChannel.on(
+    // 2. Realtime Database INSERT
+    realtimeChannel.on(
       'postgres_changes',
       {
         event: 'INSERT',
@@ -1946,7 +1957,7 @@
         const newRow = payload.new;
         if (!newRow) return;
 
-        // Render message in UI if it belongs to another user
+        // Render message in UI if from another user
         if (String(newRow.user_id) !== String(currentUserId)) {
           const exists = document.querySelector(`.message-row[data-id="${newRow.id}"]`);
           if (!exists) {
@@ -1964,68 +1975,57 @@
           }
         }
 
-        // 🛡️ AI AUTO-PURGE SENTINEL: Double-check stored record in background
-        try {
-          const checkResp = await fetch('/api/ai-auto-purge', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              table: 'group_messages',
-              message_id: newRow.id,
-              message: newRow.message || newRow.text || '',
-              media_url: newRow.media_url || '',
-              media_type: newRow.media_type || ''
-            })
-          });
+        // 🛡️ AI AUTO-PURGE SENTINEL: Sender checks stored record
+        if (String(newRow.user_id) === String(currentUserId)) {
+          try {
+            const checkResp = await fetch('/api/ai-auto-purge', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                table: 'group_messages',
+                message_id: newRow.id,
+                message: newRow.message || newRow.text || '',
+                media_url: newRow.media_url || '',
+                media_type: newRow.media_type || ''
+              })
+            });
 
-          if (checkResp.ok) {
-            const checkData = await checkResp.json();
-            if (checkData.purged) {
-              // Vaporize the element from the DOM immediately
-              const badEl = document.querySelector(`.message-row[data-id="${newRow.id}"]`);
-              if (badEl) badEl.remove();
+            if (checkResp.ok) {
+              const checkData = await checkResp.json();
+              if (checkData.purged) {
+                removeMessageFromUI(newRow.id);
 
-              // Broadcast unsend signal so all group members see it vanish
-              realtimeChannel.send({
-                type: 'broadcast',
-                event: 'unsend_message',
-                payload: { id: newRow.id }
-              });
+                realtimeChannel.send({
+                  type: 'broadcast',
+                  event: 'unsend_message',
+                  payload: { id: newRow.id }
+                });
 
-              showModerationToast(`🛡️ AI Proctor: Prohibited content automatically purged.`);
+                showModerationToast(`🛡️ AI Proctor: Prohibited content automatically purged.`);
+              }
             }
+          } catch (sentinelErr) {
+            console.warn("Sentinel check error:", sentinelErr);
           }
-        } catch (sentinelErr) {
-          console.warn("Sentinel check error:", sentinelErr);
         }
       }
     );
 
+    // 3. Realtime Database DELETE (Without group_id filter to prevent dropping PK-only payloads)
     realtimeChannel.on(
       'postgres_changes',
       {
         event: 'DELETE',
         schema: 'public',
-        table: 'group_messages',
-        filter: `group_id=eq.${groupId}`
+        table: 'group_messages'
       },
       payload => {
-        const oldRow = payload.old;
-        if (oldRow && oldRow.id) {
-          const targetRow = document.querySelector(`.message-row[data-id="${oldRow.id}"]`);
-          if (targetRow) targetRow.remove();
+        const deletedId = payload.old ? payload.old.id : null;
+        if (deletedId) {
+          removeMessageFromUI(deletedId);
         }
       }
     );
-
-    // Listen for broadcasted unsend events from the AI sentinel or other users
-    realtimeChannel.on('broadcast', { event: 'unsend_message' }, (evt) => {
-      const targetId = evt.payload?.id;
-      if (targetId) {
-        const targetRow = document.querySelector(`.message-row[data-id="${targetId}"]`);
-        if (targetRow) targetRow.remove();
-      }
-    });
 
     realtimeChannel.subscribe((status) => {
       const statusElem = document.getElementById("onlineMembersStatus");
@@ -2423,11 +2423,10 @@ if (groupInputEl) {
     const isCreator = userRole === "TEACHER" || (currentGroupData && String(currentGroupData.teacher_id) === String(currentUserId));
     const tempId = `temp_${Date.now()}`;
 
-    // 1. Local UI render
+    // 1. Local UI render with temporary ID
     appendMessageUI(text, 'sent', mediaUrl, mediaType, fileName, tempId, userName, isCreator, createdAt);
 
-    // 2. Persist to Database
-    let persistedId = tempId;
+    // 2. Persist to Supabase Database
     if (client && currentGroupId) {
       const dbPayload = {
         group_id: parseDbId(currentGroupId),
@@ -2448,105 +2447,19 @@ if (groupInputEl) {
         .maybeSingle();
 
       if (insertedRow) {
-        persistedId = insertedRow.id;
+        // Upgrade DOM element from tempId to permanent database ID
         const tempRow = document.querySelector(`.message-row[data-id="${tempId}"]`);
-        if (tempRow) tempRow.dataset.id = insertedRow.id;
+        if (tempRow) tempRow.dataset.id = String(insertedRow.id);
+
+        const tempMedia = document.querySelectorAll(`[data-msg-id="${tempId}"]`);
+        tempMedia.forEach(m => m.dataset.msgId = String(insertedRow.id));
+
       } else if (insertErr) {
         console.error("Error persisting message to database:", insertErr.message);
+        showModerationToast("⚠️ Message failed to save to server.");
       }
     }
-
-    // 3. Broadcast to peers
-    if (realtimeChannel) {
-      realtimeChannel.send({
-        type: 'broadcast',
-        event: 'new_message',
-        payload: {
-          id: persistedId,
-          groupId: currentGroupId,
-          senderId: currentUserId,
-          senderName: userName,
-          isCreator: isCreator,
-          text: text,
-          mediaUrl: mediaUrl,
-          mediaType: mediaType,
-          fileName: fileName,
-          createdAt: createdAt
-        }
-      });
-    }
   }
-
-  /* AUTOMATED DIRECT FILE DOWNLOAD HELPER */
-  async function downloadFileDirectly(url, filename) {
-    if (!url) return;
-    try {
-      if (url.startsWith('data:')) {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename || 'downloaded_document';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        return;
-      }
-      
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename || 'downloaded_document';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename || 'downloaded_document';
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  }
-
-  /* MESSENGER-STYLE IMAGE ZOOM / LIGHTBOX */
-  let currentZoomedImgUrl = "";
-
-  function openImageModal(src) {
-    if (!src) return;
-    const modal = document.getElementById('imageZoomModal');
-    const zoomedImg = document.getElementById('zoomedImage');
-    currentZoomedImgUrl = src;
-
-    if (modal && zoomedImg) {
-      zoomedImg.src = src;
-      modal.style.display = 'flex';
-    }
-  }
-
-  function closeImageModal() {
-    const modal = document.getElementById('imageZoomModal');
-    if (modal) {
-      modal.style.display = 'none';
-    }
-    currentZoomedImgUrl = "";
-  }
-
-  function downloadActiveZoomedImage() {
-    if (currentZoomedImgUrl) {
-      downloadFileDirectly(currentZoomedImgUrl, 'shared_photo.jpg');
-    }
-  }
-
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-      closeImageModal();
-    }
-  });
 
   /* RENDER MESSAGE ROW IN UI */
   function appendMessageUI(text, type, mediaUrl = null, mediaType = null, fileName = null, msgId = null, sender = "User", isCreator = false, timeStr = null) {
@@ -2556,7 +2469,7 @@ if (groupInputEl) {
 
     if (!messagesContainer) return;
 
-    const id = msgId || Date.now();
+    const id = String(msgId || Date.now());
     const timeFormatted = timeStr ? new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     const row = document.createElement('div');
@@ -2603,6 +2516,7 @@ if (groupInputEl) {
         const imgThumbnail = document.createElement('img');
         imgThumbnail.src = mediaUrl;
         imgThumbnail.alt = "Thumbnail";
+        imgThumbnail.dataset.msgId = id;
         imgThumbnail.title = "Click to preview";
         imgThumbnail.onclick = () => openImageModal(mediaUrl);
         sharedImages.appendChild(imgThumbnail);
@@ -2624,6 +2538,7 @@ if (groupInputEl) {
 
         const li = document.createElement('li');
         li.className = 'shared-file-row';
+        li.dataset.msgId = id;
         li.title = 'Click to download';
         li.onclick = () => downloadFileDirectly(mediaUrl, fileName);
         li.innerHTML = `
@@ -2646,7 +2561,8 @@ if (groupInputEl) {
       deleteBtn.className = 'msg-menu-btn';
       deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
       deleteBtn.title = 'Unsend Message';
-      deleteBtn.onclick = () => unsendMessage(id, row);
+      // Dynamically resolves current row.dataset.id to prevent closure staleness
+      deleteBtn.onclick = () => unsendMessage(row.dataset.id || id, row);
       wrapper.appendChild(deleteBtn);
     }
 
@@ -2665,20 +2581,29 @@ if (groupInputEl) {
   async function unsendMessage(msgId, rowElement) {
     if (isGroupArchived || userRole === "ADMIN") return;
 
+    // Retrieve live dataset ID if available
+    const targetId = (rowElement && rowElement.dataset.id) ? rowElement.dataset.id : msgId;
+
+    if (String(targetId).startsWith("temp_")) {
+      showModerationToast("⏳ Message is still syncing. Please wait a second before deleting.");
+      return;
+    }
+
     if (confirm("Unsend this message for everyone in the group?")) {
-      rowElement.remove();
+      removeMessageFromUI(targetId);
 
       const client = getSupabaseClient();
       if (client) {
-        const searchIds = getDualTypeIds([msgId]);
-        await client.from('group_messages').delete().in('id', searchIds);
+        const searchIds = getDualTypeIds([targetId]);
+        const { error } = await client.from('group_messages').delete().in('id', searchIds);
+        if (error) console.error("Unsend database error:", error.message);
       }
 
       if (realtimeChannel) {
         realtimeChannel.send({
           type: 'broadcast',
           event: 'unsend_message',
-          payload: { id: msgId }
+          payload: { id: targetId }
         });
       }
     }
