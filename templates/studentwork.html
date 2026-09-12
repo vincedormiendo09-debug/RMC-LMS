@@ -810,8 +810,8 @@
     return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
-  /* =====================================================
-      1. USER SESSION & ROLE PROTECTION
+ /* =====================================================
+      1. USER SESSION & SAFE LOGOUT FUNCTION
   ===================================================== */
   const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
   const userRole = rawRole.toUpperCase();
@@ -893,9 +893,33 @@
     });
   }
 
+  /* SAFE LOGOUT: Selectively clear credentials while preserving deadline history */
   function logoutUser() {
-    localStorage.clear();
+    const authKeys = [
+      "user_id",
+      "userRole",
+      "role",
+      "full_name",
+      "email",
+      "selectedClass",
+      "selectedClassId",
+      "selectedGroup",
+      "selectedGroupId",
+      "selectedSubmissionId",
+      "selectedActivityId",
+      "selectedStudentId",
+      "gradingStudentId",
+      "updateType",
+      "updateClassId",
+      "updateGroupId",
+      "joinedClasses",
+      "joinedGroups",
+      "isArchivedView"
+    ];
+
+    authKeys.forEach(key => localStorage.removeItem(key));
     sessionStorage.clear();
+
     window.location.replace("{{ url_for('logout') }}");
   }
 
@@ -1005,7 +1029,7 @@
   }
 
   /* =====================================================
-      3. FETCH STUDENT SUBMISSION FROM SUPABASE
+      3. FETCH STUDENT SUBMISSION FROM SUPABASE (CLEANED)
   ===================================================== */
   async function fetchSubmissionDetailsFromSupabase() {
     const client = getSupabaseClient();
@@ -1013,7 +1037,7 @@
 
     let sub = null;
 
-    // 1. Primary Strategy: Query by submission_id if available
+    // 1. Primary Strategy: Query by submission_id
     if (subId && subId !== 'undefined' && subId !== 'null') {
       const subSearchIds = getDualTypeIds([subId]);
       const { data, error } = await client
@@ -1027,17 +1051,35 @@
       }
     }
 
-    // 2. Fallback Strategy: Lookup by activity_id and student_id
+    // 2. Fallback Strategy: Lookup by activity_id and user_id
     if (!sub && resolvedActId && resolvedStudentId) {
       const actSearchIds = getDualTypeIds([resolvedActId]);
       const studentSearchIds = getDualTypeIds([resolvedStudentId]);
 
-      const [resUser, resStudent] = await Promise.all([
-        client.from('submissions').select('*').in('activity_id', actSearchIds).in('user_id', studentSearchIds).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-        client.from('submissions').select('*').in('activity_id', actSearchIds).in('student_id', studentSearchIds).order('created_at', { ascending: false }).limit(1).maybeSingle()
-      ]);
+      const { data: userSub } = await client
+        .from('submissions')
+        .select('*')
+        .in('activity_id', actSearchIds)
+        .in('user_id', studentSearchIds)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      sub = resUser.data || resStudent.data || null;
+      sub = userSub || null;
+
+      // Secondary check if table uses student_id instead of user_id
+      if (!sub) {
+        const { data: altSub } = await client
+          .from('submissions')
+          .select('*')
+          .in('activity_id', actSearchIds)
+          .in('student_id', studentSearchIds)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        sub = altSub || null;
+      }
+
       if (sub) {
         subId = String(sub.id);
         localStorage.setItem("selectedSubmissionId", subId);
@@ -1159,7 +1201,7 @@
       feedbackInput.value = sub.feedback || sub.remarks || sub.teacher_comments || "";
     }
 
-    // 🔒 EVALUATION INTERFACE: Permissions and Button Wiring
+    // Evaluation Interface Controls
     if (saveBtn) {
       saveBtn.onclick = toggleScoreLock;
     }
@@ -1208,7 +1250,7 @@
       }
     }
 
-    // 🎯 Timeliness calculation (Reads from actual activity metadata)
+    // Timeliness calculation
     let isLate = false;
     const deadlineDate = currentActivityData?.deadline || currentActivityData?.due_date || sub.activities?.deadline || sub.activities?.due_date;
     const submittedDate = sub.submitted_at || sub.created_at;
@@ -1309,21 +1351,6 @@
     if (studentNotesEl) {
       const notes = sub.comments || sub.note || "No private comments left by student.";
       studentNotesEl.textContent = notes;
-    }
-  }
-
-  function formatUrl(url) {
-    if (!url) return "#";
-    let trimmed = url.trim();
-    if (!/^https?:\/\//i.test(trimmed)) return 'https://' + trimmed;
-    return trimmed;
-  }
-
-  function openStudentGradeBreakdown() {
-    if (targetStudentName) {
-      localStorage.setItem("selectedStudentName", targetStudentName);
-      if (targetStudentUserId) localStorage.setItem("selectedStudentId", String(targetStudentUserId));
-      window.location.href = studentGradesUrl;
     }
   }
 

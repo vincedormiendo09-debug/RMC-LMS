@@ -746,7 +746,7 @@
 
   <!-- MOBILE MENU BUTTON -->
   <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation menu">
-    <i class="fa-solid fa-bars"></i>
+    <i class="fa-solid fa-bars">☰</i>
   </button>
 
   <!-- SIDEBAR NAVIGATION -->
@@ -786,7 +786,7 @@
     <!-- PAGE HEADER WITH FILTERS -->
     <header class="page-header">
       <div class="header-title-group">
-        <h1 id="dashTitle"><i class="fa-solid fa-chart-pie"></i> Classroom Analytics & Progress Tracking</h1>
+        <h1 id="dashTitle"><i class="fa-solid fa-chart-pie">📈</i> Classroom Analytics & Progress Tracking</h1>
         <p id="dashSub">Monitor activity progress, track active content, and support lagging classes.</p>
       </div>
 
@@ -825,7 +825,7 @@
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Highest Class Grade</span>
-            <div class="kpi-icon-box" style="background:var(--success-light); color:var(--success);"><i class="fa-solid fa-trophy"></i></div>
+            <div class="kpi-icon-box" style="background:var(--success-light); color:var(--success);"><i class="fa-solid fa-trophy">🏆</i></div>
           </div>
           <div class="kpi-value" id="kpiHighestGrade">0%</div>
           <div class="kpi-subtext positive" id="kpiHighestName"><i class="fa-solid fa-star"></i> Loading...</div>
@@ -834,7 +834,7 @@
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Overall Average Grade</span>
-            <div class="kpi-icon-box" style="background:var(--primary-light); color:var(--primary);"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="kpi-icon-box" style="background:var(--primary-light); color:var(--primary);"><i class="fa-solid fa-chart-line">📊</i></div>
           </div>
           <div class="kpi-value" id="kpiOverallAvg">0%</div>
           <div class="kpi-subtext positive"><i class="fa-solid fa-circle-check"></i> Live System Average</div>
@@ -843,7 +843,7 @@
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Active Posted Content</span>
-            <div class="kpi-icon-box" style="background:#f3e8ff; color:#9333ea;"><i class="fa-solid fa-bolt"></i></div>
+            <div class="kpi-icon-box" style="background:#f3e8ff; color:#9333ea;"><i class="fa-solid fa-bolt">⚡</i></div>
           </div>
           <div class="kpi-value" id="kpiActiveActivitiesCount">0 Acts</div>
           <div class="kpi-subtext positive" id="kpiActiveClassesName"><i class="fa-solid fa-book-open"></i> Total Class Activities</div>
@@ -852,7 +852,7 @@
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Inactive / Low Activity</span>
-            <div class="kpi-icon-box" style="background:var(--danger-light); color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="kpi-icon-box" style="background:var(--danger-light); color:var(--danger);"><i class="fa-solid fa-triangle-exclamation">📚</i></div>
           </div>
           <div class="kpi-value" id="kpiInactiveClassesCount">0 Classes</div>
           <div class="kpi-subtext negative" id="kpiInactiveSubtext"><i class="fa-solid fa-circle-exclamation"></i> Classes Needing Content</div>
@@ -861,7 +861,7 @@
 
       <!-- INACTIVE / LOW ACTIVITY CLASS WARNING HUB -->
       <div class="attention-box" id="attentionBox">
-        <div class="attention-icon"><i class="fa-solid fa-lightbulb"></i></div>
+        <div class="attention-icon"><i class="fa-solid fa-lightbulb">💡</i></div>
         <div class="attention-content">
           <h3 id="attentionHeader"><i class="fa-solid fa-circle-exclamation"></i> Inactive Activity & Low Content Alert Hub:</h3>
           <p id="attentionMessage">Scanning active classes for posted learning content...</p>
@@ -872,7 +872,7 @@
       <!-- MAIN TIMELINE GRAPH -->
       <div class="card">
         <div class="card-header">
-          <h2 id="mainChartTitle"><i class="fa-solid fa-chart-area"></i> Activity Progress & Turn-In Trend</h2>
+          <h2 id="mainChartTitle"><i class="fa-solid fa-chart-area">📈</i> Activity Progress & Turn-In Trend</h2>
           <span style="font-size:12px; color:var(--muted); font-weight:bold;" id="timelineSublabel">Showing Full Semester (Weeks 1 - 15)</span>
         </div>
         <div class="chart-container-large">
@@ -895,7 +895,7 @@
         <!-- DOUGHNUT CHART: TIMELINESS BREAKDOWN -->
         <div class="card">
           <div class="card-header">
-            <h2><i class="fa-solid fa-chart-pie"></i> Submission Timeliness</h2>
+            <h2><i class="fa-solid fa-chart-pie">📈</i> Submission Timeliness</h2>
           </div>
           <div class="chart-container-small">
             <canvas id="timelinessChart"></canvas>
@@ -1141,10 +1141,10 @@
       if (!client) return;
 
       if (userRole === "ADMIN") {
-        document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie"></i> Institutional Class Inactivity & Progress Analytics`;
+        document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie">📈</i> Institutional Class Inactivity & Progress Analytics`;
         document.getElementById("dashSub").textContent = "Auditing subject engagement, syllabus activity recency, and grading health across all institutional courses.";
       } else {
-        document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie"></i> Classroom Analytics & Progress Tracking`;
+        document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie">📈</i> Classroom Analytics & Progress Tracking`;
         document.getElementById("dashSub").textContent = "Course Management Engine: Comparative progress tracking for active classes created by you.";
       }
 
@@ -1614,11 +1614,11 @@
         let statusBadge = `<span class="badge badge-average">Active</span>`;
 
         if (m.isInactive) {
-          statusBadge = `<span class="badge badge-inactive" title="${escapeHtml(m.inactivityReason)}"><i class="fa-solid fa-triangle-exclamation"></i> Inactive (${m.daysInactive}d)</span>`;
+          statusBadge = `<span class="badge badge-inactive" title="${escapeHtml(m.inactivityReason)}"><i class="fa-solid fa-triangle-exclamation">📚</i> Inactive (${m.daysInactive}d)</span>`;
         } else if (m.avgGrade >= 90) {
-          statusBadge = `<span class="badge badge-top"><i class="fa-solid fa-star"></i> High Performing</span>`;
+          statusBadge = `<span class="badge badge-top"><i class="fa-solid fa-star">⭐</i> High Performing</span>`;
         } else if (m.avgGrade < 75) {
-          statusBadge = `<span class="badge badge-lagging"><i class="fa-solid fa-triangle-exclamation"></i> Lagging</span>`;
+          statusBadge = `<span class="badge badge-lagging"><i class="fa-solid fa-triangle-exclamation">📚</i> Lagging</span>`;
         }
 
         const actionBtnLabel = userRole === "ADMIN" ? "Audit Ledger →" : "View Grades →";

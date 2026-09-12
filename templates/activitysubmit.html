@@ -922,8 +922,8 @@
     });
   }
 
-  /* =====================================================
-      1. USER SESSION & ROLE PROTECTION
+ /* =====================================================
+      1. USER SESSION & SAFE LOGOUT FUNCTION
   ===================================================== */
   const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "STUDENT";
   const userRole = rawRole.toUpperCase();
@@ -1016,8 +1016,31 @@
   }
 
   function logoutUser() {
-    localStorage.clear();
+    const authKeys = [
+      "user_id",
+      "userRole",
+      "role",
+      "full_name",
+      "email",
+      "selectedClass",
+      "selectedClassId",
+      "selectedGroup",
+      "selectedGroupId",
+      "selectedSubmissionId",
+      "selectedActivityId",
+      "selectedStudentId",
+      "gradingStudentId",
+      "updateType",
+      "updateClassId",
+      "updateGroupId",
+      "joinedClasses",
+      "joinedGroups",
+      "isArchivedView"
+    ];
+
+    authKeys.forEach(key => localStorage.removeItem(key));
     sessionStorage.clear();
+
     window.location.replace("{{ url_for('logout') }}");
   }
 
@@ -1149,8 +1172,8 @@
     return { gpa: "5.00", rating: "Failed", passed: false, percentage };
   }
 
-  /* =====================================================
-      3. FETCH ACTIVITY & STUDENT SUBMISSION
+ /* =====================================================
+      3. FETCH ACTIVITY & STUDENT SUBMISSION (SCHEMA-SAFE)
   ===================================================== */
   async function loadActivityAndSubmissionDetails() {
     const client = getSupabaseClient();
@@ -1293,15 +1316,37 @@
       }
     }
 
+    // Direct user_id query (eliminates 400 errors)
     if (userRole === "STUDENT" && currentUserId) {
       const userSearchIds = getDualTypeIds([currentUserId]);
 
-      const [subUserResp, subStudentResp] = await Promise.all([
-        client.from('submissions').select('*').in('activity_id', actSearchIds).in('user_id', userSearchIds).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-        client.from('submissions').select('*').in('activity_id', actSearchIds).in('student_id', userSearchIds).order('created_at', { ascending: false }).limit(1).maybeSingle()
-      ]);
+      let submission = null;
+      try {
+        const { data, error } = await client
+          .from('submissions')
+          .select('*')
+          .in('activity_id', actSearchIds)
+          .in('user_id', userSearchIds)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      const submission = subUserResp.data || subStudentResp.data || null;
+        if (!error && data) {
+          submission = data;
+        } else if (error) {
+          const { data: altData } = await client
+            .from('submissions')
+            .select('*')
+            .in('activity_id', actSearchIds)
+            .in('student_id', userSearchIds)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          submission = altData || null;
+        }
+      } catch (err) {
+        console.warn("Notice loading prior submission:", err);
+      }
 
       if (submission) {
         currentSubmissionData = submission;
@@ -1501,8 +1546,8 @@
     }
   }
 
-  /* =====================================================
-      5. SUBMISSION BUTTON HANDLER & NOTIFICATION
+ /* =====================================================
+      5. COMPLETE SUBMISSION HANDLER & NOTIFICATION DISPATCH
   ===================================================== */
   async function handleSubmissionButtonClick() {
     if (isClassArchived) {
@@ -1586,7 +1631,7 @@
     const comments = commentsEl ? commentsEl.value.trim() : "";
     const linkInput = linkEl ? linkEl.value.trim() : "";
 
-    // 1. Text Conduct & Policy Check
+    // 1. Text Conduct Check
     if (comments) {
       try {
         const aiResp = await fetch('/api/ai-moderate', {
@@ -1610,7 +1655,7 @@
       }
     }
 
-    // 2. Validate & Pre-Inspect File Selection (Base64 Multimodal OCR Check)
+    // 2. Validate & Inspect File
     let pickedFile = null;
     let base64Payload = null;
 
@@ -1683,7 +1728,7 @@
 
     let uploadedFileUrl = currentSubmissionData ? currentSubmissionData.file_url : null;
 
-    // 3. Upload Clean File to Storage
+    // 3. Upload File to Storage
     if (pickedFile) {
       try {
         const fileExt = pickedFile.name.split('.').pop().toLowerCase();
@@ -1722,6 +1767,7 @@
       }
     }
 
+    // 4. Save to Database (Schema-Safe targeting user_id)
     const formattedLink = formatUrl(linkInput);
     const parsedUid = parseDbId(currentUserId);
     const parsedActId = parseDbId(selectedActivityId);
@@ -1730,11 +1776,13 @@
 
     let targetSubId = currentSubmissionData?.id;
     if (!targetSubId) {
-      const [uMatch, sMatch] = await Promise.all([
-        client.from('submissions').select('id').in('activity_id', getDualTypeIds([parsedActId])).in('user_id', getDualTypeIds([parsedUid])).maybeSingle(),
-        client.from('submissions').select('id').in('activity_id', getDualTypeIds([parsedActId])).in('student_id', getDualTypeIds([parsedUid])).maybeSingle()
-      ]);
-      targetSubId = uMatch.data?.id || sMatch.data?.id || null;
+      const { data: match } = await client
+        .from('submissions')
+        .select('id')
+        .in('activity_id', getDualTypeIds([parsedActId]))
+        .in('user_id', getDualTypeIds([parsedUid]))
+        .maybeSingle();
+      targetSubId = match?.id || null;
     }
 
     if (targetSubId) {
@@ -1746,8 +1794,7 @@
         file_url: uploadedFileUrl,
         status: 'submitted',
         submitted_at: submissionTime,
-        user_id: parsedUid,
-        student_id: parsedUid
+        user_id: parsedUid
       };
 
       let { data: updatedSub, error } = await client
@@ -1757,12 +1804,7 @@
         .select()
         .maybeSingle();
 
-      if (error && (error.code === '42703' || (error.message && error.message.includes('student_id')))) {
-        delete updatePayload.student_id;
-        const res = await client.from('submissions').update(updatePayload).in('id', subSearchIds).select().maybeSingle();
-        updatedSub = res.data;
-        error = res.error;
-      } else if (error && (error.code === '42703' || (error.message && error.message.includes('user_id')))) {
+      if (error && (error.code === '42703' || String(error.message || '').includes('user_id'))) {
         delete updatePayload.user_id;
         updatePayload.student_id = parsedUid;
         const res = await client.from('submissions').update(updatePayload).in('id', subSearchIds).select().maybeSingle();
@@ -1776,7 +1818,6 @@
       let insertPayload = {
         activity_id: parsedActId,
         user_id: parsedUid,
-        student_id: parsedUid,
         comments: comments,
         link_url: formattedLink,
         file_url: uploadedFileUrl,
@@ -1790,12 +1831,7 @@
         .select()
         .maybeSingle();
 
-      if (error && (error.code === '42703' || (error.message && error.message.includes('student_id')))) {
-        delete insertPayload.student_id;
-        const res = await client.from('submissions').insert([insertPayload]).select().maybeSingle();
-        newSub = res.data;
-        error = res.error;
-      } else if (error && (error.code === '42703' || (error.message && error.message.includes('user_id')))) {
+      if (error && (error.code === '42703' || String(error.message || '').includes('user_id'))) {
         delete insertPayload.user_id;
         insertPayload.student_id = parsedUid;
         const res = await client.from('submissions').insert([insertPayload]).select().maybeSingle();
@@ -1814,69 +1850,68 @@
         submitBtn.className = "btn-submit-now";
         submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
       }
-    } else {
-      // 📢 4. DISPATCH INSTANT TEACHER NOTIFICATION WITH DIRECT DEEP-LINK
-      const targetTeacherId = currentTeacherProfile?.id || currentActivityData?.teacher_id || currentClassData?.teacher_id;
-      if (targetTeacherId) {
-        const teacherSearchIds = getDualTypeIds([targetTeacherId]);
-        if (teacherSearchIds.length > 0) {
-          try {
-            const subjectLabel = currentSubjectName || selectedCode || "Course";
-            const activityTitle = currentActivityData?.title || "Assignment";
-            const currentSubId = currentSubmissionData?.id || targetSubId || "";
-            const classParamId = currentActivityData?.class_id || currentClassData?.id || "";
+      return;
+    }
 
-            const targetLink = `${studentWorkUrl}?activity_id=${encodeURIComponent(parsedActId)}&student_id=${encodeURIComponent(parsedUid)}&submission_id=${encodeURIComponent(currentSubId)}&class_id=${encodeURIComponent(classParamId)}&class_code=${encodeURIComponent(selectedCode || '')}`;
+    // 5. Notify Teacher with Fault-Tolerant Columns
+    const targetTeacherId = currentTeacherProfile?.id || currentActivityData?.teacher_id || currentClassData?.teacher_id;
+    if (targetTeacherId) {
+      const teacherSearchIds = getDualTypeIds([targetTeacherId]);
+      if (teacherSearchIds.length > 0) {
+        try {
+          const subjectLabel = currentSubjectName || selectedCode || "Course";
+          const activityTitle = currentActivityData?.title || "Assignment";
+          const currentSubId = currentSubmissionData?.id || targetSubId || "";
+          const classParamId = currentActivityData?.class_id || currentClassData?.id || "";
 
-            // Schema-safe payload containing verified columns
-            const teacherNotificationPayload = {
-              user_id: parseDbId(teacherSearchIds[0]),
-              title: `📝 Work Submitted: ${userName}`,
-              message: `${userName} turned in work for "${activityTitle}" (${subjectLabel}).`,
-              type: 'student_submission',
-              link: targetLink,
-              activity_id: parsedActId,
-              is_read: false,
-              created_at: new Date().toISOString()
-            };
+          const targetLink = `${studentWorkUrl}?activity_id=${encodeURIComponent(parsedActId)}&student_id=${encodeURIComponent(parsedUid)}&submission_id=${encodeURIComponent(currentSubId)}&class_id=${encodeURIComponent(classParamId)}&class_code=${encodeURIComponent(selectedCode || '')}`;
 
-            const { error: notifErr } = await client
-              .from('notifications')
-              .insert([teacherNotificationPayload]);
+          const teacherNotificationPayload = {
+            user_id: parseDbId(teacherSearchIds[0]),
+            title: `📝 Work Submitted: ${userName}`,
+            message: `${userName} turned in work for "${activityTitle}" (${subjectLabel}).`,
+            type: 'student_submission',
+            link: targetLink,
+            activity_id: parsedActId,
+            is_read: false,
+            created_at: new Date().toISOString()
+          };
 
-            if (notifErr) {
-              console.warn("Retrying teacher notification with base schema:", notifErr.message);
-              // Fallback to minimal core fields if extra columns fail
-              delete teacherNotificationPayload.activity_id;
-              await client.from('notifications').insert([teacherNotificationPayload]);
-            }
-          } catch (tNotifErr) {
-            console.warn("Teacher notification error:", tNotifErr);
+          const { error: notifErr } = await client
+            .from('notifications')
+            .insert([teacherNotificationPayload]);
+
+          if (notifErr) {
+            delete teacherNotificationPayload.type;
+            delete teacherNotificationPayload.link;
+            delete teacherNotificationPayload.activity_id;
+            await client.from('notifications').insert([teacherNotificationPayload]);
           }
+        } catch (tNotifErr) {
+          console.warn("Teacher notification error:", tNotifErr);
         }
       }
-
-      // 5. Guaranteed Notification & Reminder Purge for Submitting Student
-      try {
-        await fetch('/api/clear-activity-reminders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user_id: currentUserId, activity_id: parsedActId })
-        });
-
-        const userSearchIds = getDualTypeIds([currentUserId]);
-        const actSearchIds = getDualTypeIds([parsedActId]);
-        
-        await client.from('notifications').delete().in('user_id', userSearchIds).in('activity_id', actSearchIds);
-      } catch (cleanErr) {
-        console.warn("Notice clearing reminders:", cleanErr);
-      }
-
-      alert("🎉 Work turned in successfully!");
-      isCurrentlySubmitted = true;
-      if (submitBtn) submitBtn.disabled = false;
-      updateFormState(true, currentSubmissionData);
     }
+
+    // 6. Purge Student Deadlines and In-App Reminder
+    try {
+      await fetch('/api/clear-activity-reminders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: currentUserId, activity_id: parsedActId })
+      });
+
+      const userSearchIds = getDualTypeIds([currentUserId]);
+      const actSearchIds = getDualTypeIds([parsedActId]);
+      await client.from('notifications').delete().in('user_id', userSearchIds).in('activity_id', actSearchIds);
+    } catch (cleanErr) {
+      console.warn("Notice clearing reminders:", cleanErr);
+    }
+
+    alert("🎉 Work turned in successfully!");
+    isCurrentlySubmitted = true;
+    if (submitBtn) submitBtn.disabled = false;
+    updateFormState(true, currentSubmissionData);
   }
 
   /* =====================================================
@@ -1955,7 +1990,7 @@
   }
 
   /* =====================================================
-      8. LOAD SIDEBAR CLASSES & GROUPS
+      8. LOAD SIDEBAR CLASSES & GROUPS (CLEANED)
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
@@ -1978,22 +2013,20 @@
           .order('created_at', { ascending: false });
         myClasses = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
-        const [memUser, memStudent] = await Promise.all([
-          client.from('class_memberships').select('class_id').in('user_id', userSearchIds),
-          client.from('class_memberships').select('class_id').in('student_id', userSearchIds)
-        ]);
+        const { data: mems } = await client
+          .from('class_memberships')
+          .select('class_id')
+          .in('user_id', userSearchIds);
 
-        const combinedMems = [...(memUser.data || []), ...(memStudent.data || [])];
+        const enrolledIds = (mems || []).map(m => m.class_id);
 
-        if (combinedMems.length > 0) {
-          const classSearchIds = getDualTypeIds(combinedMems.map(m => m.class_id));
-          if (classSearchIds.length > 0) {
-            const { data: fetchedClasses } = await client
-              .from('classes')
-              .select('id, subject, code, status')
-              .in('id', classSearchIds);
-            myClasses = fetchedClasses || [];
-          }
+        if (enrolledIds.length > 0) {
+          const classSearchIds = getDualTypeIds(enrolledIds);
+          const { data: fetchedClasses } = await client
+            .from('classes')
+            .select('id, subject, code, status')
+            .in('id', classSearchIds);
+          myClasses = fetchedClasses || [];
         } else {
           const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
           if (joinedClasses.length > 0) {
@@ -2061,22 +2094,20 @@
           .order('created_at', { ascending: false });
         myGroups = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
-        const [memUser, memStudent] = await Promise.all([
-          client.from('group_memberships').select('group_id').in('user_id', userSearchIds),
-          client.from('group_memberships').select('group_id').in('student_id', userSearchIds)
-        ]);
+        const { data: mems } = await client
+          .from('group_memberships')
+          .select('group_id')
+          .in('user_id', userSearchIds);
 
-        const combinedMems = [...(memUser.data || []), ...(memStudent.data || [])];
+        const groupIds = (mems || []).map(m => m.group_id);
 
-        if (combinedMems.length > 0) {
-          const groupSearchIds = getDualTypeIds(combinedMems.map(m => m.group_id));
-          if (groupSearchIds.length > 0) {
-            const { data: fetchedGroups } = await client
-              .from('groups')
-              .select('id, name, code, status')
-              .in('id', groupSearchIds);
-            myGroups = fetchedGroups || [];
-          }
+        if (groupIds.length > 0) {
+          const groupSearchIds = getDualTypeIds(groupIds);
+          const { data: fetchedGroups } = await client
+            .from('groups')
+            .select('id, name, code, status')
+            .in('id', groupSearchIds);
+          myGroups = fetchedGroups || [];
         } else {
           const joinedGroups = JSON.parse(localStorage.getItem("joinedGroups") || "[]");
           if (joinedGroups.length > 0) {

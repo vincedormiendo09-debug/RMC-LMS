@@ -1217,7 +1217,7 @@
 
   <!-- MOBILE MENU BUTTON -->
   <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
-    <i class="fa-solid fa-bars"></i>
+    <i class="fa-solid fa-bars">☰</i>
   </button>
 
   <!-- SIDEBAR NAVIGATION -->
@@ -1526,7 +1526,14 @@
     return null;
   }
 
-  let selectedGroupCode = localStorage.getItem("selectedGroup") || "";
+  // Auto-detect group parameter when opened from notify.html links
+  const urlParams = new URLSearchParams(window.location.search);
+  const codeFromUrl = urlParams.get('code') || urlParams.get('group');
+  if (codeFromUrl) {
+    localStorage.setItem("selectedGroup", codeFromUrl);
+  }
+  let selectedGroupCode = codeFromUrl || localStorage.getItem("selectedGroup") || "";
+
   let currentGroupId = null;
   let currentGroupData = null;
   let isGroupArchived = false;
@@ -1550,7 +1557,7 @@
       client.removeChannel(realtimeChannel);
     }
   });
-
+  
   /* =====================================================
      3. CONTENT MODERATION ENGINE (LOCAL PRE-FLIGHT)
   ===================================================== */
@@ -2412,7 +2419,7 @@ if (groupInputEl) {
     });
   }
 
-  /* =====================================================
+ /* =====================================================
      11. DISPATCH, PERSIST & BROADCAST
   ===================================================== */
   async function dispatchMessage(text, mediaUrl = null, mediaType = null, fileName = null) {
@@ -2453,6 +2460,11 @@ if (groupInputEl) {
 
         const tempMedia = document.querySelectorAll(`[data-msg-id="${tempId}"]`);
         tempMedia.forEach(m => m.dataset.msgId = String(insertedRow.id));
+
+        // 📢 Dispatch @all notifications to group members
+        if (typeof handleAtAllMentionNotification === 'function') {
+          handleAtAllMentionNotification(text);
+        }
 
       } else if (insertErr) {
         console.error("Error persisting message to database:", insertErr.message);
@@ -2505,7 +2517,11 @@ if (groupInputEl) {
       
       if (text) {
         const captionSpan = document.createElement('div');
-        captionSpan.textContent = text;
+        const escapedCaption = escapeHtml(text);
+        captionSpan.innerHTML = escapedCaption.replace(
+          /\b@all\b/gi,
+          '<span style="background:#dbeafe; color:#1d4ed8; font-weight:700; padding:1px 5px; border-radius:4px;">@all</span>'
+        );
         msgDiv.appendChild(captionSpan);
       }
 
@@ -2551,7 +2567,12 @@ if (groupInputEl) {
         sharedFiles.appendChild(li);
       }
     } else {
-      msgDiv.textContent = text;
+      // Highlights @all while sanitizing against XSS
+      const escapedText = escapeHtml(text);
+      msgDiv.innerHTML = escapedText.replace(
+        /\b@all\b/gi,
+        '<span style="background:#dbeafe; color:#1d4ed8; font-weight:700; padding:1px 5px; border-radius:4px;">@all</span>'
+      );
     }
 
     wrapper.appendChild(msgDiv);
@@ -2561,7 +2582,6 @@ if (groupInputEl) {
       deleteBtn.className = 'msg-menu-btn';
       deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
       deleteBtn.title = 'Unsend Message';
-      // Dynamically resolves current row.dataset.id to prevent closure staleness
       deleteBtn.onclick = () => unsendMessage(row.dataset.id || id, row);
       wrapper.appendChild(deleteBtn);
     }
@@ -2581,7 +2601,6 @@ if (groupInputEl) {
   async function unsendMessage(msgId, rowElement) {
     if (isGroupArchived || userRole === "ADMIN") return;
 
-    // Retrieve live dataset ID if available
     const targetId = (rowElement && rowElement.dataset.id) ? rowElement.dataset.id : msgId;
 
     if (String(targetId).startsWith("temp_")) {
@@ -2691,7 +2710,7 @@ if (groupInputEl) {
       .replace(/'/g, "&#039;");
   }
 
-  /* =====================================================
+ /* =====================================================
      13. LOAD SIDEBAR CLASSES & GROUPS (TWO-STEP QUERY)
   ===================================================== */
   async function loadSidebarClasses() {
@@ -2855,4 +2874,61 @@ if (groupInputEl) {
       sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
     }
   }
-</script>
+
+  /* =====================================================
+     14. 📢 @ALL MENTION NOTIFICATION DISPATCHER
+  ===================================================== */
+  async function handleAtAllMentionNotification(text) {
+    if (!/\b@all\b/i.test(text)) return;
+    if (!currentGroupId || !currentGroupData) return;
+
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    try {
+      const groupSearchIds = getDualTypeIds([currentGroupId]);
+      const { data: memberships } = await client
+        .from('group_memberships')
+        .select('user_id')
+        .in('group_id', groupSearchIds);
+
+      const recipientIds = new Set();
+
+      (memberships || []).forEach(m => {
+        if (m.user_id && String(m.user_id) !== String(currentUserId)) {
+          recipientIds.add(m.user_id);
+        }
+      });
+
+      if (currentGroupData.teacher_id && String(currentGroupData.teacher_id) !== String(currentUserId)) {
+        recipientIds.add(currentGroupData.teacher_id);
+      }
+
+      if (recipientIds.size === 0) return;
+
+      const groupName = currentGroupData.name || "Group Chat";
+      const groupCode = currentGroupData.code || selectedGroupCode;
+      const snippet = text.length > 70 ? text.substring(0, 67) + '...' : text;
+      const targetLink = `${groupPageUrl}?code=${encodeURIComponent(groupCode)}`;
+
+      const notificationsPayload = Array.from(recipientIds).map(uid => ({
+        user_id: parseDbId(uid),
+        title: `📢 @all in ${groupName}`,
+        message: `${userName}: "${snippet}"`,
+        type: 'group_mention',
+        link: targetLink,
+        is_read: false,
+        created_at: new Date().toISOString()
+      }));
+
+      const { error: notifErr } = await client
+        .from('notifications')
+        .insert(notificationsPayload);
+
+      if (notifErr) {
+        console.warn("Failed to create @all notifications:", notifErr.message);
+      }
+    } catch (err) {
+      console.warn("@all notification dispatch error:", err);
+    }
+  }

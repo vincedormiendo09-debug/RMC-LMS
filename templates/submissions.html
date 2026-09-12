@@ -909,7 +909,7 @@
       <!-- STATS OVERVIEW -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
+          <div class="stat-icon"><i class="fa-solid fa-users">👤</i></div>
           <div class="stat-details">
             <h3 id="statTotalStudents">0</h3>
             <p>Class Students</p>
@@ -917,7 +917,7 @@
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon"><i class="fa-solid fa-file-arrow-up"></i></div>
+          <div class="stat-icon"><i class="fa-solid fa-file-arrow-up">📂</i></div>
           <div class="stat-details">
             <h3 id="statSubmittedCount">0</h3>
             <p>Turned-In Works</p>
@@ -944,7 +944,7 @@
       <!-- FILTER CONTROLS CARD -->
       <div class="card">
         <div class="card-header">
-          <h2><i class="fa-solid fa-filter"></i> Submissions Filter</h2>
+          <h2><i class="fa-solid fa-filter">📚</i> Submissions Filter</h2>
         </div>
         <div class="filter-bar">
           <!-- 1. CLASS SELECTOR -->
@@ -990,7 +990,7 @@
               <i class="fa-solid fa-print"></i> Print Report
             </button>
             <button class="btn-export-csv" onclick="exportSubmissionsCSV()">
-              <i class="fa-solid fa-file-excel"></i> Export CSV
+              <i class="fa-solid fa-file-excel">📂</i> Export CSV
             </button>
           </div>
         </div>
@@ -1075,8 +1075,8 @@
     return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
-  /* =====================================================
-     1. USER SESSION & ROLE PROTECTION
+ /* =====================================================
+      1. USER SESSION & SAFE LOGOUT FUNCTION
   ===================================================== */
   const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
   const userRole = rawRole.toUpperCase();
@@ -1158,9 +1158,33 @@
     });
   }
 
+  /* SAFE LOGOUT: Selectively clear credentials while preserving deadline history */
   function logoutUser() {
-    localStorage.clear();
+    const authKeys = [
+      "user_id",
+      "userRole",
+      "role",
+      "full_name",
+      "email",
+      "selectedClass",
+      "selectedClassId",
+      "selectedGroup",
+      "selectedGroupId",
+      "selectedSubmissionId",
+      "selectedActivityId",
+      "selectedStudentId",
+      "gradingStudentId",
+      "updateType",
+      "updateClassId",
+      "updateGroupId",
+      "joinedClasses",
+      "joinedGroups",
+      "isArchivedView"
+    ];
+
+    authKeys.forEach(key => localStorage.removeItem(key));
     sessionStorage.clear();
+
     window.location.replace("{{ url_for('logout') }}");
   }
 
@@ -1340,8 +1364,8 @@
     await loadClassSubmissionsData();
   }
 
-  /* =====================================================
-     4. LOAD CLASS ACTIVITIES & SUBMISSIONS (DUAL-SCHEMA)
+ /* =====================================================
+      4. LOAD CLASS ACTIVITIES & SUBMISSIONS (SCHEMA-SAFE)
   ===================================================== */
   async function loadClassSubmissionsData() {
     const client = getSupabaseClient();
@@ -1402,16 +1426,21 @@
     let userMap = {};
 
     if (userSearchIds.length > 0) {
-      const { data: userList } = await client
+      // Clean query: Only fetch verified columns (id, full_name, email)
+      const { data: userList, error: userErr } = await client
         .from('users')
-        .select('id, full_name, email, student_id')
+        .select('id, full_name, email')
         .in('id', userSearchIds);
+
+      if (userErr) {
+        console.warn("User lookup notice:", userErr.message);
+      }
 
       if (userList) {
         userList.forEach(u => {
           userMap[String(u.id)] = u;
           const pUid = parseDbId(u.id);
-          userMap[pUid] = u;
+          if (pUid) userMap[pUid] = u;
         });
       }
     }
@@ -1435,23 +1464,6 @@
     });
 
     filterSubmissions();
-  }
-
-  function populateActivityDropdown() {
-    const select = document.getElementById("activityFilter");
-    if (!select) return;
-
-    select.innerHTML = `<option value="ALL">All Class Activities (${allActivitiesList.length})</option>`;
-
-    allActivitiesList.forEach(act => {
-      const opt = document.createElement("option");
-      opt.value = act.id;
-      opt.textContent = `📝 ${act.title}`;
-      if (String(act.id) === String(selectedActivityIdFilter)) {
-        opt.selected = true;
-      }
-      select.appendChild(opt);
-    });
   }
 
   /* =====================================================
@@ -1581,7 +1593,7 @@
       let fileDisplay = `<span style="color: #94a3b8; font-style: italic;">No file</span>`;
       if (sub.file_url) {
         const ext = sub.file_url.split('.').pop().toUpperCase();
-        fileDisplay = `<button class="file-download-btn" onclick="downloadFileDirectly('${escapeJsString(sub.file_url)}', '${escapeJsString(studentName)}_${escapeJsString(activityTitle)}.${ext.toLowerCase()}')"><i class="fa-solid fa-file-arrow-down"></i> Download (${ext})</button>`;
+        fileDisplay = `<button class="file-download-btn" onclick="downloadFileDirectly('${escapeJsString(sub.file_url)}', '${escapeJsString(studentName)}_${escapeJsString(activityTitle)}.${ext.toLowerCase()}')"><i class="fa-solid fa-file-arrow-down">📂</i> Download (${ext})</button>`;
       } else if (sub.link_url) {
         fileDisplay = `<a href="${escapeHtml(sub.link_url)}" target="_blank" class="file-download-btn"><i class="fa-solid fa-link"></i> Open Link</a>`;
       }
@@ -1659,8 +1671,8 @@
     });
   }
 
-  /* =====================================================
-     6. SAVE & UPDATE STUDENT GRADE (MULTI-CHANNEL ALERT)
+/* =====================================================
+      6. SAVE & UPDATE STUDENT GRADE (COMPLETE & SAFE)
   ===================================================== */
   async function saveGrade(submissionId, maxPoints, studentUserId, activityTitle) {
     if (userRole !== "TEACHER") {
@@ -1693,15 +1705,30 @@
     const numericScore = Number(scoreVal);
     const subSearchIds = getDualTypeIds([submissionId]);
 
-    // 1. Update Submissions Table
-    const { error } = await client
+    // 1. Update Submissions Table with Specific Column Fallback
+    let updatePayload = {
+      grade: numericScore,
+      score: numericScore,
+      status: 'graded'
+    };
+
+    let { error } = await client
       .from('submissions')
-      .update({
-        grade: numericScore,
-        score: numericScore,
-        status: 'graded'
-      })
+      .update(updatePayload)
       .in('id', subSearchIds);
+
+    // If 'score' does not exist in the table, retry with only 'grade'
+    if (error && String(error.message || '').toLowerCase().includes('score')) {
+      delete updatePayload.score;
+      const retry = await client.from('submissions').update(updatePayload).in('id', subSearchIds);
+      error = retry.error;
+    } 
+    // If 'grade' does not exist in the table, retry with only 'score'
+    else if (error && String(error.message || '').toLowerCase().includes('grade')) {
+      delete updatePayload.grade;
+      const retry = await client.from('submissions').update(updatePayload).in('id', subSearchIds);
+      error = retry.error;
+    }
 
     if (error) {
       alert("Error saving grade: " + error.message);
@@ -1712,26 +1739,32 @@
       return;
     }
 
-    // 2. Dispatch Multi-Channel Alerts to Student
+    // 2. Dispatch In-App Notification (Safe non-blocking insert)
     const sub = rawSubmissionsList.find(s => String(s.id) === String(submissionId) || parseDbId(s.id) === parseDbId(submissionId));
     const resolvedTitle = sub?.activities?.title || activityTitle || "Activity";
 
     if (studentUserId) {
       const parsedStudentId = parseDbId(studentUserId);
 
-      // In-App Notification
       try {
-        await client
-          .from('notifications')
-          .insert([{
-            user_id: parsedStudentId,
-            title: `💯 Grade Posted: ${resolvedTitle}`,
-            message: `Your score for "${resolvedTitle}" has been evaluated: ${numericScore}/${maxPoints}.`,
-            is_read: false,
-            activity_id: sub?.activity_id ? parseDbId(sub.activity_id) : null,
-            submission_id: parseDbId(submissionId),
-            created_at: new Date().toISOString()
-          }]);
+        const notifPayload = {
+          user_id: parsedStudentId,
+          title: `💯 Grade Posted: ${resolvedTitle}`,
+          message: `Your score for "${resolvedTitle}" has been evaluated: ${numericScore}/${maxPoints}.`,
+          is_read: false,
+          created_at: new Date().toISOString()
+        };
+
+        if (sub?.activity_id) notifPayload.activity_id = parseDbId(sub.activity_id);
+        if (submissionId) notifPayload.submission_id = parseDbId(submissionId);
+
+        const { error: notifErr } = await client.from('notifications').insert([notifPayload]);
+        if (notifErr) {
+          // Retry with baseline columns if optional foreign keys don't exist
+          delete notifPayload.activity_id;
+          delete notifPayload.submission_id;
+          await client.from('notifications').insert([notifPayload]);
+        }
       } catch (notifErr) {
         console.warn("In-app notification dispatch warning:", notifErr);
       }

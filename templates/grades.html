@@ -909,8 +909,8 @@
     return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
-  /* =====================================================
-     1. USER SESSION & ROLE-BASED ROUTE ACCESS
+ /* =====================================================
+      1. USER SESSION, ROLE-BASED ACCESS & SAFE LOGOUT
   ===================================================== */
   const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
   const userRole = rawRole.toUpperCase();
@@ -993,9 +993,33 @@
     });
   }
 
+  /* SAFE LOGOUT: Selectively clear credentials while preserving deadline history */
   function logoutUser() {
-    localStorage.clear();
+    const authKeys = [
+      "user_id",
+      "userRole",
+      "role",
+      "full_name",
+      "email",
+      "selectedClass",
+      "selectedClassId",
+      "selectedGroup",
+      "selectedGroupId",
+      "selectedSubmissionId",
+      "selectedActivityId",
+      "selectedStudentId",
+      "gradingStudentId",
+      "updateType",
+      "updateClassId",
+      "updateGroupId",
+      "joinedClasses",
+      "joinedGroups",
+      "isArchivedView"
+    ];
+
+    authKeys.forEach(key => localStorage.removeItem(key));
     sessionStorage.clear();
+
     window.location.replace("{{ url_for('logout') }}");
   }
 
@@ -1195,8 +1219,8 @@
     initGradesPage();
   }
 
-  /* =====================================================
-     4. ROSTER & PERFORMANCE VIEW WITH MISSING (0) LOGIC
+ /* =====================================================
+      4. ROSTER & PERFORMANCE VIEW (SCHEMA-ALIGNED)
   ===================================================== */
   async function renderRosterAndGrades() {
     const client = getSupabaseClient();
@@ -1216,30 +1240,40 @@
 
     const classSearchIds = [...new Set(getDualTypeIds([currentClassId]))];
 
-    // 1. Fetch Enrolled Students (checking both user_id and student_id in memberships)
-    const { data: memberships } = await client
-      .from('class_memberships')
-      .select('user_id, student_id')
-      .in('class_id', classSearchIds);
+    // 1. Fetch Enrolled Students (Verified: query only 'user_id')
+    let memberships = [];
+    try {
+      const { data, error } = await client
+        .from('class_memberships')
+        .select('user_id')
+        .in('class_id', classSearchIds);
 
-    const rawStudentIds = [];
-    (memberships || []).forEach(m => {
-      if (m.user_id) rawStudentIds.push(m.user_id);
-      if (m.student_id) rawStudentIds.push(m.student_id);
-    });
+      if (error) {
+        console.warn("Class memberships query error:", error.message);
+      }
+      memberships = data || [];
+    } catch (e) {
+      console.error("Failed to load class memberships:", e);
+    }
 
+    const rawStudentIds = memberships.map(m => m.user_id).filter(Boolean);
     const studentUserIds = [...new Set(getDualTypeIds(rawStudentIds))];
 
+    // 2. Fetch Student User Details (Only existing columns)
     let enrolledStudents = [];
     if (studentUserIds.length > 0) {
-      const { data: usersData } = await client
+      const { data: usersData, error: usersErr } = await client
         .from('users')
-        .select('id, full_name, email, student_id')
+        .select('id, full_name, email')
         .in('id', studentUserIds);
+
+      if (usersErr) {
+        console.warn("Users query error:", usersErr.message);
+      }
       enrolledStudents = usersData || [];
     }
 
-    // 2. Fetch All Activities with Deadlines
+    // 3. Fetch All Activities with Deadlines
     const { data: activities } = await client
       .from('activities')
       .select('id, title, total_points, deadline, due_date')
@@ -1248,7 +1282,7 @@
     const classActivities = activities || [];
     const actSearchIds = [...new Set(getDualTypeIds(classActivities.map(a => a.id)))];
 
-    // 3. Fetch Submissions for All Class Activities
+    // 4. Fetch Submissions for All Class Activities
     let submissions = [];
     if (actSearchIds.length > 0) {
       const { data: subs, error: subsErr } = await client
@@ -1288,7 +1322,7 @@
     enrolledStudents.forEach((stu) => {
       const studentIds = new Set(getDualTypeIds([stu.id]).map(String));
 
-      // Match submissions belonging to this student (handling user_id or student_id)
+      // Match submissions belonging to this student
       const studentSubs = submissions.filter(s => {
         const uid = String(s.user_id || s.student_id || '');
         return studentIds.has(uid);
@@ -1326,12 +1360,10 @@
             completedGradedCount++;
             countableActivitiesCount++;
           } else if (deadlineTime && now > deadlineTime) {
-            // Overdue unsubmitted/ungraded work: counts as 0
             totalWeightedPct += 0;
             countableActivitiesCount++;
           }
         } else {
-          // No submission: if deadline has passed, penalty = 0
           if (deadlineTime && now > deadlineTime) {
             totalWeightedPct += 0;
             countableActivitiesCount++;
@@ -1374,28 +1406,7 @@
     document.getElementById("statCompleted").textContent = `${highestAvgPct}%`;
     document.getElementById("statCompletedLabel").textContent = "Highest Student Score";
   }
-
-  function openStudentBreakdown(studentId, studentName) {
-    localStorage.setItem("selectedStudentId", String(studentId));
-    localStorage.setItem("selectedStudentName", studentName);
-    localStorage.setItem("searchStudentFilter", studentName);
-    localStorage.setItem("selectedClass", selectedClassCode);
-    if (currentClassId) localStorage.setItem("selectedClassId", String(currentClassId));
-    window.location.href = studentGradesUrl;
-  }
-
-  function filterTeacherTable() {
-    const searchInput = document.getElementById("studentSearch");
-    if (!searchInput) return;
-    const query = searchInput.value.toLowerCase().trim();
-    const rows = document.querySelectorAll("#teacherTableBody tr");
-
-    rows.forEach(row => {
-      const text = row.textContent.toLowerCase();
-      row.style.display = text.includes(query) ? "" : "none";
-    });
-  }
-
+  
   /* =====================================================
      5. EXPORT TO CSV (SECURED & EXCEL COMPATIBLE)
   ===================================================== */
@@ -1567,3 +1578,4 @@
     }
   }
 </script>
+</body>

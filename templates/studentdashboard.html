@@ -797,7 +797,7 @@
 
   <!-- MOBILE MENU BUTTON -->
   <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
-    <i class="fa-solid fa-bars"></i>
+    <i class="fa-solid fa-bars">☰</i>
   </button>
 
   <!-- SIDEBAR NAVIGATION -->
@@ -837,7 +837,7 @@
     <!-- PAGE HEADER -->
     <header class="page-header">
       <div class="header-title-group">
-        <h1 id="dashTitle"><i class="fa-solid fa-users-viewfinder"></i> Student Performance & Comparison Dashboard</h1>
+        <h1 id="dashTitle"><i class="fa-solid fa-users-viewfinder">👨🏻‍🎓👩🏻‍🎓</i> Student Performance & Comparison Dashboard</h1>
         <p id="dashSub">Individual student rankings, score trends, and academic performance comparison.</p>
       </div>
 
@@ -856,16 +856,16 @@
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title" id="kpiAvgTitle">Average Class Grade</span>
-            <div class="kpi-icon-box" style="background:var(--primary-light); color:var(--primary);"><i class="fa-solid fa-award"></i></div>
+            <div class="kpi-icon-box" style="background:var(--primary-light); color:var(--primary);"><i class="fa-solid fa-award">🏅</i></div>
           </div>
           <div class="kpi-value" id="kpiAvgScore">0%</div>
-          <div class="kpi-subtext positive" id="kpiGpaLabel"><i class="fa-solid fa-circle-check"></i> N/A Equivalent</div>
+          <div class="kpi-subtext positive" id="kpiGpaLabel"><i class="fa-solid fa-circle-check">📈</i> N/A Equivalent</div>
         </div>
 
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Top Performing Student</span>
-            <div class="kpi-icon-box" style="background:var(--success-light); color:var(--success);"><i class="fa-solid fa-trophy"></i></div>
+            <div class="kpi-icon-box" style="background:var(--success-light); color:var(--success);"><i class="fa-solid fa-trophy">🏆</i></div>
           </div>
           <div class="kpi-value" id="kpiStrongName" style="font-size: 20px;">Loading...</div>
           <div class="kpi-subtext positive" id="kpiStrongScore"><i class="fa-solid fa-star"></i> 0% Average</div>
@@ -874,16 +874,16 @@
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Students Needing Support</span>
-            <div class="kpi-icon-box" style="background:var(--danger-light); color:var(--danger);"><i class="fa-solid fa-user-minus"></i></div>
+            <div class="kpi-icon-box" style="background:var(--danger-light); color:var(--danger);"><i class="fa-solid fa-user-minus">👤</i></div>
           </div>
           <div class="kpi-value" id="kpiWeakCount">0</div>
-          <div class="kpi-subtext negative" id="kpiWeakSubtext"><i class="fa-solid fa-triangle-exclamation"></i> Below 75% Average</div>
+          <div class="kpi-subtext negative" id="kpiWeakSubtext"><i class="fa-solid fa-triangle-exclamation">📊</i> Below 75% Average</div>
         </div>
 
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Total Graded Submissions</span>
-            <div class="kpi-icon-box" style="background:#f3e8ff; color:#9333ea;"><i class="fa-solid fa-list-check"></i></div>
+            <div class="kpi-icon-box" style="background:#f3e8ff; color:#9333ea;"><i class="fa-solid fa-list-check">📋</i></div>
           </div>
           <div class="kpi-value" id="kpiCompletedCount">0</div>
           <div class="kpi-subtext positive"><i class="fa-solid fa-bolt"></i> Evaluated Submissions</div>
@@ -892,9 +892,9 @@
 
       <!-- ATTENTION BOX FOR AT-RISK STUDENTS -->
       <div class="attention-box" id="attentionBox">
-        <div class="attention-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <div class="attention-icon"><i class="fa-solid fa-triangle-exclamation">📊</i></div>
         <div class="attention-content">
-          <h3><i class="fa-solid fa-circle-exclamation"></i> Students Needing Academic Support:</h3>
+          <h3><i class="fa-solid fa-circle-exclamation">📈</i> Students Needing Academic Support:</h3>
           <p id="attentionMessage">Analyzing student submissions...</p>
           <div class="attention-list" id="attentionTags"></div>
         </div>
@@ -903,7 +903,7 @@
       <!-- MAIN LINE GRAPH: CALENDAR GRADE TREND HISTORY -->
       <div class="card">
         <div class="card-header">
-          <h2><i class="fa-solid fa-clock-rotate-left" style="color: var(--chart-cyan, #00d2c4);"></i> Student Grade Progression Trend</h2>
+          <h2><i class="fa-solid fa-clock-rotate-left" style="color: var(--chart-cyan, #00d2c4);">📈</i> Student Grade Progression Trend</h2>
           
           <!-- TIMEFRAME PILLS (30D, 60D, 90D, 120D) -->
           <div class="timeframe-pill">
@@ -924,7 +924,7 @@
         <!-- BAR CHART: STUDENT SCORE COMPARISON LEADERBOARD -->
         <div class="card">
           <div class="card-header">
-            <h2><i class="fa-solid fa-chart-bar" style="color: var(--primary);"></i> Student Score Comparison Leaderboard</h2>
+            <h2><i class="fa-solid fa-chart-bar" style="color: var(--primary);">📈</i> Student Score Comparison Leaderboard</h2>
           </div>
           <div class="chart-container-small">
             <canvas id="studentComparisonChart"></canvas>
@@ -934,7 +934,7 @@
         <!-- DOUGHNUT CHART: TIMELINESS BREAKDOWN -->
         <div class="card">
           <div class="card-header">
-            <h2><i class="fa-solid fa-chart-pie" style="color: var(--success);"></i> Turn-In Timeliness Ratio</h2>
+            <h2><i class="fa-solid fa-chart-pie" style="color: var(--success);">📈</i> Turn-In Timeliness Ratio</h2>
           </div>
           <div class="chart-container-small">
             <canvas id="timelinessChart"></canvas>
@@ -945,7 +945,7 @@
       <!-- DETAILED STUDENT REPORT TABLE -->
       <div class="card">
         <div class="card-header">
-          <h2><i class="fa-solid fa-user-graduate"></i> Student Performance Ledger</h2>
+          <h2><i class="fa-solid fa-user-graduate">👨🏻‍🎓👩🏻‍🎓</i> Student Performance Ledger</h2>
         </div>
 
         <div class="table-wrapper">
@@ -1174,10 +1174,10 @@
     const subEl = document.querySelector(".page-header-box p") || document.getElementById("dashSub");
 
     if (userRole === "ADMIN") {
-      if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-chart-line"></i> Institutional At-Risk Student Monitor`;
+      if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-chart-line">📈</i> Institutional At-Risk Student Monitor`;
       if (subEl) subEl.textContent = "Real-time monitoring of failing grade distributions, completion gaps, and academic intervention needs across all active departments.";
     } else {
-      if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-chart-line"></i> Student Performance & Progress Dashboard`;
+      if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-chart-line">📈</i> Student Performance & Progress Dashboard`;
       if (subEl) subEl.textContent = "Course Management Engine: Track student academic standing, score averages, and intervention needs.";
     }
 
@@ -1392,13 +1392,13 @@
     const totalEvaluated = filtered.reduce((sum, s) => sum + s.gradedCount, 0);
 
     document.getElementById("kpiAvgScore").textContent = `${overallAvg}%`;
-    document.getElementById("kpiGpaLabel").innerHTML = `<i class="fa-solid fa-circle-check"></i> ${getGpaEquivalent(overallAvg)}`;
+    document.getElementById("kpiGpaLabel").innerHTML = `<i class="fa-solid fa-circle-check">📈</i> ${getGpaEquivalent(overallAvg)}`;
 
     document.getElementById("kpiStrongName").textContent = topStudent ? topStudent.studentName : "N/A";
     document.getElementById("kpiStrongScore").innerHTML = `<i class="fa-solid fa-star"></i> ${topStudent ? topStudent.avgGrade : 0}% Average (${topStudent?.subjectName || ''})`;
 
     document.getElementById("kpiWeakCount").textContent = `${laggingStudents.length}`;
-    document.getElementById("kpiWeakSubtext").innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${laggingStudents.length} Students Below 75%`;
+    document.getElementById("kpiWeakSubtext").innerHTML = `<i class="fa-solid fa-triangle-exclamation">📊</i> ${laggingStudents.length} Students Below 75%`;
 
     document.getElementById("kpiCompletedCount").textContent = `${totalEvaluated}`;
 
@@ -1427,7 +1427,7 @@
       laggingStudents.forEach(s => {
         const tag = document.createElement("span");
         tag.className = "attention-tag";
-        tag.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <strong>${escapeHtml(s.studentName)}</strong> (${escapeHtml(s.subjectName)}): ${s.avgGrade}% (Failing)`;
+        tag.innerHTML = `<i class="fa-solid fa-triangle-exclamation">📊</i> <strong>${escapeHtml(s.studentName)}</strong> (${escapeHtml(s.subjectName)}): ${s.avgGrade}% (Failing)`;
         attentionTags.appendChild(tag);
       });
     } else {
@@ -1436,7 +1436,7 @@
         attentionBox.style.borderColor = "#bbf7d0";
       }
       attentionMsg.innerHTML = `<strong>Healthy Academic Standing!</strong> All evaluated students are performing at or above the 75% passing standard.`;
-      attentionTags.innerHTML = `<span class="attention-tag" style="background:#dcfce7; border-color:#86efac; color:#166534;"><i class="fa-solid fa-circle-check"></i> Department Academic Status: High Retention & Compliance</span>`;
+      attentionTags.innerHTML = `<span class="attention-tag" style="background:#dcfce7; border-color:#86efac; color:#166534;"><i class="fa-solid fa-circle-check">📈</i> Department Academic Status: High Retention & Compliance</span>`;
     }
   }
 

@@ -954,9 +954,33 @@
     });
   }
 
+  /* SAFE LOGOUT: Selectively clear credentials while preserving deadline history */
   function logoutUser() {
-    localStorage.clear();
+    const authKeys = [
+      "user_id",
+      "userRole",
+      "role",
+      "full_name",
+      "email",
+      "selectedClass",
+      "selectedClassId",
+      "selectedGroup",
+      "selectedGroupId",
+      "selectedSubmissionId",
+      "selectedActivityId",
+      "selectedStudentId",
+      "gradingStudentId",
+      "updateType",
+      "updateClassId",
+      "updateGroupId",
+      "joinedClasses",
+      "joinedGroups",
+      "isArchivedView"
+    ];
+
+    authKeys.forEach(key => localStorage.removeItem(key));
     sessionStorage.clear();
+
     window.location.replace("{{ url_for('logout') }}");
   }
 
@@ -1081,7 +1105,7 @@
   }
 
   /* =====================================================
-     4. RENDER ACTIVE CLASS LIST SELECTOR BAR
+      4. RENDER ACTIVE CLASS LIST SELECTOR BAR
   ===================================================== */
   async function loadActiveClassesSelector() {
     const client = getSupabaseClient();
@@ -1091,24 +1115,17 @@
     const studentSearchIds = [...new Set(getDualTypeIds([currentTargetStudentId]))];
 
     try {
-      // 1. Query class memberships
-      const { data: mems } = await client
+      // 1. Query class memberships using verified user_id column
+      const { data: mems, error: memErr } = await client
         .from('class_memberships')
         .select('class_id')
         .in('user_id', studentSearchIds);
 
-      let classIds = (mems || []).map(m => m.class_id);
-
-      // Also grab classes if student was recorded via student_id
-      const { data: memsStudentId } = await client
-        .from('class_memberships')
-        .select('class_id')
-        .in('student_id', studentSearchIds);
-
-      if (memsStudentId && memsStudentId.length > 0) {
-        classIds = [...new Set([...classIds, ...memsStudentId.map(m => m.class_id)])];
+      if (memErr) {
+        console.warn("Class memberships query notice:", memErr.message);
       }
 
+      let classIds = (mems || []).map(m => m.class_id).filter(Boolean);
       const dualClassIds = getDualTypeIds(classIds);
 
       if (dualClassIds.length > 0) {
@@ -1121,7 +1138,7 @@
 
         enrolledClassesList = classesData || [];
       } else {
-        // Fallback for demo or localStorage classes
+        // Fallback for localStorage joined classes
         const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
         if (joinedClasses.length > 0) {
           const { data: fallbackData } = await client
@@ -1182,12 +1199,12 @@
   }
 
   /* =====================================================
-     5. FETCH WORK, LATE STATUS & AUTO-CALCULATE MISSING (0)
+      5. FETCH WORK, LATE STATUS & AUTO-CALCULATE MISSING (0)
   ===================================================== */
   async function fetchStudentGradesFromSupabase() {
     const client = getSupabaseClient();
     const tbody = document.getElementById("studentGradesBody");
-    if (!client || !tbody) return;
+    if (!tbody) return;
 
     tbody.innerHTML = `
       <tr>
@@ -1226,17 +1243,27 @@
 
     const activities = allActivities || [];
 
-    // 2. Fetch All Submissions for this Student
-    const { data: studentSubs, error: subErr } = await client
-      .from('submissions')
-      .select('*')
-      .or(`user_id.in.(${userSearchIds.map(id => `"${id}"`).join(',')}),student_id.in.(${userSearchIds.map(id => `"${id}"`).join(',')})`);
+    // 2. Fetch All Submissions for this Student (Safe & Crash-Proof)
+    let submissions = [];
+    try {
+      const { data: subsData, error: subErr } = await client
+        .from('submissions')
+        .select('*')
+        .in('user_id', userSearchIds);
 
-    if (subErr) {
-      console.error("Error fetching student submissions:", subErr);
+      if (subErr) {
+        console.warn("Submissions query warning, attempting fallback:", subErr.message);
+        const { data: fallbackSubs } = await client
+          .from('submissions')
+          .select('*')
+          .in('student_id', userSearchIds);
+        submissions = fallbackSubs || [];
+      } else {
+        submissions = subsData || [];
+      }
+    } catch (err) {
+      console.error("Error fetching student submissions:", err);
     }
-
-    const submissions = studentSubs || [];
 
     // Build Submissions Map by activity_id
     const subMap = {};
@@ -1277,7 +1304,7 @@
         deadlineStr: act.deadline || act.due_date,
         submissionId: sub ? sub.id : null,
         fileUrl: sub ? sub.file_url : null,
-        statusType: 'pending', // graded, late, missing, pending
+        statusType: 'pending',
         scoreAchieved: 0,
         percentage: 0,
         statusLabel: '',
@@ -1325,7 +1352,6 @@
             rowData.badgeClass = 'badge badge-pending';
           }
         } else {
-          // Unsubmitted or returned
           if (deadlineTime && now > deadlineTime) {
             rowData.statusType = 'missing';
             rowData.scoreAchieved = 0;
@@ -1334,14 +1360,14 @@
             rowData.badgeClass = 'badge badge-missing';
           } else {
             rowData.statusType = 'pending';
+            rowData.scoreAchieved = 0;
+            rowData.percentage = 0;
             rowData.statusLabel = 'Pending Work / Not Yet Submitted';
             rowData.badgeClass = 'badge badge-pending';
           }
         }
       } else {
-        // No submission record exists at all
         if (deadlineTime && now > deadlineTime) {
-          // Deadline has passed: Automatically Marked as Missing/Failed (0)
           rowData.statusType = 'missing';
           rowData.scoreAchieved = 0;
           rowData.percentage = 0;
@@ -1351,7 +1377,6 @@
           const dObj = new Date(deadlineTime);
           rowData.dateDisplay = `Due: ${dObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
         } else {
-          // Deadline still in future: Active Work to Complete
           rowData.statusType = 'pending';
           rowData.scoreAchieved = 0;
           rowData.percentage = 0;

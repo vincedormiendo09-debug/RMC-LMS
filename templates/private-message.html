@@ -681,7 +681,7 @@
 
   <!-- MOBILE MENU BUTTON -->
   <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
-    <i class="fa-solid fa-bars"></i>
+    <i class="fa-solid fa-bars">☰</i>
   </button>
 
   <!-- SIDEBAR NAVIGATION -->
@@ -725,7 +725,7 @@
         </div>
       </div>
       <div class="stats-pill" id="statsPill">
-        <i class="fa-solid fa-comments"></i> <span id="threadCountDisplay">0 Conversations</span>
+        <i class="fa-solid fa-comments">💬</i> <span id="threadCountDisplay">0 Conversations</span>
       </div>
     </header>
 
@@ -1135,13 +1135,13 @@
         <div class="thread-right">
           <span class="thread-time">${timeFormatted}</span>
           <button class="action-btn-chat" onclick="openThreadConversation('${escapeJsString(t.partnerId)}', '${escapeJsString(t.partnerName)}')">
-            <i class="fa-solid fa-comment-dots"></i> Open Chat
+            <i class="fa-solid fa-comment-dots">💬</i> Open Chat
           </button>
 
           <!-- 3-DOTS DELETE MENU -->
           <div class="menu-container">
             <button class="dots-btn" onclick="toggleMenu(event, '${escapeJsString(t.partnerId)}')" title="More options">
-              <i class="fa-solid fa-ellipsis-vertical"></i>
+              <i class="fa-solid fa-ellipsis-vertical">⋮</i>
             </button>
             <div class="dropdown-menu" id="menu_${escapeHtml(t.partnerId)}">
               <button class="dropdown-item" onclick="deleteConversationThread('${escapeJsString(t.partnerId)}', '${escapeJsString(t.partnerName)}')">
