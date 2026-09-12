@@ -17,7 +17,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
 
-  <style>
+ <style>
     /* =========================================
        GLOBAL RESET & BRAND DESIGN TOKENS
     ========================================= */
@@ -204,7 +204,6 @@
       justify-content: center;
     }
 
-    /* Mobile backdrop overlay */
     .sidebar-overlay {
       display: none;
       position: fixed;
@@ -488,7 +487,6 @@
       word-break: break-word;
     }
 
-    /* Ratio container that Chart.js respects without stretching */
     .chart-container-large {
       position: relative;
       width: 100%;
@@ -513,6 +511,141 @@
       width: 100%;
       height: 250px;
       min-width: 0;
+    }
+
+    /* =========================================
+       MONDAY–SUNDAY DAILY MONITOR & DAY TABS
+    ========================================= */
+    .day-tabs-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin: 16px 0 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .day-tab-btn {
+      flex: 1 1 0;
+      min-width: 100px;
+      padding: 10px 8px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .day-tab-btn:hover {
+      background: var(--primary-light);
+      border-color: var(--primary);
+      color: var(--primary-dark);
+    }
+
+    .day-tab-btn.active {
+      background: var(--primary);
+      border-color: var(--primary-dark);
+      color: #ffffff;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+    }
+
+    .day-tab-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 2px 7px;
+      border-radius: 10px;
+      background: #e2e8f0;
+      color: #475569;
+    }
+
+    .day-tab-btn.active .day-tab-badge {
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+    }
+
+    .day-tab-badge.has-data {
+      background: var(--success-light);
+      color: var(--success);
+    }
+
+    .day-tab-btn.active .day-tab-badge.has-data {
+      background: #ffffff;
+      color: var(--primary-dark);
+    }
+
+    /* DAILY MONITOR DETAIL CARD */
+    .daily-monitor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 8px 8px 0 0;
+      border-bottom: none;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .daily-monitor-header h3 {
+      font-size: 14px;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .daily-monitor-count {
+      font-size: 12px;
+      font-weight: bold;
+      color: var(--muted);
+    }
+
+    .empty-submissions-state {
+      padding: 36px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13.5px;
+      background: #ffffff;
+    }
+
+    .empty-submissions-state i {
+      font-size: 30px;
+      color: #cbd5e1;
+      margin-bottom: 8px;
+    }
+
+    .btn-grade-shortcut {
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      border: 1px solid rgba(37, 99, 235, 0.2);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-grade-shortcut:hover {
+      background: var(--primary);
+      color: #ffffff;
     }
 
     /* =========================================
@@ -620,14 +753,12 @@
     /* =========================================
        RESPONSIVE BREAKPOINTS (RWD)
     ========================================= */
-    /* Desktops to Small Laptops */
     @media (max-width: 1200px) {
       .kpi-grid {
         grid-template-columns: repeat(2, 1fr);
       }
     }
 
-    /* Tablets and Compact Laptops (Stack two-column charts for breathing room) */
     @media (max-width: 1024px) {
       .grid-two-columns {
         grid-template-columns: 1fr;
@@ -643,7 +774,6 @@
       }
     }
 
-    /* Mobile Tablets and Smartphones */
     @media (max-width: 768px) {
       .sidebar {
         transform: translateX(-100%);
@@ -662,7 +792,7 @@
         width: 100%;
         max-width: 100vw;
         padding: 16px;
-        padding-top: 72px; /* Clearance for fixed mobile hamburger button */
+        padding-top: 72px;
       }
 
       .page-header {
@@ -680,7 +810,7 @@
       .select-class-dropdown {
         width: 100%;
         min-width: 100%;
-        font-size: 16px; /* Prevents auto-zoom on mobile browsers */
+        font-size: 16px;
       }
 
       .chart-container-large {
@@ -690,9 +820,14 @@
       .chart-container-small {
         height: 210px;
       }
+
+      .day-tab-btn {
+        min-width: 80px;
+        font-size: 12px;
+        padding: 8px 4px;
+      }
     }
 
-    /* Small Smartphones (320px - 480px) */
     @media (max-width: 480px) {
       .main-content {
         padding: 12px;
@@ -735,8 +870,13 @@
         width: 100%;
         text-align: center;
       }
+
+      .day-tab-btn {
+        min-width: 70px;
+        font-size: 11px;
+      }
     }
-  </style>
+</style>
 </head>
 
 <body>
@@ -746,7 +886,7 @@
 
   <!-- MOBILE MENU BUTTON -->
   <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation menu">
-    <i class="fa-solid fa-bars">☰</i>
+    <i class="fa-solid fa-bars"></i>
   </button>
 
   <!-- SIDEBAR NAVIGATION -->
@@ -776,7 +916,7 @@
 
     <!-- LOGOUT BUTTON -->
     <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
-      🚪 Logout
+      <i class="fa-solid fa-right-from-bracket"></i> Logout
     </a>
   </aside>
 
@@ -786,35 +926,35 @@
     <!-- PAGE HEADER WITH FILTERS -->
     <header class="page-header">
       <div class="header-title-group">
-        <h1 id="dashTitle"><i class="fa-solid fa-chart-pie">📈</i> Classroom Analytics & Progress Tracking</h1>
-        <p id="dashSub">Monitor activity progress, track active content, and support lagging classes.</p>
+        <h1 id="dashTitle"><i class="fa-solid fa-chart-pie"></i> Classroom Analytics & Progress Tracking</h1>
+        <p id="dashSub">Monitor activity progress, track active content, and inspect daily student turn-ins.</p>
       </div>
 
       <div class="controls-group">
         <!-- 1. SELECT CLASS DROPDOWN -->
         <select id="classSelector" class="select-class-dropdown" onchange="switchClassFilter(this.value)">
-          <option value="ALL">🌐 All Classes Overview</option>
+          <option value="ALL">🌐 All Active Classes Overview</option>
         </select>
 
-        <!-- 2. SEMESTER 15-WEEK TIMEFRAME SELECTOR -->
-        <select id="weekSelector" class="select-class-dropdown" onchange="switchWeekFilter(this.value)">
-          <option value="ALL" selected>📅 Full Term (Weeks 1 - 15)</option>
-          <option value="W1">Week 1</option>
-          <option value="W2">Week 2</option>
-          <option value="W3">Week 3</option>
-          <option value="W4">Week 4</option>
-          <option value="W5">Week 5</option>
-          <option value="W6">Week 6</option>
-          <option value="W7">Week 7</option>
-          <option value="W8">Week 8</option>
-          <option value="W9">Week 9</option>
-          <option value="W10">Week 10</option>
-          <option value="W11">Week 11</option>
-          <option value="W12">Week 12</option>
-          <option value="W13">Week 13</option>
-          <option value="W14">Week 14</option>
-          <option value="W15">Week 15</option>
-        </select>
+        <!-- 2. ROLLING WEEK TIMEFRAME SELECTOR -->
+<select id="weekSelector" class="select-class-dropdown" onchange="switchWeekFilter(this.value)">
+  <option value="ALL" selected>📅 Full Overview (Weeks 1 - 15)</option>
+  <option value="W1">Week 1 (Current Week)</option>
+  <option value="W2">Week 2 (Last Week)</option>
+  <option value="W3">Week 3 (2 Weeks Ago)</option>
+  <option value="W4">Week 4 (3 Weeks Ago)</option>
+  <option value="W5">Week 5 (4 Weeks Ago)</option>
+  <option value="W6">Week 6 (5 Weeks Ago)</option>
+  <option value="W7">Week 7 (6 Weeks Ago)</option>
+  <option value="W8">Week 8 (7 Weeks Ago)</option>
+  <option value="W9">Week 9 (8 Weeks Ago)</option>
+  <option value="W10">Week 10 (9 Weeks Ago)</option>
+  <option value="W11">Week 11 (10 Weeks Ago)</option>
+  <option value="W12">Week 12 (11 Weeks Ago)</option>
+  <option value="W13">Week 13 (12 Weeks Ago)</option>
+  <option value="W14">Week 14 (13 Weeks Ago)</option>
+  <option value="W15">Week 15 (14 Weeks Ago)</option>
+</select>
       </div>
     </header>
 
@@ -825,7 +965,7 @@
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Highest Class Grade</span>
-            <div class="kpi-icon-box" style="background:var(--success-light); color:var(--success);"><i class="fa-solid fa-trophy">🏆</i></div>
+            <div class="kpi-icon-box" style="background:var(--success-light); color:var(--success);"><i class="fa-solid fa-trophy"></i></div>
           </div>
           <div class="kpi-value" id="kpiHighestGrade">0%</div>
           <div class="kpi-subtext positive" id="kpiHighestName"><i class="fa-solid fa-star"></i> Loading...</div>
@@ -834,7 +974,7 @@
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Overall Average Grade</span>
-            <div class="kpi-icon-box" style="background:var(--primary-light); color:var(--primary);"><i class="fa-solid fa-chart-line">📊</i></div>
+            <div class="kpi-icon-box" style="background:var(--primary-light); color:var(--primary);"><i class="fa-solid fa-chart-line"></i></div>
           </div>
           <div class="kpi-value" id="kpiOverallAvg">0%</div>
           <div class="kpi-subtext positive"><i class="fa-solid fa-circle-check"></i> Live System Average</div>
@@ -843,7 +983,7 @@
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Active Posted Content</span>
-            <div class="kpi-icon-box" style="background:#f3e8ff; color:#9333ea;"><i class="fa-solid fa-bolt">⚡</i></div>
+            <div class="kpi-icon-box" style="background:#f3e8ff; color:#9333ea;"><i class="fa-solid fa-bolt"></i></div>
           </div>
           <div class="kpi-value" id="kpiActiveActivitiesCount">0 Acts</div>
           <div class="kpi-subtext positive" id="kpiActiveClassesName"><i class="fa-solid fa-book-open"></i> Total Class Activities</div>
@@ -852,7 +992,7 @@
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Inactive / Low Activity</span>
-            <div class="kpi-icon-box" style="background:var(--danger-light); color:var(--danger);"><i class="fa-solid fa-triangle-exclamation">📚</i></div>
+            <div class="kpi-icon-box" style="background:var(--danger-light); color:var(--danger);"><i class="fa-solid fa-triangle-exclamation"></i></div>
           </div>
           <div class="kpi-value" id="kpiInactiveClassesCount">0 Classes</div>
           <div class="kpi-subtext negative" id="kpiInactiveSubtext"><i class="fa-solid fa-circle-exclamation"></i> Classes Needing Content</div>
@@ -861,7 +1001,7 @@
 
       <!-- INACTIVE / LOW ACTIVITY CLASS WARNING HUB -->
       <div class="attention-box" id="attentionBox">
-        <div class="attention-icon"><i class="fa-solid fa-lightbulb">💡</i></div>
+        <div class="attention-icon"><i class="fa-solid fa-lightbulb"></i></div>
         <div class="attention-content">
           <h3 id="attentionHeader"><i class="fa-solid fa-circle-exclamation"></i> Inactive Activity & Low Content Alert Hub:</h3>
           <p id="attentionMessage">Scanning active classes for posted learning content...</p>
@@ -872,11 +1012,81 @@
       <!-- MAIN TIMELINE GRAPH -->
       <div class="card">
         <div class="card-header">
-          <h2 id="mainChartTitle"><i class="fa-solid fa-chart-area">📈</i> Activity Progress & Turn-In Trend</h2>
+          <h2 id="mainChartTitle"><i class="fa-solid fa-chart-area"></i> Activity Progress & Turn-In Trend</h2>
           <span style="font-size:12px; color:var(--muted); font-weight:bold;" id="timelineSublabel">Showing Full Semester (Weeks 1 - 15)</span>
         </div>
         <div class="chart-container-large">
           <canvas id="timelineChart"></canvas>
+        </div>
+      </div>
+
+      <!-- 🌟 MONDAY–SUNDAY DAILY SUBMISSION MONITOR CARD -->
+      <div class="card" id="dailySubmissionMonitorCard">
+        <div class="card-header">
+          <h2 id="dailyMonitorTitle"><i class="fa-solid fa-calendar-check"></i> Daily Turn-In Inspection Monitor</h2>
+          <span style="font-size:12px; color:var(--muted); font-weight:bold;" id="dailyMonitorSublabel">Click a day tab or chart point to inspect student submissions</span>
+        </div>
+
+        <!-- DAY TABS (MON - SUN) -->
+        <div class="day-tabs-container" id="dayTabsContainer">
+          <button type="button" class="day-tab-btn active" id="tab-Mon" onclick="switchDayTab('Mon')">
+            <span>Monday</span>
+            <span class="day-tab-badge" id="badge-Mon">0</span>
+          </button>
+          <button type="button" class="day-tab-btn" id="tab-Tue" onclick="switchDayTab('Tue')">
+            <span>Tuesday</span>
+            <span class="day-tab-badge" id="badge-Tue">0</span>
+          </button>
+          <button type="button" class="day-tab-btn" id="tab-Wed" onclick="switchDayTab('Wed')">
+            <span>Wednesday</span>
+            <span class="day-tab-badge" id="badge-Wed">0</span>
+          </button>
+          <button type="button" class="day-tab-btn" id="tab-Thu" onclick="switchDayTab('Thu')">
+            <span>Thursday</span>
+            <span class="day-tab-badge" id="badge-Thu">0</span>
+          </button>
+          <button type="button" class="day-tab-btn" id="tab-Fri" onclick="switchDayTab('Fri')">
+            <span>Friday</span>
+            <span class="day-tab-badge" id="badge-Fri">0</span>
+          </button>
+          <button type="button" class="day-tab-btn" id="tab-Sat" onclick="switchDayTab('Sat')">
+            <span>Saturday</span>
+            <span class="day-tab-badge" id="badge-Sat">0</span>
+          </button>
+          <button type="button" class="day-tab-btn" id="tab-Sun" onclick="switchDayTab('Sun')">
+            <span>Sunday</span>
+            <span class="day-tab-badge" id="badge-Sun">0</span>
+          </button>
+        </div>
+
+        <!-- DAILY MONITOR HEADER -->
+        <div class="daily-monitor-header">
+          <h3 id="activeDayHeaderLabel"><i class="fa-solid fa-clock"></i> Monday Submissions</h3>
+          <span class="daily-monitor-count" id="activeDayCountLabel">0 Turn-Ins Recorded</span>
+        </div>
+
+        <!-- DAILY MONITOR DATA TABLE -->
+        <div class="table-wrapper" style="margin-top: 0; border-top: none; border-radius: 0 0 8px 8px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Class & Code</th>
+                <th>Activity Submitted</th>
+                <th>Submission Time</th>
+                <th>Status / Grade</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="dailySubmissionsTableBody">
+              <tr>
+                <td colspan="6" class="empty-submissions-state">
+                  <i class="fa-solid fa-inbox"></i><br>
+                  No submissions turned in on Monday for this timeframe.
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -895,7 +1105,7 @@
         <!-- DOUGHNUT CHART: TIMELINESS BREAKDOWN -->
         <div class="card">
           <div class="card-header">
-            <h2><i class="fa-solid fa-chart-pie">📈</i> Submission Timeliness</h2>
+            <h2><i class="fa-solid fa-chart-pie"></i> Submission Timeliness</h2>
           </div>
           <div class="chart-container-small">
             <canvas id="timelinessChart"></canvas>
@@ -949,7 +1159,7 @@
     });
 
     /* =====================================================
-        0. TYPE-SAFE ID HELPERS
+        0. TYPE-SAFE ID HELPERS & STRING SANITIZERS
     ===================================================== */
     function parseDbId(idVal) {
       if (!idVal) return idVal;
@@ -972,8 +1182,23 @@
       return Array.from(result);
     }
 
+    function escapeHtml(text) {
+      if (!text) return "";
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function escapeJsString(str) {
+      if (!str) return "";
+      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
     /* =====================================================
-        1. USER SESSION & ROLE PROTECTION
+        1. USER SESSION, ROLE & CACHE-SAFE LOGOUT
     ===================================================== */
     const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
     const userRole = rawRole.toUpperCase();
@@ -997,6 +1222,7 @@
     const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
     const gradesUrl = "{{ url_for('grades_page') }}";
     const submissionsUrl = "{{ url_for('submissions_page') }}";
+    const studentWorkUrl = "{{ url_for('studentwork_page') }}";
     const archiveUrl = "{{ url_for('archive_page') }}";
     const notifyUrl = "{{ url_for('notify_page') }}";
     const accountUrl = "{{ url_for('account_page') }}";
@@ -1007,7 +1233,6 @@
     const sidebarMenu = document.getElementById("sidebarMenu");
 
     if (userRole === "ADMIN") {
-      // 🔒 STANDARDIZED ADMIN AUDITOR MENU
       sidebarMenu.innerHTML = `
         <a href="${homeUrl}">🏠 Institutional Hub</a>
         <a href="${classDashboardUrl}" class="active">📊 Class Inactivity Analytics</a>
@@ -1067,9 +1292,33 @@
       }
     });
 
+    /* SAFE LOGOUT: Selectively clear credentials while preserving deadline history */
     function logoutUser() {
-      localStorage.clear();
+      const authKeys = [
+        "user_id",
+        "userRole",
+        "role",
+        "full_name",
+        "email",
+        "selectedClass",
+        "selectedClassId",
+        "selectedGroup",
+        "selectedGroupId",
+        "selectedSubmissionId",
+        "selectedActivityId",
+        "selectedStudentId",
+        "gradingStudentId",
+        "updateType",
+        "updateClassId",
+        "updateGroupId",
+        "joinedClasses",
+        "joinedGroups",
+        "isArchivedView"
+      ];
+
+      authKeys.forEach(key => localStorage.removeItem(key));
       sessionStorage.clear();
+
       window.location.replace("{{ url_for('logout') }}");
     }
 
@@ -1096,11 +1345,28 @@
       return null;
     }
 
-    /* GLOBAL STATE & CHART INSTANCES */
+    /* CONSTANTS & APPLICATION STATE */
+    const DAY_KEYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const DAY_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const DAY_LABELS = {
+      Mon: "Monday",
+      Tue: "Tuesday",
+      Wed: "Wednesday",
+      Thu: "Thursday",
+      Fri: "Friday",
+      Sat: "Saturday",
+      Sun: "Sunday"
+    };
+
     let selectedClassCode = "ALL";
     let selectedWeek = "ALL";
+    let selectedDayTab = "Mon";
+
     let activeClassesList = [];
+    let allActivitiesList = [];
+    let rawSubmissionsList = [];
     let classMetrics = [];
+    let termStartMonday = null;
 
     let chartTimelineInstance = null;
     let chartComparisonInstance = null;
@@ -1115,7 +1381,6 @@
       }, 100);
     });
 
-    // Window resize handler to maintain sharp responsive charts on rotation
     window.addEventListener('resize', () => {
       if (chartTimelineInstance) chartTimelineInstance.resize();
       if (chartComparisonInstance) chartComparisonInstance.resize();
@@ -1141,10 +1406,10 @@
       if (!client) return;
 
       if (userRole === "ADMIN") {
-        document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie">📈</i> Institutional Class Inactivity & Progress Analytics`;
+        document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie"></i> Institutional Class Inactivity & Progress Analytics`;
         document.getElementById("dashSub").textContent = "Auditing subject engagement, syllabus activity recency, and grading health across all institutional courses.";
       } else {
-        document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie">📈</i> Classroom Analytics & Progress Tracking`;
+        document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie"></i> Classroom Analytics & Progress Tracking`;
         document.getElementById("dashSub").textContent = "Course Management Engine: Comparative progress tracking for active classes created by you.";
       }
 
@@ -1195,15 +1460,42 @@
       }
 
       renderTimelineGraph();
+      renderDailyMonitorSection();
     }
 
-    /* =====================================================
-        4. INACTIVITY ENGINE & METRIC CALCULATIONS
+   /* =====================================================
+        4. ROLLING WEEK CALCULATION & INACTIVITY ENGINE
     ===================================================== */
+    // Helper: Finds Monday at 00:00:00 for the active calendar week
+    function getCurrentMonday() {
+      const d = new Date();
+      const day = d.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
+      const diffToMon = d.getDate() - day + (day === 0 ? -6 : 1);
+      const mon = new Date(d.setDate(diffToMon));
+      mon.setHours(0, 0, 0, 0);
+      return mon;
+    }
+
+    // Helper: Finds Monday at 00:00:00 for any given timestamp
+    function getMondayOfWeek(dateInput) {
+      const d = new Date(dateInput);
+      if (isNaN(d.getTime())) {
+        const fallback = new Date();
+        fallback.setHours(0, 0, 0, 0);
+        return fallback;
+      }
+      const day = d.getDay();
+      const diffToMon = d.getDate() - day + (day === 0 ? -6 : 1);
+      const mon = new Date(d.setDate(diffToMon));
+      mon.setHours(0, 0, 0, 0);
+      return mon;
+    }
+
     async function computeClassActivityMetrics() {
       const client = getSupabaseClient();
       if (!client || activeClassesList.length === 0) {
         classMetrics = [];
+        rawSubmissionsList = [];
         renderDashboard();
         return;
       }
@@ -1223,7 +1515,7 @@
         enrollmentCountMap[parseDbId(m.class_id)] = enrollmentCountMap[cid];
       });
 
-      // 2. Fetch Activities
+      // 2. Fetch Activities for Active Classes
       const { data: activities, error: actError } = await client
         .from('activities')
         .select('*')
@@ -1231,12 +1523,12 @@
 
       if (actError) console.warn("Activities query warning:", actError.message);
 
-      const classActs = activities || [];
-      const actIds = [...new Set(getDualTypeIds(classActs.map(a => a.id)))];
+      allActivitiesList = activities || [];
+      const actIds = [...new Set(getDualTypeIds(allActivitiesList.map(a => a.id)))];
 
       const actsByClassMap = {};
       const actMap = {};
-      classActs.forEach(a => {
+      allActivitiesList.forEach(a => {
         const cid = String(a.class_id);
         if (!actsByClassMap[cid]) actsByClassMap[cid] = [];
         actsByClassMap[cid].push(a);
@@ -1251,7 +1543,8 @@
         const { data: subsData, error: subsError } = await client
           .from('submissions')
           .select('*')
-          .in('activity_id', actIds);
+          .in('activity_id', actIds)
+          .order('submitted_at', { ascending: false });
 
         if (subsError) {
           console.error("Submissions query error:", subsError.message);
@@ -1259,11 +1552,72 @@
         subs = subsData || [];
       }
 
+      const activeSubs = subs.filter(s => {
+        const st = String(s.status || '').toLowerCase();
+        return st !== 'draft' && st !== 'unsubmitted';
+      });
+
+      // 4. Batch Fetch User Profiles
+      const userSearchIds = [...new Set(getDualTypeIds(activeSubs.map(s => s.user_id || s.student_id)))];
+      let userMap = {};
+
+      if (userSearchIds.length > 0) {
+        const { data: userList } = await client
+          .from('users')
+          .select('id, full_name, email')
+          .in('id', userSearchIds);
+
+        (userList || []).forEach(u => {
+          userMap[String(u.id)] = u;
+          const pUid = parseDbId(u.id);
+          if (pUid) userMap[pUid] = u;
+        });
+      }
+
+      const classMap = {};
+      activeClassesList.forEach(c => {
+        classMap[String(c.id)] = c;
+        classMap[parseDbId(c.id)] = c;
+      });
+
+      // 5. 🎯 MAP RELATIVE TO CURRENT ACTIVE WEEK
+      const currentMonday = getCurrentMonday();
+
+      rawSubmissionsList = activeSubs.map(s => {
+        const matchedAct = actMap[String(s.activity_id)] || actMap[parseDbId(s.activity_id)] || {};
+        const matchedCls = classMap[String(matchedAct.class_id)] || classMap[parseDbId(matchedAct.class_id)] || {};
+        const studentKey = s.user_id || s.student_id;
+        const matchedUser = userMap[String(studentKey)] || userMap[parseDbId(studentKey)] || { full_name: s.user_name || "Student User" };
+
+        const subDate = new Date(s.submitted_at || s.created_at || Date.now());
+        const subMon = getMondayOfWeek(subDate);
+
+        // Calculate rolling distance in 7-day blocks:
+        // 0 weeks ago = Week 1 (Current Week)
+        // 1 week ago  = Week 2 (Last Week)
+        // 2 weeks ago = Week 3 (2 Weeks Ago)
+        const diffWeeks = Math.round((currentMonday.getTime() - subMon.getTime()) / (7 * 24 * 60 * 60 * 1000));
+        let weekNum = diffWeeks <= 0 ? 1 : diffWeeks + 1;
+        if (weekNum > 15) weekNum = 15;
+
+        const dayKey = DAY_KEYS[subDate.getDay()] || "Mon";
+
+        return {
+          ...s,
+          subDateObj: subDate,
+          weekNumber: weekNum,
+          dayKey: dayKey,
+          users: matchedUser,
+          activities: matchedAct,
+          classes: matchedCls
+        };
+      });
+
+      // 6. Group Submissions by Class
       const subsByClassMap = {};
-      subs.forEach(s => {
-        const matchedAct = actMap[String(s.activity_id)] || actMap[parseDbId(s.activity_id)];
-        if (matchedAct) {
-          const cid = String(matchedAct.class_id);
+      rawSubmissionsList.forEach(s => {
+        const cid = String(s.activities?.class_id);
+        if (cid) {
           if (!subsByClassMap[cid]) subsByClassMap[cid] = [];
           subsByClassMap[cid].push(s);
         }
@@ -1271,7 +1625,7 @@
 
       const now = new Date();
 
-      // 4. Compute Inactivity Audit Flags
+      // 7. Compute Class Inactivity Flags
       classMetrics = activeClassesList.map(c => {
         const cidStr = String(c.id);
         const enrolledCount = enrollmentCountMap[cidStr] || 0;
@@ -1305,7 +1659,6 @@
           }
         }
 
-        // Compute Overall Grade Average
         const gradedSubs = cSubs.filter(s => {
           const st = String(s.status || '').toLowerCase();
           return st === 'graded' || (s.grade !== null && s.grade !== undefined && s.grade !== '') || (s.score !== null && s.score !== undefined && s.score !== '');
@@ -1340,7 +1693,7 @@
     }
 
     /* =====================================================
-        5. RENDER DASHBOARD & CHARTS
+        5. RENDER DASHBOARD & VISUALIZATIONS
     ===================================================== */
     function renderDashboard() {
       let filteredMetrics = classMetrics;
@@ -1367,12 +1720,13 @@
         document.getElementById("kpiInactiveClassesCount").textContent = "0 Class(es)";
         renderAttentionBox([]);
         renderTimelineGraph();
+        renderDailyMonitorSection();
         renderComparisonChart([]);
-        renderTimelinessChart([]);
+        renderTimelinessChart();
         return;
       }
 
-      let topClass = filteredMetrics.reduce((max, c) => c.avgGrade > max.avgGrade ? c : max, filteredMetrics[0]);
+      const topClass = filteredMetrics.reduce((max, c) => c.avgGrade > max.avgGrade ? c : max, filteredMetrics[0]);
       const inactiveClasses = filteredMetrics.filter(m => m.isInactive);
       const totalActivitiesCount = filteredMetrics.reduce((sum, c) => sum + c.activitiesCount, 0);
       const totalGradeSum = filteredMetrics.reduce((sum, c) => sum + c.avgGrade, 0);
@@ -1386,8 +1740,9 @@
 
       renderAttentionBox(inactiveClasses);
       renderTimelineGraph();
+      renderDailyMonitorSection();
       renderComparisonChart(filteredMetrics);
-      renderTimelinessChart(filteredMetrics);
+      renderTimelinessChart();
       renderTable(filteredMetrics);
     }
 
@@ -1410,7 +1765,7 @@
         inactiveClasses.forEach(c => {
           const tag = document.createElement("span");
           tag.className = "attention-tag";
-          tag.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <strong>${escapeHtml(c.subject)}</strong> (${c.code}): ${escapeHtml(c.inactivityReason)}`;
+          tag.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <strong>${escapeHtml(c.subject)}</strong> (${escapeHtml(c.code)}): ${escapeHtml(c.inactivityReason)}`;
           attentionTags.appendChild(tag);
         });
       } else {
@@ -1423,12 +1778,17 @@
       }
     }
 
-    /* 1. TIMELINE GRAPH (Adaptive ticks for mobile) */
+    /* 1. TIMELINE GRAPH (100% LIVE SUPABASE DRIVEN) */
     function renderTimelineGraph() {
       const canvas = document.getElementById("timelineChart");
       if (!canvas) return;
 
       const ctx = canvas.getContext("2d");
+
+      let scopedSubs = rawSubmissionsList;
+      if (selectedClassCode !== "ALL") {
+        scopedSubs = rawSubmissionsList.filter(s => s.classes?.code === selectedClassCode);
+      }
 
       let labels = [];
       let dataPoints = [];
@@ -1439,19 +1799,32 @@
           "Week 6", "Week 7", "Week 8", "Week 9", "Week 10",
           "Week 11", "Week 12", "Week 13", "Week 14", "Week 15"
         ];
-        dataPoints = [12, 18, 25, 30, 28, 35, 42, 40, 48, 55, 50, 62, 68, 75, 80];
+        const weekCounts = new Array(15).fill(0);
+        scopedSubs.forEach(s => {
+          if (s.weekNumber >= 1 && s.weekNumber <= 15) {
+            weekCounts[s.weekNumber - 1]++;
+          }
+        });
+        dataPoints = weekCounts;
       } else {
-        const weekNum = parseInt(selectedWeek.replace("W", ""), 10) || 1;
-        labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-        const base = weekNum * 3;
-        dataPoints = [base + 2, base + 5, base + 4, base + 8, base + 7, base + 3, base + 9];
+        const targetWeekNum = parseInt(selectedWeek.replace("W", ""), 10) || 1;
+        const weekOnlySubs = scopedSubs.filter(s => s.weekNumber === targetWeekNum);
+
+        labels = DAY_ORDER;
+        const dailyCounts = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+        weekOnlySubs.forEach(s => {
+          if (s.dayKey && dailyCounts[s.dayKey] !== undefined) {
+            dailyCounts[s.dayKey]++;
+          }
+        });
+        dataPoints = DAY_ORDER.map(d => dailyCounts[d]);
       }
 
       if (chartTimelineInstance) chartTimelineInstance.destroy();
 
       const chartTitle = selectedWeek === "ALL" 
-        ? (selectedClassCode === "ALL" ? 'Semester Progression (Weeks 1 - 15)' : `${selectedClassCode} Progression`)
-        : (selectedClassCode === "ALL" ? `Week ${selectedWeek.replace('W', '')} Turn-Ins` : `${selectedClassCode} Turn-Ins`);
+        ? (selectedClassCode === "ALL" ? 'Semester Turn-Ins (Weeks 1 - 15)' : `${selectedClassCode} Semester Turn-Ins`)
+        : (selectedClassCode === "ALL" ? `Week ${selectedWeek.replace('W', '')} Turn-Ins` : `${selectedClassCode} Week ${selectedWeek.replace('W', '')} Turn-Ins`);
 
       chartTimelineInstance = new Chart(ctx, {
         type: 'line',
@@ -1465,13 +1838,34 @@
             fill: true,
             tension: 0.35,
             borderWidth: 2.5,
-            pointRadius: 3.5,
+            pointRadius: 4,
+            pointHoverRadius: 6,
             pointBackgroundColor: '#1e40af'
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          onClick: (event, elements) => {
+            if (elements && elements.length > 0) {
+              const elIndex = elements[0].index;
+              if (selectedWeek !== "ALL") {
+                const clickedDay = DAY_ORDER[elIndex];
+                if (clickedDay) {
+                  switchDayTab(clickedDay);
+                  const monitor = document.getElementById("dailySubmissionMonitorCard");
+                  if (monitor) monitor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+              } else {
+                const targetWeekNum = elIndex + 1;
+                const weekSelect = document.getElementById("weekSelector");
+                if (weekSelect) {
+                  weekSelect.value = `W${targetWeekNum}`;
+                  switchWeekFilter(`W${targetWeekNum}`);
+                }
+              }
+            }
+          },
           plugins: { 
             legend: { display: false },
             tooltip: {
@@ -1484,14 +1878,17 @@
             y: { 
               beginAtZero: true, 
               grid: { color: '#f1f5f9' },
-              ticks: { font: { size: 11 } }
+              ticks: { 
+                precision: 0,
+                font: { size: 11 } 
+              }
             },
             x: { 
               grid: { display: false },
               ticks: {
                 font: { size: 11 },
                 autoSkip: true,
-                maxTicksLimit: 8
+                maxTicksLimit: 15
               }
             }
           }
@@ -1499,16 +1896,151 @@
       });
     }
 
-    /* 2. BAR CHART: CLASS GRADE COMPARISON (Ellipsis truncation on long titles) */
+    /* 2. MONDAY–SUNDAY DAILY SUBMISSION MONITOR */
+    function switchDayTab(dayKey) {
+      selectedDayTab = dayKey;
+      renderDailyMonitorSection();
+    }
+
+    function renderDailyMonitorSection() {
+      let scopedSubs = rawSubmissionsList;
+      if (selectedClassCode !== "ALL") {
+        scopedSubs = rawSubmissionsList.filter(s => s.classes?.code === selectedClassCode);
+      }
+
+      let weekScopedSubs = scopedSubs;
+      if (selectedWeek !== "ALL") {
+        const targetWeekNum = parseInt(selectedWeek.replace("W", ""), 10) || 1;
+        weekScopedSubs = scopedSubs.filter(s => s.weekNumber === targetWeekNum);
+      }
+
+      const dayCounts = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+      weekScopedSubs.forEach(s => {
+        if (s.dayKey && dayCounts[s.dayKey] !== undefined) {
+          dayCounts[s.dayKey]++;
+        }
+      });
+
+      DAY_ORDER.forEach(d => {
+        const btn = document.getElementById(`tab-${d}`);
+        const badge = document.getElementById(`badge-${d}`);
+        const count = dayCounts[d];
+
+        if (badge) {
+          badge.textContent = count;
+          if (count > 0) {
+            badge.classList.add("has-data");
+          } else {
+            badge.classList.remove("has-data");
+          }
+        }
+
+        if (btn) {
+          if (d === selectedDayTab) {
+            btn.classList.add("active");
+          } else {
+            btn.classList.remove("active");
+          }
+        }
+      });
+
+      const headerLabel = document.getElementById("activeDayHeaderLabel");
+      const countLabel = document.getElementById("activeDayCountLabel");
+      const sublabel = document.getElementById("dailyMonitorSublabel");
+      const fullDayName = DAY_LABELS[selectedDayTab] || "Monday";
+      const daySubs = weekScopedSubs.filter(s => s.dayKey === selectedDayTab);
+
+      if (headerLabel) {
+        const weekTag = selectedWeek === "ALL" ? "(Full Term)" : `(Week ${selectedWeek.replace('W', '')})`;
+        headerLabel.innerHTML = `<i class="fa-solid fa-clock"></i> ${fullDayName} Submissions ${weekTag}`;
+      }
+
+      if (countLabel) {
+        countLabel.textContent = `${daySubs.length} Turn-In(s) Recorded`;
+      }
+
+      if (sublabel) {
+        sublabel.textContent = selectedWeek === "ALL" 
+          ? "Showing turn-ins across the semester for this day. Click a day tab or chart point to inspect students."
+          : `Showing Week ${selectedWeek.replace('W', '')} student turn-ins. Click any day to inspect deliverables.`;
+      }
+
+      const tbody = document.getElementById("dailySubmissionsTableBody");
+      if (!tbody) return;
+
+      if (daySubs.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-submissions-state">
+              <i class="fa-solid fa-inbox"></i><br>
+              No submissions turned in on ${fullDayName} for this timeframe.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = "";
+      daySubs.forEach(sub => {
+        const studentName = sub.users?.full_name || sub.user_name || "Student User";
+        const subjectName = sub.classes?.subject || "Course";
+        const classCode = sub.classes?.code || (selectedClassCode !== "ALL" ? selectedClassCode : "");
+        const activityTitle = sub.activities?.title || "Class Activity";
+        const maxPts = sub.activities?.total_points || 100;
+
+        const subDate = sub.subDateObj || new Date();
+        const timeFormatted = !isNaN(subDate.getTime()) 
+          ? subDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          : "11:59 PM";
+        const dateFormatted = !isNaN(subDate.getTime())
+          ? subDate.toLocaleDateString([], { month: 'short', day: 'numeric' })
+          : "";
+
+        const st = String(sub.status || '').toLowerCase();
+        const currentGrade = sub.grade !== null && sub.grade !== undefined && sub.grade !== '' ? sub.grade : (sub.score !== null && sub.score !== undefined && sub.score !== '' ? sub.score : "");
+        const isGraded = st === 'graded' || currentGrade !== "";
+
+        const statusBadge = isGraded
+          ? `<span class="badge badge-top">Graded: ${currentGrade}/${maxPts}</span>`
+          : `<span class="badge badge-average">Pending Evaluation</span>`;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><strong>👤 ${escapeHtml(studentName)}</strong></td>
+          <td>📘 ${escapeHtml(subjectName)} <span style="font-size:11px; color:var(--muted);">${escapeHtml(classCode)}</span></td>
+          <td>📝 ${escapeHtml(activityTitle)}</td>
+          <td>${dateFormatted} ${timeFormatted}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <button type="button" class="btn-grade-shortcut" onclick="openStudentWork('${escapeJsString(sub.id)}', '${escapeJsString(sub.activity_id)}', '${escapeJsString(sub.user_id || sub.student_id)}')">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Grade Work
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function openStudentWork(subId, actId, studentId) {
+      if (subId) localStorage.setItem("selectedSubmissionId", String(subId));
+      if (actId) localStorage.setItem("selectedActivityId", String(actId));
+      if (studentId) {
+        localStorage.setItem("selectedStudentId", String(studentId));
+        localStorage.setItem("gradingStudentId", String(studentId));
+      }
+      window.location.href = `${studentWorkUrl}?submission_id=${encodeURIComponent(subId || '')}&activity_id=${encodeURIComponent(actId || '')}&student_id=${encodeURIComponent(studentId || '')}`;
+    }
+
+    /* 3. BAR CHART: CLASS GRADE COMPARISON */
     function renderComparisonChart(metrics) {
       const canvas = document.getElementById("gradeComparisonChart");
       if (!canvas) return;
 
       const ctx = canvas.getContext("2d");
 
-      let labels = metrics.map(m => m.subject);
-      let data = metrics.map(m => m.avgGrade);
-      let colors = metrics.map(m => m.isInactive ? '#f59e0b' : (m.avgGrade < 75 ? '#ef4444' : '#2563eb'));
+      const labels = metrics.map(m => m.subject);
+      const data = metrics.map(m => m.avgGrade);
+      const colors = metrics.map(m => m.isInactive ? '#f59e0b' : (m.avgGrade < 75 ? '#ef4444' : '#2563eb'));
 
       if (chartComparisonInstance) chartComparisonInstance.destroy();
 
@@ -1560,19 +2092,50 @@
       });
     }
 
-    /* 3. DOUGHNUT CHART: TIMELINESS BREAKDOWN */
-    function renderTimelinessChart(metrics) {
+    /* 4. DOUGHNUT CHART: MUTUALLY EXCLUSIVE TIMELINESS BREAKDOWN */
+    function renderTimelinessChart() {
       const canvas = document.getElementById("timelinessChart");
       if (!canvas) return;
 
       const ctx = canvas.getContext("2d");
 
-      let totalSubs = 0;
-      metrics.forEach(m => totalSubs += m.submissionsCount);
+      let targetSubs = rawSubmissionsList;
+      if (selectedClassCode !== "ALL") {
+        targetSubs = rawSubmissionsList.filter(s => s.classes?.code === selectedClassCode);
+      }
 
-      let onTimeCount = Math.max(1, Math.round(totalSubs * 0.8));
-      let lateCount = Math.round(totalSubs * 0.15);
-      let pendingCount = Math.round(totalSubs * 0.05);
+      let onTimeCount = 0;
+      let lateCount = 0;
+      let pendingCount = 0;
+
+      targetSubs.forEach(s => {
+        const st = String(s.status || '').toLowerCase();
+        const hasScore = (s.grade !== null && s.grade !== undefined && s.grade !== '') || (s.score !== null && s.score !== undefined && s.score !== '');
+        const isGraded = st === 'graded' || hasScore;
+
+        if (!isGraded) {
+          pendingCount++;
+        } else {
+          const deadlineDate = s.activities?.deadline || s.activities?.due_date;
+          const submittedDate = s.submitted_at || s.created_at;
+
+          if (deadlineDate && submittedDate) {
+            const dTime = new Date(deadlineDate).getTime();
+            const sTime = new Date(submittedDate).getTime();
+            if (!isNaN(dTime) && !isNaN(sTime) && sTime > dTime) {
+              lateCount++;
+            } else {
+              onTimeCount++;
+            }
+          } else {
+            onTimeCount++;
+          }
+        }
+      });
+
+      const totalAssessed = onTimeCount + lateCount + pendingCount;
+      const chartData = totalAssessed === 0 ? [0, 0, 1] : [onTimeCount, lateCount, pendingCount];
+      const chartColors = totalAssessed === 0 ? ['#e2e8f0', '#e2e8f0', '#cbd5e1'] : ['#16a34a', '#ef4444', '#f59e0b'];
 
       if (chartTimelinessInstance) chartTimelinessInstance.destroy();
 
@@ -1581,8 +2144,8 @@
         data: {
           labels: ['On Time', 'Late Submission', 'Pending Evaluation'],
           datasets: [{
-            data: [onTimeCount, lateCount, pendingCount],
-            backgroundColor: ['#16a34a', '#ef4444', '#f59e0b'],
+            data: chartData,
+            backgroundColor: chartColors,
             borderWidth: 2
           }]
         },
@@ -1603,7 +2166,7 @@
       });
     }
 
-    /* 4. RENDER TABLE WITH INACTIVITY AUDIT FLAGS */
+    /* 5. RENDER ROSTER STATUS TABLE */
     function renderTable(metrics) {
       const tbody = document.getElementById("classTableBody");
       if (!tbody) return;
@@ -1614,11 +2177,11 @@
         let statusBadge = `<span class="badge badge-average">Active</span>`;
 
         if (m.isInactive) {
-          statusBadge = `<span class="badge badge-inactive" title="${escapeHtml(m.inactivityReason)}"><i class="fa-solid fa-triangle-exclamation">📚</i> Inactive (${m.daysInactive}d)</span>`;
+          statusBadge = `<span class="badge badge-inactive" title="${escapeHtml(m.inactivityReason)}"><i class="fa-solid fa-triangle-exclamation"></i> Inactive (${m.daysInactive}d)</span>`;
         } else if (m.avgGrade >= 90) {
-          statusBadge = `<span class="badge badge-top"><i class="fa-solid fa-star">⭐</i> High Performing</span>`;
+          statusBadge = `<span class="badge badge-top"><i class="fa-solid fa-star"></i> High Performing</span>`;
         } else if (m.avgGrade < 75) {
-          statusBadge = `<span class="badge badge-lagging"><i class="fa-solid fa-triangle-exclamation">📚</i> Lagging</span>`;
+          statusBadge = `<span class="badge badge-lagging"><i class="fa-solid fa-triangle-exclamation"></i> Lagging</span>`;
         }
 
         const actionBtnLabel = userRole === "ADMIN" ? "Audit Ledger →" : "View Grades →";
@@ -1631,7 +2194,7 @@
           <td><strong>${m.avgGrade}%</strong></td>
           <td>${statusBadge}</td>
           <td>
-            <button class="btn-action-class" onclick="openClassGrades('${escapeHtml(m.code)}', '${m.id}')">
+            <button class="btn-action-class" onclick="openClassGrades('${escapeJsString(m.code)}', '${m.id}')">
               ${actionBtnLabel}
             </button>
           </td>
@@ -1645,16 +2208,6 @@
       localStorage.setItem("selectedClass", classCode);
       localStorage.setItem("selectedClassId", String(classId));
       window.location.href = gradesUrl;
-    }
-
-    function escapeHtml(text) {
-      if (!text) return "";
-      return text
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
     }
 
     /* =====================================================
@@ -1771,7 +2324,7 @@
         sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
       }
     }
-  </script>
+</script>
 </body>
 
 </html>

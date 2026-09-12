@@ -728,7 +728,7 @@
     const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
     const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
 
-    // Block Students Immediately
+    // 🔒 Block Students Immediately
     if (userRole === "STUDENT") {
       alert("Access restricted: Class and Group creation is only available for Teachers and Administrators.");
       window.location.replace("{{ url_for('landpage') }}");
@@ -739,7 +739,7 @@
     if (roleBadge) roleBadge.textContent = userRole;
     if (nameDisplay) nameDisplay.textContent = userName;
 
-    // Flask Route URLs
+    // Flask Dynamic Route URLs
     const homeUrl = "{{ url_for('landpage') }}";
     const createUrl = "{{ url_for('create_page') }}";
     const calendarUrl = "{{ url_for('calendar_page') }}";
@@ -752,7 +752,8 @@
     const accountUrl = "{{ url_for('account_page') }}";
     const classPageUrl = "{{ url_for('class_page') }}";
     const groupPageUrl = "{{ url_for('group_page') }}";
-const privateMessageInboxUrl = "private-message.html";
+    const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+
     const sidebarMenu = document.getElementById("sidebarMenu");
 
     if (userRole === "ADMIN") {
@@ -768,7 +769,6 @@ const privateMessageInboxUrl = "private-message.html";
         <a href="${accountUrl}">👤 Account</a>
       `;
     } else {
-      // TEACHER
       sidebarMenu.innerHTML = `
         <a href="${homeUrl}">🏠 Home</a>
         <a href="${createUrl}" class="active">➕ Create Class/Group</a>
@@ -784,17 +784,66 @@ const privateMessageInboxUrl = "private-message.html";
       `;
     }
 
-    /* MOBILE SIDEBAR TOGGLE */
+    /* MOBILE SIDEBAR TOGGLE & BACKDROP */
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const sidebar = document.getElementById('sidebar');
-    if (mobileMenuBtn && sidebar) {
-      mobileMenuBtn.addEventListener('click', () => sidebar.classList.toggle('active'));
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    function toggleMobileDrawer(open) {
+      const shouldOpen = open !== undefined ? open : !sidebar.classList.contains("active");
+      if (shouldOpen) {
+        sidebar.classList.add("active");
+        if (sidebarOverlay) sidebarOverlay.classList.add("active");
+      } else {
+        sidebar.classList.remove("active");
+        if (sidebarOverlay) sidebarOverlay.classList.remove("active");
+      }
     }
 
-    /* LOGOUT FUNCTION */
+    if (mobileMenuBtn && sidebar) {
+      mobileMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMobileDrawer();
+      });
+    }
+
+    if (sidebarOverlay) {
+      sidebarOverlay.addEventListener('click', () => toggleMobileDrawer(false));
+    }
+
+    document.addEventListener("click", (e) => {
+      if (sidebar && !sidebar.contains(e.target) && mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
+        toggleMobileDrawer(false);
+      }
+    });
+
+    /* 🔒 SAFE LOGOUT: Clear session credentials while preserving acknowledged deadlines */
     function logoutUser() {
-      localStorage.clear();
+      const authKeys = [
+        "user_id",
+        "userRole",
+        "role",
+        "full_name",
+        "email",
+        "selectedClass",
+        "selectedClassId",
+        "selectedGroup",
+        "selectedGroupId",
+        "selectedSubmissionId",
+        "selectedActivityId",
+        "selectedStudentId",
+        "gradingStudentId",
+        "updateType",
+        "updateClassId",
+        "updateGroupId",
+        "joinedClasses",
+        "joinedGroups",
+        "isArchivedView"
+      ];
+
+      authKeys.forEach(key => localStorage.removeItem(key));
       sessionStorage.clear();
+
       window.location.replace("{{ url_for('logout') }}");
     }
 
@@ -819,7 +868,14 @@ const privateMessageInboxUrl = "private-message.html";
       
       const supabaseLib = window.supabase || window.Supabase;
       if (supabaseLib && typeof supabaseLib.createClient === 'function') {
-        window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+        window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY, {
+          global: {
+            headers: {
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`
+            }
+          }
+        });
         return window._supabase;
       }
       return null;
@@ -847,7 +903,7 @@ const privateMessageInboxUrl = "private-message.html";
       sidebarClassList.innerHTML = "";
 
       const userSearchIds = getDualTypeIds([currentUserId]);
-      let query = client.from('classes').select('subject, code, status').eq('status', 'active').order('created_at', { ascending: false });
+      let query = client.from('classes').select('id, subject, code, status').eq('status', 'active').order('created_at', { ascending: false });
       
       if (userRole === "TEACHER" && userSearchIds.length > 0) {
         query = query.in('teacher_id', userSearchIds);
@@ -863,8 +919,9 @@ const privateMessageInboxUrl = "private-message.html";
           sideLink.href = classPageUrl;
           sideLink.onclick = (e) => {
             e.preventDefault();
+            localStorage.removeItem("isArchivedView");
             localStorage.setItem("selectedClass", c.code);
-            localStorage.setItem("selectedClassId", c.id);
+            localStorage.setItem("selectedClassId", String(c.id));
             window.location.href = classPageUrl;
           };
           sidebarClassList.appendChild(sideLink);
@@ -883,7 +940,7 @@ const privateMessageInboxUrl = "private-message.html";
       sidebarGroupList.innerHTML = "";
 
       const userSearchIds = getDualTypeIds([currentUserId]);
-      let query = client.from('groups').select('name, code, status').eq('status', 'active').order('created_at', { ascending: false });
+      let query = client.from('groups').select('id, name, code, status').eq('status', 'active').order('created_at', { ascending: false });
       
       if (userRole === "TEACHER" && userSearchIds.length > 0) {
         query = query.in('teacher_id', userSearchIds);
@@ -899,7 +956,9 @@ const privateMessageInboxUrl = "private-message.html";
           sideLink.href = groupPageUrl;
           sideLink.onclick = (e) => {
             e.preventDefault();
+            localStorage.removeItem("isArchivedView");
             localStorage.setItem("selectedGroup", g.code);
+            localStorage.setItem("selectedGroupId", String(g.id));
             window.location.href = groupPageUrl;
           };
           sidebarGroupList.appendChild(sideLink);
@@ -927,6 +986,7 @@ const privateMessageInboxUrl = "private-message.html";
 
       const generatedCode = generateCode("RMC");
       const parsedTeacherId = parseDbId(currentUserId);
+      const nowIso = new Date().toISOString();
 
       const classData = {
         subject: document.getElementById('classSubject').value.trim(),
@@ -935,7 +995,8 @@ const privateMessageInboxUrl = "private-message.html";
         section: document.getElementById('classSection').value,
         code: generatedCode,
         teacher_id: parsedTeacherId,
-        status: 'active'
+        status: 'active',
+        created_at: nowIso
       };
 
       const { data: createdClass, error } = await client
@@ -954,9 +1015,10 @@ const privateMessageInboxUrl = "private-message.html";
             .from('class_memberships')
             .insert([{ class_id: parseDbId(createdClass.id), user_id: parsedTeacherId }]);
           
-          localStorage.setItem("selectedClassId", createdClass.id);
+          localStorage.setItem("selectedClassId", String(createdClass.id));
         }
 
+        localStorage.removeItem("isArchivedView");
         localStorage.setItem("selectedClass", generatedCode);
 
         const codeBox = document.getElementById('classCodeBox');
@@ -991,6 +1053,7 @@ const privateMessageInboxUrl = "private-message.html";
 
       const generatedCode = generateCode("GRP");
       const parsedTeacherId = parseDbId(currentUserId);
+      const nowIso = new Date().toISOString();
 
       const groupData = {
         name: document.getElementById('groupName').value.trim(),
@@ -999,7 +1062,8 @@ const privateMessageInboxUrl = "private-message.html";
         section: document.getElementById('section').value,
         code: generatedCode,
         teacher_id: parsedTeacherId,
-        status: 'active'
+        status: 'active',
+        created_at: nowIso
       };
 
       const { data: createdGroup, error } = await client
@@ -1017,8 +1081,11 @@ const privateMessageInboxUrl = "private-message.html";
           await client
             .from('group_memberships')
             .insert([{ group_id: parseDbId(createdGroup.id), user_id: parsedTeacherId }]);
+          
+          localStorage.setItem("selectedGroupId", String(createdGroup.id));
         }
 
+        localStorage.removeItem("isArchivedView");
         localStorage.setItem("selectedGroup", generatedCode);
 
         const codeBox = document.getElementById('groupCodeBox');
@@ -1037,13 +1104,13 @@ const privateMessageInboxUrl = "private-message.html";
 
     function escapeHtml(text) {
       if (!text) return "";
-      return text
+      return String(text)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
     }
-  </script>
+</script>
 </body>
 </html>
