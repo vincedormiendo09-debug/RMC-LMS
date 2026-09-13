@@ -49,12 +49,15 @@
     --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
   }
 
-  *, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  }
+      *, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, button, input, select, textarea {
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+}
 
   html {
     scroll-behavior: smooth;
@@ -909,7 +912,7 @@
       <!-- STATS OVERVIEW -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon"><i class="fa-solid fa-users">👤</i></div>
+          <div class="stat-icon"><i class="fa-solid fa-users"></i></div>
           <div class="stat-details">
             <h3 id="statTotalStudents">0</h3>
             <p>Class Students</p>
@@ -917,7 +920,7 @@
         </div>
 
         <div class="stat-card">
-          <div class="stat-icon"><i class="fa-solid fa-file-arrow-up">📂</i></div>
+          <div class="stat-icon"><i class="fa-solid fa-file-arrow-up"></i></div>
           <div class="stat-details">
             <h3 id="statSubmittedCount">0</h3>
             <p>Turned-In Works</p>
@@ -944,7 +947,7 @@
       <!-- FILTER CONTROLS CARD -->
       <div class="card">
         <div class="card-header">
-          <h2><i class="fa-solid fa-filter">📚</i> Submissions Filter</h2>
+          <h2><i class="fa-solid fa-filter"></i> Submissions Filter</h2>
         </div>
         <div class="filter-bar">
           <!-- 1. CLASS SELECTOR -->
@@ -990,7 +993,7 @@
               <i class="fa-solid fa-print"></i> Print Report
             </button>
             <button class="btn-export-csv" onclick="exportSubmissionsCSV()">
-              <i class="fa-solid fa-file-excel">📂</i> Export CSV
+              <i class="fa-solid fa-file-excel"></i> Export CSV
             </button>
           </div>
         </div>
@@ -1593,7 +1596,7 @@
       let fileDisplay = `<span style="color: #94a3b8; font-style: italic;">No file</span>`;
       if (sub.file_url) {
         const ext = sub.file_url.split('.').pop().toUpperCase();
-        fileDisplay = `<button class="file-download-btn" onclick="downloadFileDirectly('${escapeJsString(sub.file_url)}', '${escapeJsString(studentName)}_${escapeJsString(activityTitle)}.${ext.toLowerCase()}')"><i class="fa-solid fa-file-arrow-down">📂</i> Download (${ext})</button>`;
+        fileDisplay = `<button class="file-download-btn" onclick="downloadFileDirectly('${escapeJsString(sub.file_url)}', '${escapeJsString(studentName)}_${escapeJsString(activityTitle)}.${ext.toLowerCase()}')"><i class="fa-solid fa-file-arrow-down"></i> Download (${ext})</button>`;
       } else if (sub.link_url) {
         fileDisplay = `<a href="${escapeHtml(sub.link_url)}" target="_blank" class="file-download-btn"><i class="fa-solid fa-link"></i> Open Link</a>`;
       }

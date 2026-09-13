@@ -53,12 +53,15 @@
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
-  *, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Poppins', sans-serif;
-  }
+     *, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, button, input, select, textarea {
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+}
 
   html {
     scroll-behavior: smooth;
@@ -681,7 +684,7 @@
 
   <!-- MOBILE MENU BUTTON -->
   <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
-    <i class="fa-solid fa-bars">☰</i>
+    <i class="fa-solid fa-bars"></i>
   </button>
 
   <!-- SIDEBAR NAVIGATION -->
@@ -725,7 +728,7 @@
         </div>
       </div>
       <div class="stats-pill" id="statsPill">
-        <i class="fa-solid fa-comments">💬</i> <span id="threadCountDisplay">0 Conversations</span>
+        <i class="fa-solid fa-comments"></i> <span id="threadCountDisplay">0 Conversations</span>
       </div>
     </header>
 
@@ -1135,7 +1138,7 @@
         <div class="thread-right">
           <span class="thread-time">${timeFormatted}</span>
           <button class="action-btn-chat" onclick="openThreadConversation('${escapeJsString(t.partnerId)}', '${escapeJsString(t.partnerName)}')">
-            <i class="fa-solid fa-comment-dots">💬</i> Open Chat
+            <i class="fa-solid fa-comment-dots"></i> Open Chat
           </button>
 
           <!-- 3-DOTS DELETE MENU -->

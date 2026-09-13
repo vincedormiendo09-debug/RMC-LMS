@@ -40,12 +40,15 @@
     --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
   }
 
-  *, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Poppins', Arial, Helvetica, sans-serif;
-  }
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, button, input, select, textarea {
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+}
 
   html {
     overflow-x: hidden;
@@ -521,7 +524,7 @@
 
   <!-- MOBILE MENU BUTTON -->
   <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
-    <i class="fa-solid fa-bars">☰</i>
+    <i class="fa-solid fa-bars"></i>
   </button>
 
   <!-- SIDEBAR NAVIGATION -->
@@ -567,7 +570,7 @@
       <!-- CREATE CLASS FORM -->
       <div class="form-box">
         <div class="form-header">
-          <div class="form-icon"><i class="fa-solid fa-book-open">📘</i></div>
+          <div class="form-icon"><i class="fa-solid fa-book-open"></i></div>
           <div>
             <h2>Create Class</h2>
             <p>Set up a new subject class.</p>
@@ -626,7 +629,7 @@
       <!-- CREATE GROUP FORM -->
       <div class="form-box">
         <div class="form-header">
-          <div class="form-icon"><i class="fa-solid fa-users">👥</i></div>
+          <div class="form-icon"><i class="fa-solid fa-users"></i></div>
           <div>
             <h2>Create Group</h2>
             <p>Create a space for team collaboration.</p>

@@ -44,12 +44,15 @@
     --error-bg: #fef2f2;
   }
 
-  *, *::before, *::after {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: 'Poppins', Arial, sans-serif;
-  }
+ *, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, button, input, select, textarea {
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+}
 
   html {
     overflow-x: hidden;
@@ -540,7 +543,7 @@
 
   <!-- MOBILE MENU BUTTON -->
   <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
-    <i class="fa-solid fa-bars">☰</i>
+    <i class="fa-solid fa-bars"></i>
   </button>
 
   <!-- DYNAMIC SIDEBAR NAVIGATION -->
@@ -586,7 +589,7 @@
       <!-- JOIN CLASS FORM -->
       <div class="form-box">
         <div class="form-header">
-          <div class="form-icon"><i class="fa-solid fa-right-to-bracket">📘</i></div>
+          <div class="form-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
           <div>
             <h2>Join Class</h2>
             <p>Access subject lectures and materials.</p>
@@ -613,7 +616,7 @@
       <!-- JOIN GROUP FORM -->
       <div class="form-box">
         <div class="form-header">
-          <div class="form-icon"><i class="fa-solid fa-user-plus">👥</i></div>
+          <div class="form-icon"><i class="fa-solid fa-user-plus"></i></div>
           <div>
             <h2>Join Group</h2>
             <p>Collaborate in real-time project groups.</p>
