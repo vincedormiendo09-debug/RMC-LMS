@@ -1781,37 +1781,39 @@ from flask_mail import Message
 # =====================================================
 
 def send_otp_email(to_email, otp_code):
-    """Dispatches a 6-digit OTP code using Python's native smtplib and SSL/TLS."""
-    smtp_server = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
-    smtp_port = int(os.environ.get("MAIL_PORT", 465))
-    sender_email = os.environ.get("MAIL_USERNAME") or os.environ.get("SMTP_USER")
-    sender_password = os.environ.get("MAIL_PASSWORD") or os.environ.get("SMTP_PASS")
+    """Dispatches a 6-digit OTP code using Brevo's HTTPS REST API (Port 443)."""
+    api_key = os.environ.get("BREVO_API_KEY")
+    sender_email = os.environ.get("MAIL_USERNAME", "regismariecollege100@gmail.com")
 
-    if not sender_email or not sender_password:
-        raise ValueError("Missing mail credentials. Set MAIL_USERNAME and MAIL_PASSWORD in Render environment variables.")
+    if not api_key:
+        raise ValueError("Missing BREVO_API_KEY in Render environment variables.")
 
-    msg = EmailMessage()
-    msg["Subject"] = "🔐 Regis Marie College - Password Reset Verification Code"
-    msg["From"] = f"RMC LMS Support <{sender_email}>"
-    msg["To"] = to_email
-    msg.set_content(
-        f"Hello,\n\n"
-        f"You requested to reset your password on the Regis Marie College LMS.\n\n"
-        f"Your 6-digit verification code is:\n\n"
-        f"   {otp_code}\n\n"
-        f"This code will expire in 10 minutes. If you did not request this, please ignore this email.\n\n"
-        f"— RMC LMS Security Team"
-    )
+    url = "https://api.brevo.com/v3/smtp/email"
+    headers = {
+        "accept": "application/json",
+        "api-key": api_key,
+        "content-type": "application/json"
+    }
+    payload = {
+        "sender": {
+            "name": "RMC LMS Security",
+            "email": sender_email
+        },
+        "to": [{"email": to_email}],
+        "subject": "🔐 Regis Marie College - Password Reset Verification Code",
+        "textContent": (
+            f"Hello,\n\n"
+            f"You requested to reset your password on the Regis Marie College LMS.\n\n"
+            f"Your 6-digit verification code is:\n\n"
+            f"   {otp_code}\n\n"
+            f"This code will expire in 10 minutes. If you did not request this, please ignore this email.\n\n"
+            f"— Regis Marie College Security Team"
+        )
+    }
 
-    if smtp_port == 465:
-        with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15) as server:
-            server.login(sender_email, sender_password)
-            server.send_message(msg)
-    else:
-        with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
-            server.starttls()
-            server.login(sender_email, sender_password)
-            server.send_message(msg)
+    response = requests.post(url, headers=headers, json=payload, timeout=10)
+    if response.status_code not in [200, 201, 202]:
+        raise RuntimeError(f"Brevo API error ({response.status_code}): {response.text}")
 
 
 @app.route('/api/send-password-otp', methods=['POST'])
@@ -1832,12 +1834,12 @@ def send_password_otp():
     session['password_reset_expiry'] = time.time() + 600
     session['password_reset_verified'] = False
 
-    # 3. Dispatch via native SMTP
+    # 3. Dispatch via Brevo HTTPS REST API
     try:
         send_otp_email(email, otp_code)
         return jsonify({'success': True, 'message': 'Verification code sent successfully.'})
     except Exception as e:
-        print(f"❌ [SMTP DISPATCH ERROR]: {e}")
+        print(f"❌ [BREVO API DISPATCH ERROR]: {e}")
         return jsonify({
             'success': False,
             'message': f'Email dispatch failed: {str(e)}'
