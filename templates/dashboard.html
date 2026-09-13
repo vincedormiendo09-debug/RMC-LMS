@@ -47,18 +47,20 @@
     --warning: #f59e0b;
     --warning-light: #fef3c7;
     --danger: #ef4444;
+    --danger-light: #fee2e2;
     --shadow: 0 4px 15px rgba(15, 23, 42, 0.05);
+    --shadow-hover: 0 8px 25px rgba(37, 99, 235, 0.12);
   }
 
-    *, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-body, button, input, select, textarea {
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-}
+  body, button, input, select, textarea {
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  }
 
   html {
     scroll-behavior: smooth;
@@ -74,11 +76,12 @@ body, button, input, select, textarea {
     overflow-x: hidden;
     display: flex;
     position: relative;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* =========================================
+  /* =====================================================
      SIDEBAR NAVIGATION RAIL & OVERLAY
-  ========================================= */
+  ===================================================== */
   .sidebar {
     position: fixed;
     top: 0;
@@ -90,7 +93,7 @@ body, button, input, select, textarea {
     padding: 22px 15px;
     z-index: 1000;
     overflow-y: auto;
-    transition: transform 0.3s ease;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 4px 0 15px rgba(15, 23, 42, 0.12);
   }
 
@@ -98,16 +101,19 @@ body, button, input, select, textarea {
     text-align: center;
     margin: 0 0 20px;
     font-size: 20px;
-    font-weight: bold;
+    font-weight: 700;
     color: #ffffff;
+    letter-spacing: -0.3px;
   }
 
   .user-profile-box {
     background: rgba(255, 255, 255, 0.15);
-    padding: 12px;
-    border-radius: 8px;
+    padding: 14px 12px;
+    border-radius: 10px;
     margin-bottom: 20px;
     text-align: center;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .user-badge {
@@ -115,11 +121,12 @@ body, button, input, select, textarea {
     background: #fbbf24;
     color: #1e3a8a;
     font-size: 11px;
-    font-weight: bold;
-    padding: 3px 8px;
+    font-weight: 800;
+    padding: 3px 10px;
     border-radius: 12px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
+    margin-top: 4px;
   }
 
   .sidebar a,
@@ -129,31 +136,30 @@ body, button, input, select, textarea {
     gap: 12px;
     width: 100%;
     min-height: 42px;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     padding: 10px 14px;
     border-radius: 9px;
     color: #ffffff !important;
     text-decoration: none !important;
-    font-size: 14.5px;
+    font-size: 14px;
+    font-weight: 500;
     transition: background 0.2s ease, transform 0.2s ease;
   }
 
   .sidebar a:hover,
   #sidebarMenu a:hover {
     background: rgba(255, 255, 255, 0.16) !important;
-    transform: translateX(2px);
-    color: #ffffff !important;
+    transform: translateX(3px);
   }
 
   .sidebar a.active,
   #sidebarMenu a.active {
     background: rgba(255, 255, 255, 0.25) !important;
-    font-weight: bold;
-    color: #ffffff !important;
+    font-weight: 700;
   }
 
   .sidebar-logout-btn {
-    background: rgba(239, 68, 68, 0.25) !important;
+    background: rgba(239, 68, 68, 0.22) !important;
     border: 1px solid rgba(239, 68, 68, 0.35);
     color: #ffffff !important;
     margin-top: 18px !important;
@@ -172,8 +178,8 @@ body, button, input, select, textarea {
     padding: 0 10px 8px;
     color: #bfdbfe;
     font-size: 11px;
-    font-weight: bold;
-    letter-spacing: 0.7px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
   }
 
@@ -185,17 +191,18 @@ body, button, input, select, textarea {
     padding: 9px 12px;
     overflow: hidden;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.10);
+    background: rgba(255, 255, 255, 0.08);
     color: #ffffff !important;
     text-decoration: none;
     font-size: 13px;
     text-overflow: ellipsis;
     white-space: nowrap;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, transform 0.15s ease;
   }
 
   .sidebar-item:hover {
     background: rgba(255, 255, 255, 0.20) !important;
+    transform: translateX(2px);
   }
 
   .mobile-menu-btn {
@@ -242,11 +249,11 @@ body, button, input, select, textarea {
   .main-content {
     min-height: 100vh;
     margin-left: 240px;
-    padding: 28px;
+    padding: 32px;
     flex: 1 1 auto;
     width: calc(100% - 240px);
     max-width: 100%;
-    min-width: 0; /* Critical: Prevents Chart.js/tables from forcing window expansion */
+    min-width: 0;
     transition: margin-left 0.3s ease, width 0.3s ease, padding 0.3s ease;
   }
 
@@ -278,13 +285,14 @@ body, button, input, select, textarea {
     font-size: 24px;
     font-weight: 700;
     word-break: break-word;
+    letter-spacing: -0.4px;
   }
 
   .page-header p {
     margin: 0;
     color: #dbeafe;
     font-size: 13.5px;
-    line-height: 1.4;
+    line-height: 1.5;
   }
 
   .header-icon {
@@ -297,6 +305,7 @@ body, button, input, select, textarea {
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.18);
     font-size: 24px;
+    color: #ffffff;
   }
 
   /* INTRO CARD */
@@ -308,8 +317,8 @@ body, button, input, select, textarea {
     padding: 20px 24px;
     border: 1px solid var(--border);
     border-radius: 16px;
-    background: #ffffff;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    background: var(--surface);
+    box-shadow: var(--shadow);
     min-width: 0;
   }
 
@@ -338,8 +347,86 @@ body, button, input, select, textarea {
     margin: 0;
     color: var(--muted);
     font-size: 13px;
-    line-height: 1.4;
+    line-height: 1.45;
   }
+
+  /* =====================================================
+     MIDDLE FILTER BAR & EXPORT TOOLBAR
+  ===================================================== */
+  .filter-control-card,
+  .table-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding: 16px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .class-filter-select {
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+    min-width: 240px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .class-filter-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+  }
+
+  .export-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn-tool {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #ffffff;
+    color: var(--text);
+    transition: all 0.2s ease;
+  }
+
+  .btn-tool:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    transform: translateY(-1px);
+  }
+
+  .btn-print:hover { color: var(--primary); border-color: var(--primary-light); }
+  .btn-excel:hover { color: var(--success); border-color: var(--success-light); }
+  .btn-csv:hover { color: var(--warning); border-color: var(--warning-light); }
 
   /* ACTIVE JOINED CLASSES SECTION */
   .classes-section {
@@ -347,14 +434,14 @@ body, button, input, select, textarea {
     padding: 24px;
     border: 1px solid var(--border);
     border-radius: 16px;
-    background: #ffffff;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    background: var(--surface);
+    box-shadow: var(--shadow);
     min-width: 0;
   }
 
   .classes-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
     gap: 18px;
     margin-top: 15px;
     min-width: 0;
@@ -365,24 +452,25 @@ body, button, input, select, textarea {
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 18px;
-    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     min-width: 0;
   }
 
   .class-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+    box-shadow: var(--shadow-hover);
+    border-color: #bfdbfe;
   }
 
   .class-card-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     gap: 8px;
   }
 
@@ -402,6 +490,7 @@ body, button, input, select, textarea {
     border-radius: 6px;
     font-weight: 600;
     white-space: nowrap;
+    border: 1px solid #e2e8f0;
   }
 
   .class-badge-warning,
@@ -435,7 +524,7 @@ body, button, input, select, textarea {
     background: #f8fafc;
     padding: 10px 8px;
     border-radius: 10px;
-    margin: 12px 0;
+    margin: 12px 0 16px;
     text-align: center;
     border: 1px solid #f1f5f9;
   }
@@ -468,7 +557,7 @@ body, button, input, select, textarea {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, transform 0.1s ease;
   }
 
   .class-card-action:hover {
@@ -481,8 +570,8 @@ body, button, input, select, textarea {
     padding: 24px;
     border: 1px solid var(--border);
     border-radius: 16px;
-    background: #ffffff;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    background: var(--surface);
+    box-shadow: var(--shadow);
     min-width: 0;
   }
 
@@ -515,6 +604,11 @@ body, button, input, select, textarea {
     min-width: 0;
   }
 
+  .chart-wrapper canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
   /* STATISTICS CARDS */
   .stats {
     display: grid;
@@ -530,7 +624,7 @@ body, button, input, select, textarea {
     border: 1px solid var(--primary-light);
     border-radius: 14px;
     background: linear-gradient(135deg, #f8fbff, #eef6ff);
-    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.06);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.05);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -550,7 +644,7 @@ body, button, input, select, textarea {
     width: 40px;
     height: 40px;
     min-width: 40px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     border-radius: 10px;
     background: var(--primary-light);
     color: #1d4ed8;
@@ -560,16 +654,16 @@ body, button, input, select, textarea {
   .card h3 {
     margin: 0 0 4px;
     color: var(--muted);
-    font-size: 12px;
+    font-size: 11.5px;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
   }
 
   .card .value {
     color: var(--primary-dark);
     font-size: 24px;
-    font-weight: bold;
+    font-weight: 700;
     word-break: break-word;
   }
 
@@ -579,8 +673,8 @@ body, button, input, select, textarea {
     padding: 24px;
     border: 1px solid var(--border);
     border-radius: 16px;
-    background: #ffffff;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05);
+    background: var(--surface);
+    box-shadow: var(--shadow);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     min-width: 0;
@@ -588,14 +682,14 @@ body, button, input, select, textarea {
 
   table {
     width: 100%;
-    min-width: 580px;
+    min-width: 600px;
     border-collapse: collapse;
     margin-top: 8px;
     text-align: left;
   }
 
   th, td {
-    padding: 12px 14px;
+    padding: 13px 15px;
     border-bottom: 1px solid var(--border);
     font-size: 13px;
     vertical-align: middle;
@@ -605,40 +699,80 @@ body, button, input, select, textarea {
     background: #f8fafc;
     color: var(--muted);
     font-size: 11.5px;
-    font-weight: bold;
+    font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
   }
 
-  tr:hover {
+  tr:hover td {
     background: #f8fafc;
   }
 
+  /* STATUS BADGES & OVERDUE BUTTONS */
   .status-completed,
-  .status-pending {
+  .status-graded,
+  .status-pending,
+  .status-late,
+  .status-missing {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 4px 10px;
     border-radius: 20px;
     font-size: 11.5px;
-    font-weight: bold;
+    font-weight: 700;
     white-space: nowrap;
   }
 
-  .status-completed {
-    background: #dcfce7;
+  .status-completed,
+  .status-graded {
+    background: var(--success-light);
     color: #166534;
+    border: 1px solid #86efac;
   }
 
   .status-pending {
-    background: #fef3c7;
+    background: var(--warning-light);
     color: #92400e;
+    border: 1px solid #fcd34d;
+  }
+
+  .status-late {
+    background: #ffedd5;
+    color: #9a3412;
+    border: 1px solid #fed7aa;
+  }
+
+  .status-missing {
+    background: var(--danger-light);
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+  }
+
+  .btn-action-failed {
+    background: #fee2e2 !important;
+    color: #b91c1c !important;
+    border: 1px solid #fca5a5 !important;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+  }
+
+  .btn-action-failed:hover {
+    background: #fecaca !important;
+    border-color: #f87171 !important;
+    transform: translateY(-1px);
   }
 
   .empty-message {
-    padding: 28px 20px;
+    padding: 32px 20px;
     border: 1px dashed #cbd5e1;
     border-radius: 12px;
     background: #f8fafc;
@@ -665,7 +799,7 @@ body, button, input, select, textarea {
     background: var(--primary);
     color: #ffffff;
     font-size: 14px;
-    font-weight: bold;
+    font-weight: 700;
     cursor: pointer;
     text-decoration: none;
     transition: background 0.2s ease, transform 0.1s ease;
@@ -678,7 +812,6 @@ body, button, input, select, textarea {
   /* =====================================================
      RESPONSIVE BREAKPOINTS (RWD)
   ===================================================== */
-  /* Small Desktops & Tablets */
   @media (max-width: 1024px) {
     .stats {
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -690,7 +823,6 @@ body, button, input, select, textarea {
     }
   }
 
-  /* Mobile Tablets & Large Phones */
   @media (max-width: 768px) {
     .sidebar {
       transform: translateX(-100%);
@@ -708,8 +840,8 @@ body, button, input, select, textarea {
       margin-left: 0;
       width: 100%;
       max-width: 100vw;
-      padding: 18px;
-      padding-top: 74px; /* Clearance for fixed mobile hamburger button */
+      padding: 20px 16px 32px;
+      padding-top: 74px;
     }
 
     .page-header {
@@ -721,6 +853,29 @@ body, button, input, select, textarea {
       font-size: 21px;
     }
 
+    .filter-control-card,
+    .table-toolbar {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 16px;
+      gap: 12px;
+    }
+
+    .filter-group,
+    .class-filter-select {
+      width: 100%;
+    }
+
+    .export-group {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .btn-tool {
+      flex: 1;
+      justify-content: center;
+    }
+
     .classes-section,
     .chart-box,
     .table-box {
@@ -729,7 +884,6 @@ body, button, input, select, textarea {
     }
   }
 
-  /* Compact Smartphones (320px - 480px) */
   @media (max-width: 480px) {
     .main-content {
       padding: 12px;
@@ -790,17 +944,52 @@ body, button, input, select, textarea {
       text-align: center;
     }
   }
+
+  /* =====================================================
+     PRINT STYLESHEET OVERRIDES
+  ===================================================== */
+  @media print {
+    .sidebar, 
+    .mobile-menu-btn, 
+    .sidebar-overlay, 
+    .dashboard-intro, 
+    .filter-control-card,
+    .table-toolbar,
+    .classes-section, 
+    .chart-box, 
+    .stats, 
+    .btn-bar {
+      display: none !important;
+    }
+    .main-content {
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+    }
+    .table-box {
+      border: none !important;
+      box-shadow: none !important;
+      padding: 0 !important;
+    }
+    table {
+      min-width: 100% !important;
+    }
+    th:last-child, td:last-child {
+      display: none !important;
+    }
+  }
 </style>
 </head>
 
 <body>
 
-  <!-- MOBILE MENU BUTTON -->
+  <!-- MOBILE MENU BUTTON & BACKDROP OVERLAY -->
   <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
     <i class="fa-solid fa-bars"></i>
   </button>
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-  <!-- SIDEBAR NAVIGATION -->
+  <!-- SIDEBAR NAVIGATION RAIL -->
   <aside class="sidebar" id="sidebar">
     <h2>Regis Marie College</h2>
 
@@ -809,6 +998,7 @@ body, button, input, select, textarea {
       <div class="user-badge" id="userRoleBadge">STUDENT</div>
     </div>
 
+    <!-- DYNAMIC ROLE-BASED NAVIGATION -->
     <div id="sidebarMenu"></div>
 
     <div class="sidebar-section">
@@ -821,25 +1011,28 @@ body, button, input, select, textarea {
       <div id="sidebarGroupList"></div>
     </div>
 
-    <!-- LOGOUT BUTTON -->
-    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
-      🚪 Logout
+    <!-- SAFE LOGOUT BUTTON -->
+    <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <i class="fa-solid fa-right-from-bracket"></i> Logout
     </a>
   </aside>
 
-  <!-- MAIN CONTENT AREA -->
+  <!-- MAIN WORKSPACE CONTENT -->
   <main class="main-content">
 
     <section class="page-header">
       <div>
         <h1>My Learning Dashboard</h1>
-        <p>Track your academic performance, submitted activities, and class progress.</p>
+        <p>Track your academic performance, submitted activities, and class progress in real time.</p>
       </div>
-      <div class="header-icon">📊</div>
+      <div class="header-icon">
+        <i class="fa-solid fa-chart-pie"></i>
+      </div>
     </section>
 
     <div class="dashboard-container">
 
+      <!-- 1. ACADEMIC PROGRESS OVERVIEW -->
       <section class="dashboard-intro">
         <div class="intro-icon">
           <i class="fa-solid fa-chart-line"></i>
@@ -850,14 +1043,36 @@ body, button, input, select, textarea {
         </div>
       </section>
 
-      <!-- ACTIVE ENROLLED CLASSES BREAKDOWN -->
+      <!-- 2. MIDDLE FILTER BAR: ACTIVE CLASSES DROPDOWN & EXPORT TOOLS -->
+      <section class="filter-control-card">
+        <div class="filter-group">
+          <label for="classFilterSelect"><i class="fa-solid fa-filter"></i> Filter Class:</label>
+          <select id="classFilterSelect" class="class-filter-select" onchange="handleClassFilterChange()">
+            <option value="all">📚 All Active Classes</option>
+          </select>
+        </div>
+
+        <div class="export-group">
+          <button onclick="printDashboardTable()" class="btn-tool btn-print" title="Print this grades sheet">
+            <i class="fa-solid fa-print"></i> Print
+          </button>
+          <button onclick="exportTableToExcel()" class="btn-tool btn-excel" title="Download spreadsheet (.xls)">
+            <i class="fa-solid fa-file-excel"></i> Export Excel
+          </button>
+          <button onclick="exportTableToCSV()" class="btn-tool btn-csv" title="Download CSV file (.csv)">
+            <i class="fa-solid fa-file-csv"></i> Export CSV
+          </button>
+        </div>
+      </section>
+
+      <!-- 3. ACTIVE ENROLLED CLASSES BREAKDOWN -->
       <section class="classes-section">
         <div class="section-heading">
           <i class="fa-solid fa-graduation-cap"></i>
           <h2>My Active Enrolled Classes & Submission Tracking</h2>
         </div>
         <p style="font-size: 13.5px; color: var(--muted); margin-top: -10px;">
-          Monitor your active subjects to see where you are caught up or lacking submitted work.
+          Monitor your active subjects to see where you are caught up or have pending deliverables.
         </p>
         <div class="classes-grid" id="joinedClassesContainer">
           <div class="empty-message" style="grid-column: 1 / -1;">
@@ -867,18 +1082,18 @@ body, button, input, select, textarea {
         </div>
       </section>
 
-      <!-- PERFORMANCE CHART -->
+      <!-- 4. PERFORMANCE TREND (REACTS TO CLASS FILTER) -->
       <section class="chart-box">
         <div class="section-heading">
           <i class="fa-solid fa-chart-line"></i>
-          <h2>Performance Trend</h2>
+          <h2 id="chartHeadingTitle">Performance Trend</h2>
         </div>
         <div class="chart-wrapper">
           <canvas id="performanceChart"></canvas>
         </div>
       </section>
 
-      <!-- STATISTICS CARDS -->
+      <!-- 5. ACADEMIC KPI STATISTIC CARDS -->
       <section class="stats">
         <div class="card">
           <div class="card-icon">
@@ -913,25 +1128,26 @@ body, button, input, select, textarea {
         </div>
       </section>
 
-      <!-- ACTIVITY RESULTS TABLE -->
+      <!-- 6. ACTIVITY RESULTS TABLE -->
       <section class="table-box">
         <div class="section-heading">
           <i class="fa-solid fa-table-list"></i>
-          <h2>My Submitted Work & Grades</h2>
+          <h2 id="tableHeadingTitle">My Submitted Work & Grades</h2>
         </div>
         <table>
           <thead>
             <tr>
               <th>Activity Title</th>
-              <th>Course / Subject</th>
+              <th>Course / Subject & Schedule</th>
               <th>Submitted Score</th>
               <th>Status in Class</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody id="scoreTableBody">
             <tr>
-              <td colspan="4" style="text-align:center; color:#64748b; padding:25px;">
-                <i class="fa-solid fa-spinner fa-spin" style="font-size:20px; margin-bottom:8px;"></i><br>
+              <td colspan="5" style="text-align: center; color: #64748b; padding: 25px;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 20px; margin-bottom: 8px;"></i><br>
                 Loading submitted activities...
               </td>
             </tr>
@@ -939,8 +1155,8 @@ body, button, input, select, textarea {
         </table>
       </section>
 
-      <!-- BACK BUTTON -->
-      <div style="text-align: center;">
+      <!-- RETURN HOME ACTION -->
+      <div class="btn-bar">
         <a href="{{ url_for('landpage') }}" class="back">
           <i class="fa-solid fa-arrow-left"></i> Back to Home
         </a>
@@ -948,6 +1164,7 @@ body, button, input, select, textarea {
 
     </div>
   </main>
+</body>
 
  <script>
   /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
@@ -958,10 +1175,10 @@ body, button, input, select, textarea {
   });
 
   /* =====================================================
-      0. TYPE-SAFE ID HELPERS
+      0. TYPE-SAFE ID HELPERS & UTILITIES
   ===================================================== */
   function parseDbId(idVal) {
-    if (!idVal) return idVal;
+    if (idVal === null || idVal === undefined || idVal === '') return idVal;
     if (typeof idVal === 'number') return idVal;
     const str = String(idVal).trim();
     return /^\d+$/.test(str) ? parseInt(str, 10) : str;
@@ -971,7 +1188,7 @@ body, button, input, select, textarea {
     const result = new Set();
     (idArray || []).forEach(id => {
       if (id !== null && id !== undefined && id !== '') {
-        result.add(String(id));
+        result.add(String(id).trim());
         const num = parseDbId(id);
         if (typeof num === 'number' && !isNaN(num)) {
           result.add(num);
@@ -979,6 +1196,41 @@ body, button, input, select, textarea {
       }
     });
     return Array.from(result);
+  }
+
+  function escapeHtml(text) {
+    if (text === null || text === undefined) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatDateTime(dateVal) {
+    if (!dateVal) return null;
+    // Normalize date strings with space-separated times for cross-browser parsing
+    const dateStr = typeof dateVal === 'string' ? dateVal.replace(' ', 'T') : dateVal;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    
+    return d.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+
+  function escapeCsvCell(cellText) {
+    const cleaned = String(cellText ?? "").replace(/(\r\n|\n|\r)/gm, " ").trim();
+    if (cleaned.includes(",") || cleaned.includes('"') || cleaned.includes(";") || cleaned.includes("\t")) {
+      return `"${cleaned.replace(/"/g, '""')}"`;
+    }
+    return cleaned;
   }
 
   /* =====================================================
@@ -989,7 +1241,7 @@ body, button, input, select, textarea {
   const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "Student User";
   const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
 
-  // Non-students are redirected to their home portal
+  // Non-students are redirected to their designated landing page
   if (userRole === "TEACHER" || userRole === "ADMIN") {
     window.location.replace("{{ url_for('landpage') }}");
   }
@@ -999,7 +1251,7 @@ body, button, input, select, textarea {
   if (badgeEl) badgeEl.textContent = userRole;
   if (nameEl) nameEl.textContent = userName;
 
-  // Flask Route URLs
+  // Flask Dynamic Route URLs
   const homeUrl = "{{ url_for('landpage') }}";
   const joinUrl = "{{ url_for('join_page') }}";
   const calendarUrl = "{{ url_for('calendar_page') }}";
@@ -1010,12 +1262,11 @@ body, button, input, select, textarea {
   const accountUrl = "{{ url_for('account_page') }}";
   const classPageUrl = "{{ url_for('class_page') }}";
   const groupPageUrl = "{{ url_for('group_page') }}";
-  const privateMessageInboxUrl = "private-message.html";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
   const submitActivityUrl = "{{ url_for('activitysubmit_page') }}";
   const reviewUrl = "{{ url_for('review_page') }}";
 
   const sidebarMenu = document.getElementById("sidebarMenu");
-
   if (sidebarMenu) {
     sidebarMenu.innerHTML = `
       <a href="${homeUrl}">🏠 Home</a>
@@ -1030,30 +1281,55 @@ body, button, input, select, textarea {
     `;
   }
 
+  /* MOBILE SIDEBAR TOGGLE & BACKDROP OVERLAY */
   const mobileMenuBtn = document.getElementById("mobileMenuBtn");
   const sidebar = document.getElementById("sidebar");
+  const sidebarOverlay = document.getElementById("sidebarOverlay");
+
+  function toggleMobileDrawer(open) {
+    const shouldOpen = open !== undefined ? open : !sidebar.classList.contains("active");
+    if (shouldOpen) {
+      sidebar.classList.add("active");
+      if (sidebarOverlay) sidebarOverlay.classList.add("active");
+    } else {
+      sidebar.classList.remove("active");
+      if (sidebarOverlay) sidebarOverlay.classList.remove("active");
+    }
+  }
 
   if (mobileMenuBtn && sidebar) {
     mobileMenuBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      sidebar.classList.toggle("active");
-    });
-
-    document.addEventListener("click", (e) => {
-      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
-        sidebar.classList.remove("active");
-      }
+      toggleMobileDrawer();
     });
   }
 
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener("click", () => toggleMobileDrawer(false));
+  }
+
+  document.addEventListener("click", (e) => {
+    if (sidebar && !sidebar.contains(e.target) && mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
+      toggleMobileDrawer(false);
+    }
+  });
+
+  /* 🔒 SAFE LOGOUT: Wipes auth tokens while preserving acknowledged notification IDs */
   function logoutUser() {
-    localStorage.clear();
+    const authKeys = [
+      "user_id", "userRole", "role", "full_name", "email",
+      "selectedClass", "selectedClassId", "selectedGroup", "selectedGroupId",
+      "selectedSubmissionId", "selectedActivityId", "selectedStudentId",
+      "gradingStudentId", "updateType", "updateClassId", "updateGroupId",
+      "joinedClasses", "joinedGroups", "isArchivedView"
+    ];
+    authKeys.forEach(k => localStorage.removeItem(k));
     sessionStorage.clear();
     window.location.replace("{{ url_for('logout') }}");
   }
 
   /* =====================================================
-      2. SUPABASE INITIALIZATION
+      2. SUPABASE INITIALIZATION & CACHED STATE
   ===================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
@@ -1062,19 +1338,40 @@ body, button, input, select, textarea {
     if (window._supabase) return window._supabase;
     const supabaseLib = window.supabase || window.Supabase;
     if (supabaseLib && typeof supabaseLib.createClient === 'function') {
-      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        global: {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      });
       return window._supabase;
     }
     return null;
   }
 
+  /* CACHED STATE FOR INSTANT REACTIVITY ACROSS COMPONENTS */
+  let cachedAllActivities = [];
+  let cachedSubmissions = [];
+  let cachedEnrolledClasses = [];
+  let cachedClassActivityMap = {};
+  let chartInstance = null;
+
+  /* Resilient Startup: Retries up to 20 times (2s) until Supabase CDN loads */
   document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(() => {
+    let attempts = 0;
+    const initTimer = setInterval(() => {
+      attempts++;
       const client = getSupabaseClient();
       if (client) {
+        clearInterval(initTimer);
         loadSidebarClasses();
         loadSidebarGroups();
         loadStudentPerformanceData();
+      } else if (attempts >= 20) {
+        clearInterval(initTimer);
+        console.error("Supabase SDK failed to load within 2 seconds.");
       }
     }, 100);
   });
@@ -1084,7 +1381,7 @@ body, button, input, select, textarea {
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
-    if (!client) return;
+    if (!client || !currentUserId) return;
 
     const sidebarClassList = document.getElementById("sidebarClassList");
     if (!sidebarClassList) return;
@@ -1094,14 +1391,14 @@ body, button, input, select, textarea {
     let classes = [];
 
     if (userSearchIds.length > 0) {
-      const { data: memberships } = await client
-        .from('class_memberships')
-        .select('class_id')
-        .in('user_id', userSearchIds);
+      const [memUser, memStudent] = await Promise.all([
+        client.from('class_memberships').select('class_id').in('user_id', userSearchIds),
+        client.from('class_memberships').select('class_id').in('student_id', userSearchIds)
+      ]);
 
-      if (memberships && memberships.length > 0) {
-        const classIds = getDualTypeIds(memberships.map(m => m.class_id));
-
+      const combinedMems = [...(memUser.data || []), ...(memStudent.data || [])];
+      if (combinedMems.length > 0) {
+        const classIds = getDualTypeIds(combinedMems.map(m => m.class_id));
         if (classIds.length > 0) {
           const { data: clsData } = await client
             .from('classes')
@@ -1126,14 +1423,17 @@ body, button, input, select, textarea {
       classes.forEach(c => {
         const sideLink = document.createElement("a");
         sideLink.className = "sidebar-item";
-        if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
-        sideLink.textContent = `📘 ${c.subject}`;
+        if (c.code && currentSelectedCode && String(c.code).trim() === String(currentSelectedCode).trim()) {
+          sideLink.classList.add("active");
+          sideLink.style.fontWeight = "bold";
+        }
+        sideLink.textContent = `📘 ${c.subject || "Subject"}`;
         sideLink.href = classPageUrl;
         sideLink.onclick = (e) => {
           e.preventDefault();
           localStorage.removeItem("isArchivedView");
-          localStorage.setItem("selectedClass", c.code);
-          localStorage.setItem("selectedClassId", String(c.id));
+          if (c.code) localStorage.setItem("selectedClass", String(c.code).trim());
+          if (c.id) localStorage.setItem("selectedClassId", String(c.id).trim());
           window.location.href = classPageUrl;
         };
         sidebarClassList.appendChild(sideLink);
@@ -1145,7 +1445,7 @@ body, button, input, select, textarea {
 
   async function loadSidebarGroups() {
     const client = getSupabaseClient();
-    if (!client) return;
+    if (!client || !currentUserId) return;
 
     const sidebarGroupList = document.getElementById("sidebarGroupList");
     if (!sidebarGroupList) return;
@@ -1155,14 +1455,14 @@ body, button, input, select, textarea {
     let groups = [];
 
     if (userSearchIds.length > 0) {
-      const { data: memberships } = await client
-        .from('group_memberships')
-        .select('group_id')
-        .in('user_id', userSearchIds);
+      const [memUser, memStudent] = await Promise.all([
+        client.from('group_memberships').select('group_id').in('user_id', userSearchIds),
+        client.from('group_memberships').select('group_id').in('student_id', userSearchIds)
+      ]);
 
-      if (memberships && memberships.length > 0) {
-        const groupIds = getDualTypeIds(memberships.map(m => m.group_id));
-
+      const combinedMems = [...(memUser.data || []), ...(memStudent.data || [])];
+      if (combinedMems.length > 0) {
+        const groupIds = getDualTypeIds(combinedMems.map(m => m.group_id));
         if (groupIds.length > 0) {
           const { data: grpData } = await client
             .from('groups')
@@ -1187,14 +1487,17 @@ body, button, input, select, textarea {
       groups.forEach(g => {
         const sideLink = document.createElement("a");
         sideLink.className = "sidebar-item";
-        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
-        sideLink.textContent = `👥 ${g.name}`;
+        if (g.code && currentSelectedGroup && String(g.code).trim() === String(currentSelectedGroup).trim()) {
+          sideLink.classList.add("active");
+          sideLink.style.fontWeight = "bold";
+        }
+        sideLink.textContent = `👥 ${g.name || "Group"}`;
         sideLink.href = groupPageUrl;
         sideLink.onclick = (e) => {
           e.preventDefault();
           localStorage.removeItem("isArchivedView");
-          localStorage.setItem("selectedGroup", g.code);
-          localStorage.setItem("selectedGroupId", String(g.id));
+          if (g.code) localStorage.setItem("selectedGroup", String(g.code).trim());
+          if (g.id) localStorage.setItem("selectedGroupId", String(g.id).trim());
           window.location.href = groupPageUrl;
         };
         sidebarGroupList.appendChild(sideLink);
@@ -1207,26 +1510,24 @@ body, button, input, select, textarea {
   /* =====================================================
       4. FETCH STUDENT PERFORMANCE & SUBMISSIONS
   ===================================================== */
-  let chartInstance = null;
-
   async function loadStudentPerformanceData() {
     const client = getSupabaseClient();
     if (!client || !currentUserId) return;
 
     const userSearchIds = getDualTypeIds([currentUserId]);
 
-    // Step 1: Fetch Enrolled Classes
-    const { data: memberships } = await client
-      .from('class_memberships')
-      .select('class_id')
-      .in('user_id', userSearchIds);
+    // Step 1: Enrolled Classes (Dual Schema Safe)
+    const [memUser, memStudent] = await Promise.all([
+      client.from('class_memberships').select('class_id').in('user_id', userSearchIds),
+      client.from('class_memberships').select('class_id').in('student_id', userSearchIds)
+    ]);
 
+    const memberships = [...(memUser.data || []), ...(memStudent.data || [])];
     let enrolledClasses = [];
     let classSearchIds = [];
 
-    if (memberships && memberships.length > 0) {
+    if (memberships.length > 0) {
       classSearchIds = getDualTypeIds(memberships.map(m => m.class_id));
-
       if (classSearchIds.length > 0) {
         const { data: clsData } = await client
           .from('classes')
@@ -1249,7 +1550,10 @@ body, button, input, select, textarea {
       }
     }
 
-    // Step 2: Fetch Class Activities
+    cachedEnrolledClasses = enrolledClasses;
+    populateClassFilterDropdown(enrolledClasses);
+
+    // Step 2: Activities (Properly mapped with parent class details)
     let allActivities = [];
     let activityMap = {};
     let classActivityMap = {};
@@ -1261,15 +1565,17 @@ body, button, input, select, textarea {
         .in('class_id', classSearchIds)
         .order('created_at', { ascending: false });
 
-      allActivities = acts || [];
+      allActivities = (acts || []).map(act => {
+        const classIdStr = String(act.class_id || '');
+        const classObj = enrolledClasses.find(c =>
+          String(c.id).trim() === classIdStr.trim() ||
+          (c.code && act.class_code && String(c.code).trim().toLowerCase() === String(act.class_code).trim().toLowerCase()) ||
+          parseDbId(c.id) === parseDbId(classIdStr)
+        ) || (act.classes && typeof act.classes === 'object' ? act.classes : {});
 
-      allActivities.forEach(act => {
-        const actIdStr = String(act.id);
-        const classIdStr = String(act.class_id);
-
-        const classObj = enrolledClasses.find(c => String(c.id) === classIdStr || parseDbId(c.id) === parseDbId(classIdStr)) || {};
         const actWithClass = { ...act, classes: classObj };
 
+        const actIdStr = String(act.id);
         activityMap[actIdStr] = actWithClass;
         activityMap[parseDbId(act.id)] = actWithClass;
 
@@ -1277,72 +1583,141 @@ body, button, input, select, textarea {
           classActivityMap[classIdStr] = [];
         }
         classActivityMap[classIdStr].push(actWithClass);
+
+        return actWithClass;
       });
     }
 
-    // Step 3: Fetch Submissions for this student
-    const { data: studentSubsRaw } = await client
-      .from('submissions')
-      .select('*')
-      .in('user_id', userSearchIds);
+    cachedAllActivities = allActivities;
+    cachedClassActivityMap = classActivityMap;
 
-    const activeSubs = (studentSubsRaw || []).filter(s => {
+    // Step 3: Submissions (Deduplicated across user_id & student_id)
+    const [subUser, subStudent] = await Promise.all([
+      client.from('submissions').select('*').in('user_id', userSearchIds),
+      client.from('submissions').select('*').in('student_id', userSearchIds)
+    ]);
+
+    const studentSubsRaw = [...(subUser.data || []), ...(subStudent.data || [])];
+    const uniqueSubsMap = new Map();
+    studentSubsRaw.forEach(s => {
+      if (s && s.id) uniqueSubsMap.set(String(s.id), s);
+    });
+
+    const activeSubs = Array.from(uniqueSubsMap.values()).filter(s => {
       const st = String(s.status || '').toLowerCase();
       return st === 'submitted' || st === 'graded' || st === 'finished' || (s.submitted_at && st !== 'unsubmitted');
     });
 
-    // 🔒 Filter submissions strictly to activities belonging to active enrolled classes
     const submissions = activeSubs
       .map(s => {
         const actObj = activityMap[String(s.activity_id)] || activityMap[parseDbId(s.activity_id)];
         if (!actObj) return null;
-        return {
-          ...s,
-          activities: actObj
-        };
+        return { ...s, activities: actObj };
       })
       .filter(s => s !== null);
 
-    const totalPostedActivities = allActivities.length;
+    cachedSubmissions = submissions;
 
-    const evaluatedSubmissions = submissions.filter(s => {
+    // Initial render for All Active Classes
+    updateDashboardView("all");
+  }
+
+  /* =====================================================
+      5. DYNAMIC FILTER CONTROLLER (REACTS TO CLASS FILTER)
+  ===================================================== */
+  function populateClassFilterDropdown(classes) {
+    const select = document.getElementById("classFilterSelect");
+    if (!select) return;
+
+    select.innerHTML = `<option value="all">📚 All Active Classes</option>`;
+    classes.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = String(c.id);
+      opt.textContent = `📘 ${c.subject || c.name || "Subject"} (${c.code || "Code"})`;
+      select.appendChild(opt);
+    });
+  }
+
+  function handleClassFilterChange() {
+    const select = document.getElementById("classFilterSelect");
+    if (!select) return;
+    updateDashboardView(select.value);
+  }
+
+  function updateDashboardView(selectedClassId) {
+    let filteredActs = cachedAllActivities;
+    let filteredSubs = cachedSubmissions;
+    let filteredClasses = cachedEnrolledClasses;
+
+    const chartTitle = document.getElementById("chartHeadingTitle");
+    const tableTitle = document.getElementById("tableHeadingTitle");
+
+    if (selectedClassId !== "all") {
+      filteredActs = cachedAllActivities.filter(a =>
+        String(a.class_id) === String(selectedClassId) || parseDbId(a.class_id) === parseDbId(selectedClassId)
+      );
+      filteredSubs = cachedSubmissions.filter(s => {
+        const sCid = String(s.activities?.class_id || '');
+        return sCid === String(selectedClassId) || parseDbId(sCid) === parseDbId(selectedClassId);
+      });
+      filteredClasses = cachedEnrolledClasses.filter(c =>
+        String(c.id) === String(selectedClassId) || parseDbId(c.id) === parseDbId(selectedClassId)
+      );
+
+      const selectedClassObj = cachedEnrolledClasses.find(c =>
+        String(c.id) === String(selectedClassId) || parseDbId(c.id) === parseDbId(selectedClassId)
+      );
+      const className = selectedClassObj ? (selectedClassObj.subject || selectedClassObj.name || "Selected Class") : "Selected Class";
+
+      if (chartTitle) chartTitle.textContent = `Performance Trend — ${className}`;
+      if (tableTitle) tableTitle.textContent = `Submitted Work & Grades — ${className}`;
+    } else {
+      if (chartTitle) chartTitle.textContent = "Performance Trend — All Active Classes";
+      if (tableTitle) tableTitle.textContent = "My Submitted Work & Grades";
+    }
+
+    // 1. Recalculate KPIs based on filtered deliverables
+    const evaluatedSubs = filteredSubs.filter(s => {
       const st = String(s.status || '').toLowerCase();
       return st === 'graded' || s.grade !== null || s.score !== null;
     });
 
-    const pendingEvaluationSubs = submissions.filter(s => {
+    const pendingSubs = filteredSubs.filter(s => {
       const st = String(s.status || '').toLowerCase();
       return st !== 'graded' && (s.grade === null || s.grade === undefined) && (s.score === null || s.score === undefined);
     });
 
-    // Compute Overall Average Percentage
     let pctSum = 0;
-    evaluatedSubmissions.forEach(s => {
+    evaluatedSubs.forEach(s => {
       const scoreVal = s.grade !== null && s.grade !== undefined ? s.grade : (s.score !== null && s.score !== undefined ? s.score : 0);
-      const maxPts = s.activities?.total_points || 100;
+      const maxPts = Number(s.activities?.total_points) > 0 ? Number(s.activities.total_points) : 100;
       pctSum += (Number(scoreVal) / maxPts) * 100;
     });
 
-    const avgScore = evaluatedSubmissions.length > 0 ? Math.round(pctSum / evaluatedSubmissions.length) : 0;
+    const avgScore = evaluatedSubs.length > 0 ? Math.round(pctSum / evaluatedSubs.length) : 0;
 
-    // Update KPI UI Cards
     const avgScoreEl = document.getElementById("averageScore");
     const compActEl = document.getElementById("completedActivities");
     const pendActEl = document.getElementById("pendingActivities");
     const totActEl = document.getElementById("totalActivities");
 
-    if (avgScoreEl) avgScoreEl.textContent = evaluatedSubmissions.length > 0 ? `${avgScore}%` : "0%";
-    if (compActEl) compActEl.textContent = evaluatedSubmissions.length;
-    if (pendActEl) pendActEl.textContent = pendingEvaluationSubs.length;
-    if (totActEl) totActEl.textContent = totalPostedActivities;
+    if (avgScoreEl) avgScoreEl.textContent = evaluatedSubs.length > 0 ? `${avgScore}%` : "0%";
+    if (compActEl) compActEl.textContent = evaluatedSubs.length;
+    if (pendActEl) pendActEl.textContent = pendingSubs.length;
+    if (totActEl) totActEl.textContent = `${filteredSubs.length} / ${filteredActs.length}`;
 
-    renderEnrolledClassesSummary(enrolledClasses, classActivityMap, submissions);
-    renderChart(submissions);
-    renderSubmissionsTable(allActivities, submissions);
+    // 2. React Enrolled Class Cards
+    renderEnrolledClassesSummary(filteredClasses, cachedClassActivityMap, filteredSubs);
+
+    // 3. React Performance Trend Chart (Fixed: passes both filteredActs and filteredSubs)
+    renderChart(filteredActs, filteredSubs);
+
+    // 4. React Submissions Table
+    renderSubmissionsTable(filteredActs, filteredSubs);
   }
 
   /* =====================================================
-      5. RENDER ACTIVE ENROLLED CLASSES SUMMARY CARDS
+      6. RENDER ENROLLED CLASSES SUMMARY CARDS
   ===================================================== */
   function renderEnrolledClassesSummary(enrolledClasses, classActivityMap, submissions) {
     const container = document.getElementById("joinedClassesContainer");
@@ -1354,11 +1729,13 @@ body, button, input, select, textarea {
       container.innerHTML = `
         <div class="empty-message" style="grid-column: 1 / -1;">
           <i class="fa-solid fa-folder-open" style="font-size:24px; margin-bottom: 8px; color: var(--muted);"></i><br>
-          You haven't joined any active classes yet. Click <strong>🔑 Join Class/Group</strong> to enroll using a class code!
+          No class records matching the active filter.
         </div>
       `;
       return;
     }
+
+    const now = new Date();
 
     enrolledClasses.forEach(c => {
       const classIdStr = String(c.id);
@@ -1366,15 +1743,36 @@ body, button, input, select, textarea {
       const totalPosted = classActs.length;
       const classActIdStrs = classActs.map(a => String(a.id));
 
+      // Filter submissions belonging strictly to this class
       const classSubmissions = submissions.filter(s => {
         const sActIdStr = String(s.activity_id);
         const sClassIdStr = String(s.activities?.class_id || '');
         return classActIdStrs.includes(sActIdStr) || sClassIdStr === classIdStr || String(s.activities?.classes?.code) === String(c.code);
       });
 
-      const turnedInCount = classSubmissions.length;
+      // Track unique turned-in activities to prevent duplicate count inflation
+      const uniqueTurnedInActs = new Set();
+      classSubmissions.forEach(s => {
+        if (s.activity_id) uniqueTurnedInActs.add(String(s.activity_id));
+      });
+
+      const turnedInCount = Math.min(totalPosted, uniqueTurnedInActs.size);
       const missingCount = Math.max(0, totalPosted - turnedInCount);
 
+      // Check how many unsubmitted activities have passed their deadline (Failed state)
+      let overdueFailedCount = 0;
+      classActs.forEach(act => {
+        const isSubmitted = uniqueTurnedInActs.has(String(act.id)) || uniqueTurnedInActs.has(String(parseDbId(act.id)));
+        if (!isSubmitted) {
+          const rawDeadline = act.deadline || act.due_date;
+          const deadlineDate = rawDeadline ? new Date(rawDeadline) : null;
+          if (deadlineDate && now > deadlineDate) {
+            overdueFailedCount++;
+          }
+        }
+      });
+
+      // Calculate class grade percentage (with zero-division protection)
       const gradedSubs = classSubmissions.filter(s => {
         const st = String(s.status || '').toLowerCase();
         return st === 'graded' || s.grade !== null || s.score !== null;
@@ -1383,33 +1781,41 @@ body, button, input, select, textarea {
       let classPctSum = 0;
       gradedSubs.forEach(s => {
         const scoreVal = s.grade !== null && s.grade !== undefined ? s.grade : (s.score !== null && s.score !== undefined ? s.score : 0);
-        const maxPts = s.activities?.total_points || 100;
+        const maxPts = Number(s.activities?.total_points) > 0 ? Number(s.activities.total_points) : 100;
         classPctSum += (Number(scoreVal) / maxPts) * 100;
       });
       const classAvg = gradedSubs.length > 0 ? Math.round(classPctSum / gradedSubs.length) + "%" : "N/A";
 
+      // Status Badge: Prioritizes Overdue/Failed, then general missing, then completed
       let badgeHtml = "";
-      if (missingCount > 0) {
-        badgeHtml = `<span class="class-badge-warning"><i class="fa-solid fa-triangle-exclamation"></i> Lacking ${missingCount} Submission${missingCount > 1 ? 's' : ''}</span>`;
+      if (overdueFailedCount > 0) {
+        badgeHtml = `<span class="class-badge-warning" style="background:#fee2e2; color:#b91c1c; border-color:#fca5a5;"><i class="fa-solid fa-triangle-exclamation"></i> ${overdueFailedCount} Overdue (Failed)</span>`;
+      } else if (missingCount > 0) {
+        badgeHtml = `<span class="class-badge-warning"><i class="fa-regular fa-clock"></i> Lacking ${missingCount} Submission${missingCount > 1 ? 's' : ''}</span>`;
       } else if (totalPosted > 0 && turnedInCount >= totalPosted) {
         badgeHtml = `<span class="class-badge-success"><i class="fa-solid fa-circle-check"></i> All Work Submitted</span>`;
       } else {
         badgeHtml = `<span class="class-badge-success"><i class="fa-solid fa-check"></i> Up to Date</span>`;
       }
 
+      // Format course / section without trailing dashes when values are missing
+      const courseText = escapeHtml(c.course || "General");
+      const yearText = c.year_level ? ` - ${escapeHtml(c.year_level)}` : "";
+      const sectionText = c.section ? ` (${escapeHtml(c.section)})` : "";
+
       const card = document.createElement("div");
       card.className = "class-card";
       card.innerHTML = `
         <div>
           <div class="class-card-header">
-            <span class="class-title">📘 ${escapeHtml(c.subject)}</span>
-            <span class="class-code-tag">${escapeHtml(c.code)}</span>
+            <span class="class-title">📘 ${escapeHtml(c.subject || c.name || "Subject")}</span>
+            <span class="class-code-tag">${escapeHtml(c.code || "")}</span>
           </div>
           <div style="margin-bottom: 8px;">
             ${badgeHtml}
           </div>
           <div style="font-size: 12px; color: var(--muted);">
-            🎓 ${escapeHtml(c.course || "General")} - ${escapeHtml(c.year_level || "")} (${escapeHtml(c.section || "Block")})
+            🎓 ${courseText}${yearText}${sectionText}
           </div>
         </div>
 
@@ -1419,7 +1825,7 @@ body, button, input, select, textarea {
             <div class="stat-lbl">Turned In</div>
           </div>
           <div class="class-stat-item">
-            <div class="stat-val" style="color: ${missingCount > 0 ? '#dc2626' : '#166534'};">${missingCount}</div>
+            <div class="stat-val" style="color: ${overdueFailedCount > 0 ? '#dc2626' : (missingCount > 0 ? '#d97706' : '#166534')};">${missingCount}</div>
             <div class="stat-lbl">Lacking</div>
           </div>
           <div class="class-stat-item">
@@ -1437,145 +1843,316 @@ body, button, input, select, textarea {
     });
   }
 
-  function navigateToClass(classCode, classId) {
+  function navigateToClass(classCode, classId, targetTab = 'activities') {
     localStorage.removeItem("isArchivedView");
     localStorage.setItem("selectedClass", classCode);
-    if (classId) localStorage.setItem("selectedClassId", String(classId));
-    window.location.href = classPageUrl;
+    if (classId && classId !== "undefined" && classId !== "null") {
+      localStorage.setItem("selectedClassId", String(classId));
+    }
+
+    // 🎯 Set target tab in localStorage
+    localStorage.setItem("activeClassTab", targetTab);
+
+    // 🎯 Append query parameter and hash to URL (e.g., /class?tab=activities#activities)
+    const separator = classPageUrl.includes('?') ? '&' : '?';
+    window.location.href = `${classPageUrl}${separator}tab=${encodeURIComponent(targetTab)}#${encodeURIComponent(targetTab)}`;
   }
 
   /* =====================================================
-      6. RENDER PERFORMANCE LINE CHART (CHRONOLOGICAL)
+      7. RENDER PERFORMANCE LINE CHART (CHRONOLOGICAL & COMPREHENSIVE)
   ===================================================== */
-  function renderChart(submissions) {
+  function renderChart(activitiesList, submissions) {
     const canvas = document.getElementById("performanceChart");
     if (!canvas) return;
 
+    if (typeof Chart === 'undefined') {
+      console.warn("Chart.js is not loaded.");
+      return;
+    }
+
     const ctx = canvas.getContext("2d");
 
-    const evaluated = submissions.filter(s => {
-      const st = String(s.status || '').toLowerCase();
-      return st === 'graded' || s.grade !== null || s.score !== null;
+    // Destroy existing instance to prevent canvas ghosting
+    if (chartInstance) {
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+
+    if (!activitiesList || activitiesList.length === 0) {
+      chartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: ["No Activities Posted"],
+          datasets: [{
+            label: "Score (%)",
+            data: [0],
+            borderColor: "#cbd5e1",
+            borderDash: [6, 6],
+            pointRadius: 4,
+            pointBackgroundColor: "#94a3b8"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: {
+            y: { beginAtZero: true, max: 100, ticks: { callback: (v) => `${v}%` } }
+          }
+        }
+      });
+      return;
+    }
+
+    // Sort ALL activities chronologically (Oldest -> Newest) by deadline or creation date
+    const sortedActs = [...activitiesList].sort((a, b) => {
+      const dateA = new Date(a.deadline || a.due_date || a.created_at || 0);
+      const dateB = new Date(b.deadline || b.due_date || b.created_at || 0);
+      return dateA - dateB;
     });
 
-    // 🔒 Sort chronologically so progress reflects actual progression
-    evaluated.sort((a, b) => new Date(a.submitted_at || a.created_at || 0) - new Date(b.submitted_at || b.created_at || 0));
-
-    const labels = evaluated.map((s, i) => s.activities?.title || `Task ${i + 1}`);
-    const scores = evaluated.map(s => {
-      const scoreVal = s.grade !== null && s.grade !== undefined ? s.grade : (s.score !== null && s.score !== undefined ? s.score : 0);
-      const maxPts = s.activities?.total_points || 100;
-      return Math.round((Number(scoreVal) / maxPts) * 100);
+    // Map student submissions by activity ID
+    const subByActId = {};
+    (submissions || []).forEach(s => {
+      if (s && s.activity_id) {
+        subByActId[String(s.activity_id)] = s;
+        subByActId[parseDbId(s.activity_id)] = s;
+      }
     });
 
-    if (chartInstance) chartInstance.destroy();
+    const now = new Date();
+    const labels = [];
+    const scores = [];
+    const pointBgColors = [];
+    const pointBorderColors = [];
+    const statusMeta = [];
+
+    sortedActs.forEach((act, idx) => {
+      const sub = subByActId[String(act.id)] || subByActId[parseDbId(act.id)];
+      const maxPts = Number(act.total_points) > 0 ? Number(act.total_points) : 100;
+      const rawDeadline = act.deadline || act.due_date;
+      const deadlineDate = rawDeadline ? new Date(rawDeadline) : null;
+      const isOverdue = deadlineDate && now > deadlineDate;
+
+      // Label: Activity Title or Activity Number
+      const labelTitle = act.title || `Activity ${idx + 1}`;
+      labels.push(labelTitle);
+
+      if (!sub) {
+        if (isOverdue) {
+          // 🛑 Unsubmitted and past deadline -> 0% FAILED
+          scores.push(0);
+          pointBgColors.push("#ef4444");      // Red
+          pointBorderColors.push("#991b1b");
+          statusMeta.push({
+            status: "Failed",
+            display: "0% (Failed - Overdue)",
+            badge: "FAILED"
+          });
+        } else {
+          // ⏳ Due soon (not yet turned in) -> 0%
+          scores.push(0);
+          pointBgColors.push("#94a3b8");      // Muted Gray
+          pointBorderColors.push("#64748b");
+          statusMeta.push({
+            status: "Due Soon",
+            display: "0% (Due Soon - Not Submitted)",
+            badge: "DUE SOON"
+          });
+        }
+      } else {
+        const st = String(sub.status || '').toLowerCase();
+        const isGraded = st === 'graded' || sub.grade !== null || sub.score !== null;
+
+        if (isGraded) {
+          // 📘 Evaluated work -> Earned Score Percentage
+          const rawScore = sub.grade !== null && sub.grade !== undefined ? sub.grade : sub.score;
+          const pct = Math.round((Number(rawScore) / maxPts) * 100);
+          scores.push(pct);
+          pointBgColors.push("#2563eb");      // Brand Blue
+          pointBorderColors.push("#1e40af");
+          statusMeta.push({
+            status: "Graded",
+            display: `${pct}% (${rawScore} / ${maxPts} pts)`,
+            badge: "GRADED"
+          });
+        } else {
+          // ⚠️ Turned in but awaiting grade -> 0% PENDING
+          scores.push(0);
+          pointBgColors.push("#f59e0b");      // Amber
+          pointBorderColors.push("#b45309");
+          statusMeta.push({
+            status: "Pending",
+            display: "0% (Pending Review)",
+            badge: "PENDING"
+          });
+        }
+      }
+    });
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(37, 99, 235, 0.35)');
+    gradient.addColorStop(0, 'rgba(37, 99, 235, 0.28)');
     gradient.addColorStop(1, 'rgba(37, 99, 235, 0.01)');
 
     chartInstance = new Chart(ctx, {
       type: "line",
       data: {
-        labels: labels.length > 0 ? labels : ["No Graded Work Yet"],
+        labels: labels,
         datasets: [{
-          label: "Score Percentage (%)",
-          data: scores.length > 0 ? scores : [0],
+          label: "Performance",
+          data: scores,
           borderColor: "#2563eb",
           backgroundColor: gradient,
           fill: true,
-          tension: 0.35,
+          tension: 0.25,
           borderWidth: 3,
-          pointRadius: 5,
-          pointBackgroundColor: "#2563eb",
-          pointBorderColor: "#ffffff",
+          pointRadius: 6,
+          pointHoverRadius: 9,
+          pointBackgroundColor: pointBgColors,
+          pointBorderColor: pointBorderColors,
           pointBorderWidth: 2
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
         plugins: {
-          legend: { display: false }
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: "#1e293b",
+            titleFont: { size: 13, weight: "bold" },
+            bodyFont: { size: 12 },
+            padding: 12,
+            cornerRadius: 8,
+            callbacks: {
+              title: (items) => labels[items[0].dataIndex],
+              label: (context) => {
+                const meta = statusMeta[context.dataIndex];
+                return ` Score / Status: ${meta.display}`;
+              }
+            }
+          }
         },
         scales: {
           y: {
             beginAtZero: true,
             max: 100,
             grid: { color: "#f1f5f9" },
-            ticks: { font: { size: 11, weight: "bold" }, color: "#64748b" }
+            ticks: {
+              stepSize: 20,
+              font: { size: 11, weight: "bold" },
+              color: "#64748b",
+              callback: (val) => `${val}%`
+            }
           },
           x: {
             grid: { color: "#f8fafc" },
-            ticks: { font: { size: 11, weight: "600" }, color: "#64748b" }
+            ticks: {
+              font: { size: 11, weight: "600" },
+              color: "#64748b",
+              maxRotation: 45,
+              minRotation: 0
+            }
           }
         }
       }
     });
   }
-
   /* =====================================================
-      7. RENDER ACTIVITY RESULTS & SMART SUBMISSION TABLE
+      8. RENDER ACTIVITY RESULTS & SMART SUBMISSION TABLE
   ===================================================== */
-  function renderSubmissionsTable(allActivities, submissions) {
+  function renderSubmissionsTable(activitiesList, submissions) {
     const tbody = document.getElementById("scoreTableBody");
     if (!tbody) return;
 
     tbody.innerHTML = "";
 
-    if (allActivities.length === 0) {
+    if (!activitiesList || activitiesList.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="5" style="text-align:center; color:#64748b; padding:25px;">
+          <td colspan="5" style="text-align: center; color: #64748b; padding: 28px;">
             <i class="fa-solid fa-inbox" style="font-size: 24px; margin-bottom: 8px;"></i><br>
-            No activities posted across your enrolled subjects yet.
+            No activities recorded for this class selection.
           </td>
         </tr>
       `;
       return;
     }
 
-    // Map submissions by activity_id for fast lookup
+    // Map submissions by activity ID (both string and numeric keys)
     const subByActId = {};
-    submissions.forEach(s => {
-      subByActId[String(s.activity_id)] = s;
-      subByActId[parseDbId(s.activity_id)] = s;
+    (submissions || []).forEach(s => {
+      if (s && s.activity_id !== undefined && s.activity_id !== null) {
+        subByActId[String(s.activity_id)] = s;
+        subByActId[parseDbId(s.activity_id)] = s;
+      }
     });
 
     const now = new Date();
 
-    allActivities.forEach(act => {
+    activitiesList.forEach(act => {
       const sub = subByActId[String(act.id)] || subByActId[parseDbId(act.id)];
-      const subjectName = act.classes?.subject || "Enrolled Subject";
-      const maxPts = act.total_points || 100;
+      
+      // Resilient Class Name & Code resolution
+      const subjectName = act.classes?.subject || act.classes?.name || act.classes?.course || act.subject || act.course || "Class Activity";
+      const classCode = act.classes?.code || act.class_code || "";
+      const maxPts = Number(act.total_points) > 0 ? Number(act.total_points) : 100;
+
+      // Schedule & Due Date parsing
+      const rawDeadline = act.deadline || act.due_date;
+      const deadlineDate = rawDeadline ? new Date(rawDeadline) : null;
+      const formattedDeadline = formatDateTime(rawDeadline) || "No Due Date Specified";
+
+      const isOverdue = deadlineDate && now > deadlineDate;
 
       let statusBadge = "";
       let actionBtn = "";
       let scoreDisplay = "-";
-
-      const deadlineDate = act.deadline || act.due_date ? new Date(act.deadline || act.due_date) : null;
-      const isOverdue = deadlineDate && now > deadlineDate;
+      let scheduleSubText = "";
 
       if (!sub) {
         if (isOverdue) {
-          statusBadge = `<span class="status-missing" style="background:#fee2e2; color:#991b1b; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600;"><i class="fa-solid fa-triangle-exclamation"></i> Missing / Overdue</span>`;
+          // Unsubmitted and past deadline: FAILED status, but CLICKABLE to view instructions
+          statusBadge = `<span class="status-missing"><i class="fa-solid fa-triangle-exclamation"></i> Overdue / Missing</span>`;
+          actionBtn = `<button onclick="routeToTurnIn('${act.id}', '${escapeHtml(classCode)}')" class="btn-action-failed" title="Deadline has passed. Click to view activity instructions."><i class="fa-solid fa-ban"></i> Failed (View)</button>`;
+          scheduleSubText = `<span style="color: #dc2626; font-weight: 600;"><i class="fa-solid fa-circle-exclamation"></i> Deadline Expired</span>`;
         } else {
-          statusBadge = `<span class="status-pending" style="background:#fef3c7; color:#92400e; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600;"><i class="fa-regular fa-clock"></i> Due Soon</span>`;
+          statusBadge = `<span class="status-pending"><i class="fa-regular fa-clock"></i> Due Soon</span>`;
+          actionBtn = `<button onclick="routeToTurnIn('${act.id}', '${escapeHtml(classCode)}')" style="background:#2563eb; color:white; border:none; padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600;">Turn In →</button>`;
+          scheduleSubText = `<span style="color: #d97706;"><i class="fa-regular fa-hourglass-half"></i> In Progress</span>`;
         }
-        actionBtn = `<button onclick="routeToTurnIn('${act.id}', '${escapeHtml(act.classes?.code || '')}')" style="background:#2563eb; color:white; border:none; padding:5px 10px; border-radius:6px; font-size:11px; cursor:pointer; font-weight:600;">Turn In →</button>`;
       } else {
         const st = String(sub.status || '').toLowerCase();
         const isGraded = st === 'graded' || sub.grade !== null || sub.score !== null;
+        const subDate = sub.submitted_at || sub.created_at;
+        const subTimeFormatted = formatDateTime(subDate);
+
+        // Detect if deliverable was submitted after deadline
+        const wasSubmittedLate = deadlineDate && subDate && new Date(subDate) > deadlineDate;
 
         if (isGraded) {
-          const scoreVal = sub.grade !== null && sub.grade !== undefined ? sub.grade : sub.score;
+          const rawScore = sub.grade !== null && sub.grade !== undefined ? sub.grade : sub.score;
+          const numScore = Number(rawScore);
+          const scoreVal = !isNaN(numScore) ? Math.round(numScore * 100) / 100 : rawScore;
           scoreDisplay = `${scoreVal} / ${maxPts}`;
-          statusBadge = `<span class="status-completed" style="background:#dcfce7; color:#166534; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600;"><i class="fa-solid fa-check"></i> Graded</span>`;
-          actionBtn = `<button onclick="routeToReview('${act.id}', '${sub.id}')" style="background:#f3f4f6; color:#374151; border:1px solid #d1d5db; padding:5px 10px; border-radius:6px; font-size:11px; cursor:pointer; font-weight:600;">Review Score</button>`;
+          statusBadge = `<span class="status-completed"><i class="fa-solid fa-check"></i> Graded</span>`;
+          actionBtn = `<button onclick="routeToReview('${act.id}', '${sub.id}')" style="background:#f3f4f6; color:#374151; border:1px solid #d1d5db; padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600;">Review Score</button>`;
         } else {
           scoreDisplay = `- / ${maxPts}`;
-          statusBadge = `<span class="status-pending" style="background:#fef3c7; color:#92400e; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600;"><i class="fa-solid fa-clock"></i> Turned In</span>`;
-          actionBtn = `<button onclick="routeToTurnIn('${act.id}', '${escapeHtml(act.classes?.code || '')}')" style="background:#f3f4f6; color:#374151; border:1px solid #d1d5db; padding:5px 10px; border-radius:6px; font-size:11px; cursor:pointer; font-weight:600;">View / Edit</button>`;
+          statusBadge = `<span class="status-pending"><i class="fa-solid fa-clock"></i> Turned In</span>`;
+          actionBtn = `<button onclick="routeToTurnIn('${act.id}', '${escapeHtml(classCode)}')" style="background:#f3f4f6; color:#374151; border:1px solid #d1d5db; padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; font-weight:600;">View / Edit</button>`;
+        }
+
+        if (subTimeFormatted) {
+          if (wasSubmittedLate) {
+            scheduleSubText = `<span style="color: #d97706; font-weight: 500;"><i class="fa-solid fa-clock-rotate-left"></i> Turned In (Late): ${subTimeFormatted}</span>`;
+          } else {
+            scheduleSubText = `<span style="color: #16a34a; font-weight: 500;"><i class="fa-solid fa-circle-check"></i> Turned In: ${subTimeFormatted}</span>`;
+          }
         }
       }
 
@@ -1585,7 +2162,13 @@ body, button, input, select, textarea {
           <i class="fa-solid fa-file-lines" style="color:#2563eb; margin-right:8px;"></i>
           <strong>${escapeHtml(act.title || "Untitled Activity")}</strong>
         </td>
-        <td>📘 ${escapeHtml(subjectName)}</td>
+        <td>
+          <div><strong>📘 ${escapeHtml(subjectName)}</strong> ${classCode ? `<span class="class-code-tag" style="font-size: 10px; margin-left: 4px;">${escapeHtml(classCode)}</span>` : ''}</div>
+          <div style="font-size: 11.5px; color: var(--muted); margin-top: 4px; line-height: 1.45;">
+            <div><i class="fa-regular fa-calendar-days"></i> Due: <strong>${formattedDeadline}</strong></div>
+            <div>${scheduleSubText}</div>
+          </div>
+        </td>
         <td><strong>${scoreDisplay}</strong></td>
         <td>${statusBadge}</td>
         <td>${actionBtn}</td>
@@ -1595,29 +2178,172 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-      8. SMART ROUTING HELPERS
+      9. PRINT & EXPORT TOOLS (EXCEL & CSV)
+  ===================================================== */
+  function printDashboardTable() {
+    window.print();
+  }
+
+  function exportTableToCSV() {
+    const table = document.querySelector(".table-box table");
+    const tbody = document.getElementById("scoreTableBody");
+
+    if (!table || !tbody) {
+      alert("No table available for export.");
+      return;
+    }
+
+    // Guard: Prevent exporting when table is empty or loading
+    const emptyRow = tbody.querySelector("td[colspan]");
+    if (emptyRow || tbody.children.length === 0) {
+      alert("There are no activities to export for the current selection.");
+      return;
+    }
+
+    const rows = table.querySelectorAll("tr");
+    const csvData = [];
+
+    rows.forEach(row => {
+      const cells = row.querySelectorAll("th, td");
+      const rowData = [];
+
+      // Export columns 0 to 3 (Title, Subject & Schedule, Score, Status)
+      // Skips column 4 (Interactive Action Buttons)
+      for (let i = 0; i < Math.min(cells.length, 4); i++) {
+        const rawText = cells[i].innerText || cells[i].textContent || "";
+        // Normalize whitespace and newlines inside multi-line schedule cells
+        const normalized = rawText.replace(/\s+/g, " ").trim();
+        rowData.push(escapeCsvCell(normalized));
+      }
+
+      if (rowData.length > 0) {
+        csvData.push(rowData.join(","));
+      }
+    });
+
+    // Prepend UTF-8 BOM (\uFEFF) so Excel opens emojis and special characters cleanly
+    const csvContent = "\uFEFF" + csvData.join("\r\n");
+    const csvBlob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const downloadLink = document.createElement("a");
+
+    const selectedClass = document.getElementById("classFilterSelect")?.selectedOptions[0]?.text || "All_Classes";
+    const sanitizedTitle = selectedClass.replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_");
+
+    const blobUrl = URL.createObjectURL(csvBlob);
+    downloadLink.href = blobUrl;
+    downloadLink.setAttribute("download", `Grades_Report_${sanitizedTitle}.csv`);
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+  }
+
+  function exportTableToExcel() {
+    const table = document.querySelector(".table-box table");
+    const tbody = document.getElementById("scoreTableBody");
+
+    if (!table || !tbody) {
+      alert("No table available for export.");
+      return;
+    }
+
+    // Guard: Prevent exporting when table is empty or loading
+    const emptyRow = tbody.querySelector("td[colspan]");
+    if (emptyRow || tbody.children.length === 0) {
+      alert("There are no activities to export for the current selection.");
+      return;
+    }
+
+    // Clone table and remove the 5th column (Action) from header and rows
+    const clonedTable = table.cloneNode(true);
+    clonedTable.querySelectorAll("tr").forEach(r => {
+      const cells = r.querySelectorAll("th, td");
+      if (cells.length >= 5) {
+        cells[4].remove();
+      }
+    });
+
+    const selectedClass = document.getElementById("classFilterSelect")?.selectedOptions[0]?.text || "All Classes";
+    const sanitizedTitle = selectedClass.replace(/[^a-zA-Z0-9]/g, "_").replace(/_+/g, "_");
+    const reportDate = new Date().toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric',
+      hour: 'numeric', minute: '2-digit', hour12: true
+    });
+
+    const excelTemplate = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:ExcelWorksheet>
+                <x:Name>Grades Summary</x:Name>
+                <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+              </x:ExcelWorksheet>
+            </x:ExcelWorksheets>
+          </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+        <style>
+          body { font-family: Calibri, Arial, sans-serif; padding: 15px; }
+          h2 { color: #1e40af; margin-bottom: 4px; }
+          p { color: #475569; font-size: 13px; margin: 2px 0 14px; }
+          table { border-collapse: collapse; width: 100%; }
+          th { background-color: #2563eb; color: #ffffff; font-weight: bold; border: 1px solid #93c5fd; padding: 10px; text-align: left; }
+          td { border: 1px solid #cbd5e1; padding: 8px 10px; text-align: left; font-size: 12px; }
+          tr:nth-child(even) { background-color: #f8fafc; }
+        </style>
+      </head>
+      <body>
+        <h2>Regis Marie College — Academic Performance Report</h2>
+        <p><strong>Student:</strong> ${escapeHtml(userName)} &nbsp;|&nbsp; <strong>Filter:</strong> ${escapeHtml(selectedClass)} &nbsp;|&nbsp; <strong>Generated:</strong> ${escapeHtml(reportDate)}</p>
+        ${clonedTable.outerHTML}
+      </body>
+      </html>
+    `;
+
+    const excelBlob = new Blob([excelTemplate], { type: "application/vnd.ms-excel;charset=utf-8" });
+    const downloadLink = document.createElement("a");
+    const blobUrl = URL.createObjectURL(excelBlob);
+
+    downloadLink.href = blobUrl;
+    downloadLink.setAttribute("download", `Grades_Report_${sanitizedTitle}.xls`);
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+  }
+
+  /* =====================================================
+      10. SMART ROUTING HELPERS
   ===================================================== */
   function routeToTurnIn(activityId, classCode) {
+    if (!activityId) return;
+
     localStorage.removeItem("isArchivedView");
     localStorage.setItem("selectedActivityId", String(activityId));
-    if (classCode) localStorage.setItem("selectedClass", classCode);
+
+    if (classCode && classCode !== "undefined" && classCode !== "null") {
+      localStorage.setItem("selectedClass", String(classCode).trim());
+    }
+
     window.location.href = submitActivityUrl;
   }
 
   function routeToReview(activityId, submissionId) {
+    if (!activityId) return;
+
     localStorage.removeItem("isArchivedView");
     localStorage.setItem("selectedActivityId", String(activityId));
-    if (submissionId) localStorage.setItem("selectedSubmissionId", String(submissionId));
-    window.location.href = reviewUrl;
-  }
 
-  function escapeHtml(text) {
-    if (!text) return "";
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+    if (submissionId && submissionId !== "undefined" && submissionId !== "null") {
+      localStorage.setItem("selectedSubmissionId", String(submissionId));
+    }
+
+    window.location.href = reviewUrl;
   }
 </script>

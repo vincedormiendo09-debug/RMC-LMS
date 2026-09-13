@@ -44,12 +44,15 @@
     --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
   }
 
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    font-family: Arial, Helvetica, sans-serif;
-  }
+       *, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body, button, input, select, textarea {
+  font-family: 'Poppins', Arial, Helvetica, sans-serif;
+}
 
   body {
     background: var(--background);
@@ -957,7 +960,20 @@
       loadCurrentClassDetails();
       loadSidebarClasses();
       loadSidebarGroups();
-    }, 100);
+
+      // 🎯 AUTO-SWITCH TO ACTIVITIES TAB IF DIRECTED FROM DASHBOARD
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetTab = urlParams.get('tab') || window.location.hash.replace('#', '') || localStorage.getItem('activeClassTab');
+
+      if (targetTab) {
+        localStorage.removeItem('activeClassTab'); // Clean up after reading
+        
+        const targetTabBtn = document.querySelector(`.tab[data-target="${targetTab}"]`);
+        if (targetTabBtn) {
+          targetTabBtn.click(); // Triggers the Activities tab click automatically
+        }
+      }
+    }, 120);
   });
 
   async function loadCurrentClassDetails() {
