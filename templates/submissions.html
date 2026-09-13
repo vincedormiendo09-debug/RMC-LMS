@@ -1040,10 +1040,10 @@ body, button, input, select, textarea {
   });
 
   /* =====================================================
-     0. TYPE-SAFE ID & ESCAPE HELPERS
+      0. TYPE-SAFE ID & ESCAPE HELPERS
   ===================================================== */
   function parseDbId(idVal) {
-    if (!idVal) return idVal;
+    if (idVal === null || idVal === undefined || idVal === '') return idVal;
     if (typeof idVal === 'number') return idVal;
     const str = String(idVal).trim();
     return /^\d+$/.test(str) ? parseInt(str, 10) : str;
@@ -1053,7 +1053,7 @@ body, button, input, select, textarea {
     const result = new Set();
     (idArray || []).forEach(id => {
       if (id !== null && id !== undefined && id !== '') {
-        result.add(String(id));
+        result.add(String(id).trim());
         const num = parseDbId(id);
         if (typeof num === 'number' && !isNaN(num)) {
           result.add(num);
@@ -1064,7 +1064,7 @@ body, button, input, select, textarea {
   }
 
   function escapeHtml(text) {
-    if (!text) return "";
+    if (text === null || text === undefined) return "";
     return String(text)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -1078,12 +1078,21 @@ body, button, input, select, textarea {
     return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
- /* =====================================================
+  function escapeCsvCell(cellText) {
+    let str = String(cellText ?? "").replace(/(\r\n|\n|\r)/gm, " ").trim();
+    if (/^[=\+\-@]/.test(str)) str = "'" + str; // Prevent formula injection
+    if (str.includes(",") || str.includes('"') || str.includes(";") || str.includes("\t")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  }
+
+  /* =====================================================
       1. USER SESSION & SAFE LOGOUT FUNCTION
   ===================================================== */
   const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
   const userRole = rawRole.toUpperCase();
-  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "Faculty User";
   const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
 
   // 🔒 HARD REDIRECT: Students cannot access the faculty submission review desk
@@ -1117,31 +1126,34 @@ body, button, input, select, textarea {
 
   const sidebarMenu = document.getElementById("sidebarMenu");
 
-  if (userRole === "ADMIN") {
-    sidebarMenu.innerHTML = `
-      <a href="${homeUrl}">🏠 Institutional Hub</a>
-      <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
-      <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
-      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
-      <a href="${gradesUrl}">💯 Master Gradebook</a>
-      <a href="${archiveUrl}">📦 Archival Vault</a>
-      <a href="${notifyUrl}">🔔 System Alerts</a>
-      <a href="${accountUrl}">👤 Account Profile</a>
-    `;
-  } else if (userRole === "TEACHER") {
-    sidebarMenu.innerHTML = `
-      <a href="${homeUrl}">🏠 Home</a>
-      <a href="${createUrl}">➕ Create Class/Group</a>
-      <a href="${calendarUrl}">📅 Calendar</a>
-      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
-      <a href="${classDashboardUrl}">📊 Class Dashboard</a>
-      <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
-      <a href="${gradesUrl}">💯 Grades</a>
-      <a href="${submissionsUrl}" class="active">📝 Submissions</a>
-      <a href="${archiveUrl}">📦 Archive</a>
-      <a href="${notifyUrl}">🔔 Notifications</a>
-      <a href="${accountUrl}">👤 Account</a>
-    `;
+  if (sidebarMenu) {
+    if (userRole === "ADMIN") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Institutional Hub</a>
+        <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
+        <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${gradesUrl}">💯 Master Gradebook</a>
+        <a href="${submissionsUrl}" class="active">📝 Submissions</a>
+        <a href="${archiveUrl}">📦 Archival Vault</a>
+        <a href="${notifyUrl}">🔔 System Alerts</a>
+        <a href="${accountUrl}">👤 Account Profile</a>
+      `;
+    } else if (userRole === "TEACHER") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}">➕ Create Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
+        <a href="${gradesUrl}">💯 Grades</a>
+        <a href="${submissionsUrl}" class="active">📝 Submissions</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    }
   }
 
   /* MOBILE SIDEBAR TOGGLE */
@@ -1161,38 +1173,23 @@ body, button, input, select, textarea {
     });
   }
 
-  /* SAFE LOGOUT: Selectively clear credentials while preserving deadline history */
+  /* SAFE LOGOUT */
   function logoutUser() {
     const authKeys = [
-      "user_id",
-      "userRole",
-      "role",
-      "full_name",
-      "email",
-      "selectedClass",
-      "selectedClassId",
-      "selectedGroup",
-      "selectedGroupId",
-      "selectedSubmissionId",
-      "selectedActivityId",
-      "selectedStudentId",
-      "gradingStudentId",
-      "updateType",
-      "updateClassId",
-      "updateGroupId",
-      "joinedClasses",
-      "joinedGroups",
-      "isArchivedView"
+      "user_id", "userRole", "role", "full_name", "email",
+      "selectedClass", "selectedClassId", "selectedGroup", "selectedGroupId",
+      "selectedSubmissionId", "selectedActivityId", "selectedStudentId",
+      "selectedStudentName", "gradingStudentId", "updateType", "updateClassId",
+      "updateGroupId", "joinedClasses", "joinedGroups", "isArchivedView"
     ];
 
     authKeys.forEach(key => localStorage.removeItem(key));
     sessionStorage.clear();
-
     window.location.replace("{{ url_for('logout') }}");
   }
 
   /* =====================================================
-     2. SUPABASE INITIALIZATION
+      2. SUPABASE INITIALIZATION
   ===================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
@@ -1209,21 +1206,13 @@ body, button, input, select, textarea {
 
   /* STATE VARIABLES */
   let teacherClasses = [];
-  let currentClassId = null;
-  let selectedClassCode = localStorage.getItem("selectedClass") || "";
-  let selectedActivityIdFilter = localStorage.getItem("selectedActivityId") || "ALL";
+  let currentClassId = "all";
+  let selectedClassCode = localStorage.getItem("selectedClass") || "all";
+  let selectedActivityIdFilter = "ALL";
   let allActivitiesList = [];
   let rawSubmissionsList = [];
   let currentFilteredSubmissions = [];
   let enrolledStudentsCount = 0;
-  let isClassArchived = false;
-
-  const autoSearchStudent = localStorage.getItem("searchStudentFilter");
-  if (autoSearchStudent) {
-    const searchElem = document.getElementById("searchStudent");
-    if (searchElem) searchElem.value = autoSearchStudent;
-    localStorage.removeItem("searchStudentFilter");
-  }
 
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
@@ -1231,6 +1220,28 @@ body, button, input, select, textarea {
       loadSidebarClasses();
       loadSidebarGroups();
       injectAuditBanner();
+
+      // Listeners for multi-search and dynamic filters
+      const searchElem = document.getElementById("searchStudent");
+      if (searchElem) searchElem.addEventListener("input", filterSubmissions);
+
+      const statusFilterEl = document.getElementById("statusFilter");
+      if (statusFilterEl) statusFilterEl.addEventListener("change", filterSubmissions);
+
+      const actFilterEl = document.getElementById("activityFilter");
+      if (actFilterEl) {
+        actFilterEl.addEventListener("change", (e) => {
+          selectedActivityIdFilter = e.target.value;
+          filterSubmissions();
+        });
+      }
+
+      const classFilterEl = document.getElementById("classFilter");
+      if (classFilterEl) {
+        classFilterEl.addEventListener("change", (e) => {
+          switchClass(e.target.value);
+        });
+      }
     }, 100);
   });
 
@@ -1247,7 +1258,6 @@ body, button, input, select, textarea {
     }
   }
 
-  /* AUTOMATED DIRECT FILE DOWNLOAD HELPER */
   async function downloadFileDirectly(url, filename) {
     if (!url) return;
     try {
@@ -1284,7 +1294,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-     3. INITIALIZE WORKSPACE & FETCH CLASSES
+      3. INITIALIZE WORKSPACE & ACTIVE CLASSES (NO ARCHIVED)
   ===================================================== */
   async function initSubmissionsWorkspace() {
     const client = getSupabaseClient();
@@ -1292,42 +1302,42 @@ body, button, input, select, textarea {
 
     const userSearchIds = getDualTypeIds([currentUserId]);
 
-    let query = client.from('classes').select('*').order('created_at', { ascending: false });
+    // 🔒 STRICT FILTER: Exclude archived classes at database level
+    let query = client
+      .from('classes')
+      .select('*')
+      .neq('status', 'archived')
+      .order('created_at', { ascending: false });
+
     if (userRole === "TEACHER" && userSearchIds.length > 0) {
       query = query.in('teacher_id', userSearchIds);
     }
 
     const { data: classes } = await query;
-    teacherClasses = classes || [];
+    teacherClasses = (classes || []).filter(c => c && String(c.status || '').toLowerCase() !== 'archived');
 
     populateClassDropdown();
 
-    if (teacherClasses.length > 0) {
-      const match = teacherClasses.find(c => c.code === selectedClassCode) || teacherClasses[0];
-      selectedClassCode = match.code;
-      currentClassId = match.id;
-      isClassArchived = match.status === 'archived' || localStorage.getItem("isArchivedView") === "true";
-
-      const classFilterEl = document.getElementById("classFilter");
-      if (classFilterEl) classFilterEl.value = match.code;
-
-      localStorage.setItem("selectedClass", match.code);
-      localStorage.setItem("selectedClassId", String(match.id));
-
-      await loadClassSubmissionsData();
-    } else {
-      const tbody = document.getElementById("submissionsTableBody");
-      if (tbody) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" class="empty-state">
-              <i class="fa-solid fa-school" style="font-size: 32px; color: #94a3b8; margin-bottom: 10px;"></i><br>
-              No classes available to review submissions.
-            </td>
-          </tr>
-        `;
+    // Verify stored selection
+    if (selectedClassCode && selectedClassCode !== "all") {
+      const match = teacherClasses.find(c => String(c.code).toLowerCase() === String(selectedClassCode).toLowerCase());
+      if (match) {
+        currentClassId = match.id;
+      } else {
+        selectedClassCode = "all";
+        currentClassId = "all";
+        localStorage.setItem("selectedClass", "all");
+        localStorage.removeItem("selectedClassId");
       }
+    } else {
+      selectedClassCode = "all";
+      currentClassId = "all";
     }
+
+    const classFilterEl = document.getElementById("classFilter");
+    if (classFilterEl) classFilterEl.value = selectedClassCode;
+
+    await loadClassSubmissionsData();
   }
 
   function populateClassDropdown() {
@@ -1335,69 +1345,101 @@ body, button, input, select, textarea {
     if (!classSelect) return;
     classSelect.innerHTML = "";
 
-    if (teacherClasses.length === 0) {
-      classSelect.innerHTML = `<option value="">No Classes Available</option>`;
-      return;
-    }
+    // 🌐 Option 1: All Active Classes Overview
+    const allOpt = document.createElement("option");
+    allOpt.value = "all";
+    allOpt.textContent = "🌐 All Active Classes Overview";
+    classSelect.appendChild(allOpt);
 
+    // Filtered Non-Archived Active Classes
     teacherClasses.forEach(c => {
       const opt = document.createElement("option");
       opt.value = c.code;
-      const archiveTag = c.status === 'archived' ? ' [Archived]' : '';
-      opt.textContent = `📘 ${c.subject} (${c.code})${archiveTag}`;
+      opt.textContent = `📘 ${c.subject} (${c.code})`;
       if (c.code === selectedClassCode) opt.selected = true;
       classSelect.appendChild(opt);
     });
+
+    if (selectedClassCode === "all" || !selectedClassCode) {
+      allOpt.selected = true;
+    }
   }
 
   async function switchClass(newCode) {
     selectedClassCode = newCode;
     localStorage.setItem("selectedClass", newCode);
-    const match = teacherClasses.find(c => c.code === newCode);
-    if (match) {
-      currentClassId = match.id;
-      isClassArchived = match.status === 'archived';
-      localStorage.setItem("selectedClassId", String(match.id));
-      if (isClassArchived) {
-        localStorage.setItem("isArchivedView", "true");
-      } else {
+
+    if (newCode === "all" || !newCode) {
+      currentClassId = "all";
+      localStorage.removeItem("selectedClassId");
+      localStorage.removeItem("isArchivedView");
+    } else {
+      const match = teacherClasses.find(c => String(c.code).toLowerCase() === String(newCode).toLowerCase());
+      if (match) {
+        currentClassId = match.id;
+        localStorage.setItem("selectedClassId", String(match.id));
         localStorage.removeItem("isArchivedView");
       }
     }
+
     await loadClassSubmissionsData();
   }
 
- /* =====================================================
-      4. LOAD CLASS ACTIVITIES & SUBMISSIONS (SCHEMA-SAFE)
+  /* =====================================================
+      4. LOAD CLASS ACTIVITIES & SUBMISSIONS
   ===================================================== */
   async function loadClassSubmissionsData() {
     const client = getSupabaseClient();
-    if (!client || !currentClassId) return;
-
-    const classSearchIds = getDualTypeIds([currentClassId]);
+    if (!client) return;
 
     const headerSub = document.getElementById("headerSubtitle");
-    if (headerSub) {
-      const modeLabel = userRole === "ADMIN" ? "Institutional Audit" : (isClassArchived ? "Archived (Read-Only)" : "Review & Grade");
-      headerSub.textContent = `Class Code: ${selectedClassCode} | ${modeLabel}`;
+    let targetClasses = [];
+
+    if (selectedClassCode === "all" || currentClassId === "all") {
+      targetClasses = [...teacherClasses];
+      if (headerSub) {
+        headerSub.textContent = `All Active Classes Overview | ${userRole === "ADMIN" ? "Institutional Audit" : "Review & Grade"}`;
+      }
+    } else {
+      const match = teacherClasses.find(c => String(c.code).toLowerCase() === String(selectedClassCode).toLowerCase());
+      if (match) targetClasses = [match];
+      if (headerSub) {
+        headerSub.textContent = `Class Code: ${selectedClassCode} | ${userRole === "ADMIN" ? "Institutional Audit" : "Review & Grade"}`;
+      }
     }
 
-    // 1. Fetch Class Students Count
-    const { count } = await client
-      .from('class_memberships')
-      .select('*', { count: 'exact', head: true })
-      .in('class_id', classSearchIds);
+    if (targetClasses.length === 0) {
+      enrolledStudentsCount = 0;
+      allActivitiesList = [];
+      rawSubmissionsList = [];
+      populateActivityDropdown();
+      filterSubmissions();
+      return;
+    }
 
-    enrolledStudentsCount = count || 0;
+    const targetClassIds = getDualTypeIds(targetClasses.map(c => c.id));
 
-    // 2. Fetch Class Activities
+    // 1. Fetch Students Count (Unique students enrolled in target classes)
+    const [memUser, memStudent] = await Promise.all([
+      client.from('class_memberships').select('user_id').in('class_id', targetClassIds),
+      client.from('class_memberships').select('student_id').in('class_id', targetClassIds)
+    ]);
+    const allMems = [...(memUser.data || []), ...(memStudent.data || [])];
+    const uniqueStudents = new Set(allMems.map(m => String(m.user_id || m.student_id)).filter(Boolean));
+    enrolledStudentsCount = uniqueStudents.size;
+
+    // 2. Fetch Activities for Target Classes
     const { data: acts } = await client
       .from('activities')
       .select('*')
-      .in('class_id', classSearchIds)
+      .in('class_id', targetClassIds)
       .order('created_at', { ascending: false });
 
-    allActivitiesList = acts || [];
+    allActivitiesList = (acts || []).map(act => {
+      const parentCls = targetClasses.find(c => String(c.id) === String(act.class_id) || parseDbId(c.id) === parseDbId(act.class_id)) || {};
+      return { ...act, classes: parentCls };
+    });
+
     populateActivityDropdown();
 
     // 3. Fetch Submissions for these Activities
@@ -1424,20 +1466,15 @@ body, button, input, select, textarea {
       return st === 'submitted' || st === 'graded' || st === 'finished' || (s.submitted_at && st !== 'unsubmitted');
     });
 
-    // Support both user_id and student_id column names in submissions
+    // Support both user_id and student_id
     const userSearchIds = getDualTypeIds(activeSubs.map(s => s.user_id || s.student_id));
     let userMap = {};
 
     if (userSearchIds.length > 0) {
-      // Clean query: Only fetch verified columns (id, full_name, email)
-      const { data: userList, error: userErr } = await client
+      const { data: userList } = await client
         .from('users')
         .select('id, full_name, email')
         .in('id', userSearchIds);
-
-      if (userErr) {
-        console.warn("User lookup notice:", userErr.message);
-      }
 
       if (userList) {
         userList.forEach(u => {
@@ -1452,7 +1489,7 @@ body, button, input, select, textarea {
     allActivitiesList.forEach(a => {
       actMap[String(a.id)] = a;
       const pActId = parseDbId(a.id);
-      actMap[pActId] = a;
+      if (pActId) actMap[pActId] = a;
     });
 
     rawSubmissionsList = activeSubs.map(s => {
@@ -1469,8 +1506,27 @@ body, button, input, select, textarea {
     filterSubmissions();
   }
 
+  function populateActivityDropdown() {
+    const actSelect = document.getElementById("activityFilter");
+    if (!actSelect) return;
+
+    const currentVal = actSelect.value || "ALL";
+    actSelect.innerHTML = `<option value="ALL">All Activities</option>`;
+
+    allActivitiesList.forEach(act => {
+      const opt = document.createElement("option");
+      opt.value = String(act.id);
+      const classTag = act.classes?.code ? ` [${act.classes.code}]` : '';
+      opt.textContent = `📝 ${act.title || 'Untitled Activity'}${classTag}`;
+      if (String(act.id) === String(selectedActivityIdFilter) || String(act.id) === String(currentVal)) {
+        opt.selected = true;
+      }
+      actSelect.appendChild(opt);
+    });
+  }
+
   /* =====================================================
-     5. MULTI-FIELD SEARCH & TABLE RENDERING
+      5. MULTI-FIELD SEARCH & TABLE RENDERING
   ===================================================== */
   function filterSubmissions() {
     const activitySelect = document.getElementById("activityFilter");
@@ -1483,8 +1539,9 @@ body, button, input, select, textarea {
 
     currentFilteredSubmissions = rawSubmissionsList.filter(sub => {
       const studentName = String(sub.users?.full_name || sub.user_name || "Student").toLowerCase();
-      const studentIdNum = String(sub.users?.student_id || "").toLowerCase();
       const studentEmail = String(sub.users?.email || "").toLowerCase();
+      const activityTitle = String(sub.activities?.title || "").toLowerCase();
+      const classCode = String(sub.activities?.classes?.code || "").toLowerCase();
 
       const st = String(sub.status || '').toLowerCase();
       const isGraded = st === "graded" || sub.grade !== null || sub.score !== null;
@@ -1497,11 +1554,11 @@ body, button, input, select, textarea {
       if (selectedStatus === "Pending") matchesStatus = !isGraded;
       if (selectedStatus === "Graded") matchesStatus = isGraded;
 
-      // Multi-Field Search Match
       const matchesSearch = searchQuery === "" || 
                             studentName.includes(searchQuery) ||
-                            studentIdNum.includes(searchQuery) ||
-                            studentEmail.includes(searchQuery);
+                            studentEmail.includes(searchQuery) ||
+                            activityTitle.includes(searchQuery) ||
+                            classCode.includes(searchQuery);
 
       return matchesActivity && matchesStatus && matchesSearch;
     });
@@ -1547,7 +1604,7 @@ body, button, input, select, textarea {
     if (dataToRender.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" class="empty-state">
+          <td colspan="7" class="empty-state" style="text-align: center; padding: 35px; color: var(--muted);">
             <i class="fa-solid fa-inbox" style="font-size: 28px; color: #94a3b8; margin-bottom: 10px;"></i><br>
             No turned-in submissions found matching your filters.
           </td>
@@ -1561,15 +1618,15 @@ body, button, input, select, textarea {
 
       const studentName = sub.users?.full_name || sub.user_name || "Student User";
       const activityTitle = sub.activities?.title || "Class Activity";
-      const maxPoints = sub.activities?.total_points || 100;
+      const maxPoints = Number(sub.activities?.total_points) > 0 ? Number(sub.activities.total_points) : 100;
       const currentScore = sub.grade !== null && sub.grade !== undefined ? sub.grade : (sub.score !== null && sub.score !== undefined ? sub.score : "");
 
       const st = String(sub.status || '').toLowerCase();
       const isGraded = st === "graded" || currentScore !== "";
 
       const statusBadge = isGraded 
-        ? `<span class="badge badge-graded">Graded</span>`
-        : `<span class="badge badge-pending">Pending Grade</span>`;
+        ? `<span class="badge badge-graded"><i class="fa-solid fa-check"></i> Graded</span>`
+        : `<span class="badge badge-pending"><i class="fa-solid fa-clock"></i> Pending Grade</span>`;
 
       let isLate = false;
       const deadlineDate = sub.activities?.deadline || sub.activities?.due_date;
@@ -1585,13 +1642,13 @@ body, button, input, select, textarea {
 
       const sDateObj = submittedDate ? new Date(submittedDate) : null;
       const dateFormatted = sDateObj && !isNaN(sDateObj.getTime()) ? sDateObj.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', year: '2-digit' }) : 'N/A';
-      const timeFormatted = sDateObj && !isNaN(sDateObj.getTime()) ? sDateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '11:59 PM';
+      const timeFormatted = sDateObj && !isNaN(sDateObj.getTime()) ? sDateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : '';
       
       const statusLabel = isLate ? "Late" : "On Time";
       const tagClass = isLate ? "tag-late" : "tag-ontime";
       const iconClass = isLate ? "fa-clock" : "fa-bolt";
 
-      const timelinessTag = `<span class="${tagClass}"><i class="fa-solid ${iconClass}"></i> ${dateFormatted} - ${timeFormatted} - ${statusLabel}</span>`;
+      const timelinessTag = `<span class="${tagClass}"><i class="fa-solid ${iconClass}"></i> ${dateFormatted} ${timeFormatted ? '- ' + timeFormatted : ''} (${statusLabel})</span>`;
 
       let fileDisplay = `<span style="color: #94a3b8; font-style: italic;">No file</span>`;
       if (sub.file_url) {
@@ -1602,6 +1659,10 @@ body, button, input, select, textarea {
       }
 
       const studentUid = sub.user_id || sub.student_id || (sub.users ? sub.users.id : '');
+      const classCode = sub.activities?.classes?.code || selectedClassCode || '';
+      const classBadge = (selectedClassCode === "all" && classCode) 
+        ? `<span class="class-code-tag" style="font-size: 10px; margin-left: 5px; background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${escapeHtml(classCode)}</span>` 
+        : '';
 
       let scoreCellHtml = "";
       let actionCellHtml = "";
@@ -1615,30 +1676,16 @@ body, button, input, select, textarea {
         `;
         actionCellHtml = `
           <div class="actions-flex" id="action_cell_${sub.id}">
-            <button class="btn-view-work" onclick="openStudentWork(${sub.id})" title="Inspect student submission in audit mode">
+            <button class="btn-view-work" onclick="openStudentWork('${escapeJsString(String(sub.id))}')" title="Inspect student submission in audit mode">
               <i class="fa-solid fa-eye"></i> Audit Work
-            </button>
-          </div>
-        `;
-      } else if (isClassArchived) {
-        scoreCellHtml = `
-          <div style="display: flex; align-items: center; gap: 4px;">
-            <span style="font-size: 14px; font-weight: 700; color: #64748b;">${currentScore !== "" ? currentScore : "-"}</span>
-            <span style="font-size: 12px; color: var(--muted); font-weight: bold;">/ ${maxPoints}</span>
-          </div>
-        `;
-        actionCellHtml = `
-          <div class="actions-flex" id="action_cell_${sub.id}">
-            <button class="btn-view-work" onclick="openStudentWork(${sub.id})" title="Inspect student submission">
-              <i class="fa-solid fa-eye"></i> View Work
             </button>
           </div>
         `;
       } else {
         const inputDisabled = isGraded ? 'disabled="disabled"' : '';
         const actionBtn = isGraded
-          ? `<button class="btn-update-grade" onclick="enableScoreEdit(${sub.id})"><i class="fa-solid fa-pen-to-square"></i> Update</button>`
-          : `<button class="btn-save-grade" id="save_btn_${sub.id}" onclick="saveGrade(${sub.id}, ${maxPoints}, '${escapeJsString(studentUid)}', '${escapeJsString(activityTitle)}')"><i class="fa-solid fa-floppy-disk"></i> Save</button>`;
+          ? `<button class="btn-update-grade" onclick="enableScoreEdit('${escapeJsString(String(sub.id))}')"><i class="fa-solid fa-pen-to-square"></i> Update</button>`
+          : `<button class="btn-save-grade" id="save_btn_${sub.id}" onclick="saveGrade('${escapeJsString(String(sub.id))}', ${maxPoints}, '${escapeJsString(String(studentUid))}', '${escapeJsString(activityTitle)}')"><i class="fa-solid fa-floppy-disk"></i> Save</button>`;
 
         scoreCellHtml = `
           <div style="display: flex; align-items: center; gap: 4px;">
@@ -1649,7 +1696,7 @@ body, button, input, select, textarea {
         actionCellHtml = `
           <div class="actions-flex" id="action_cell_${sub.id}">
             ${actionBtn}
-            <button class="btn-view-work" onclick="openStudentWork(${sub.id})" title="Inspect full submission notes">
+            <button class="btn-view-work" onclick="openStudentWork('${escapeJsString(String(sub.id))}')" title="Inspect full submission notes">
               <i class="fa-solid fa-eye"></i> View Work
             </button>
           </div>
@@ -1658,11 +1705,11 @@ body, button, input, select, textarea {
 
       tr.innerHTML = `
         <td>
-          <span class="student-name-link" onclick="openStudentGrades('${escapeJsString(studentName)}', '${escapeJsString(studentUid)}')" title="View ${escapeHtml(studentName)}'s grade profile">
+          <span class="student-name-link" style="color: var(--primary); font-weight: 700; cursor: pointer;" onclick="openStudentGrades('${escapeJsString(studentName)}', '${escapeJsString(String(studentUid))}', '${escapeJsString(String(classCode))}')" title="View ${escapeHtml(studentName)}'s grade profile">
             👤 ${escapeHtml(studentName)}
           </span>
         </td>
-        <td>${escapeHtml(activityTitle)}</td>
+        <td><strong>${escapeHtml(activityTitle)}</strong>${classBadge}</td>
         <td>${timelinessTag}</td>
         <td>${fileDisplay}</td>
         <td id="status_cell_${sub.id}">${statusBadge}</td>
@@ -1674,17 +1721,12 @@ body, button, input, select, textarea {
     });
   }
 
-/* =====================================================
-      6. SAVE & UPDATE STUDENT GRADE (COMPLETE & SAFE)
+  /* =====================================================
+      6. SAVE & UPDATE STUDENT GRADE
   ===================================================== */
   async function saveGrade(submissionId, maxPoints, studentUserId, activityTitle) {
     if (userRole !== "TEACHER") {
-      alert("Permission denied: Only faculty instructors can evaluate and score student submissions.");
-      return;
-    }
-
-    if (isClassArchived) {
-      alert("This class is archived. Unarchive the subject before submitting grade changes.");
+      alert("Permission denied: Only faculty instructors can evaluate student submissions.");
       return;
     }
 
@@ -1708,7 +1750,6 @@ body, button, input, select, textarea {
     const numericScore = Number(scoreVal);
     const subSearchIds = getDualTypeIds([submissionId]);
 
-    // 1. Update Submissions Table with Specific Column Fallback
     let updatePayload = {
       grade: numericScore,
       score: numericScore,
@@ -1720,14 +1761,11 @@ body, button, input, select, textarea {
       .update(updatePayload)
       .in('id', subSearchIds);
 
-    // If 'score' does not exist in the table, retry with only 'grade'
     if (error && String(error.message || '').toLowerCase().includes('score')) {
       delete updatePayload.score;
       const retry = await client.from('submissions').update(updatePayload).in('id', subSearchIds);
       error = retry.error;
-    } 
-    // If 'grade' does not exist in the table, retry with only 'score'
-    else if (error && String(error.message || '').toLowerCase().includes('grade')) {
+    } else if (error && String(error.message || '').toLowerCase().includes('grade')) {
       delete updatePayload.grade;
       const retry = await client.from('submissions').update(updatePayload).in('id', subSearchIds);
       error = retry.error;
@@ -1742,18 +1780,17 @@ body, button, input, select, textarea {
       return;
     }
 
-    // 2. Dispatch In-App Notification (Safe non-blocking insert)
+    // Dispatch In-App Notification
     const sub = rawSubmissionsList.find(s => String(s.id) === String(submissionId) || parseDbId(s.id) === parseDbId(submissionId));
     const resolvedTitle = sub?.activities?.title || activityTitle || "Activity";
 
     if (studentUserId) {
       const parsedStudentId = parseDbId(studentUserId);
-
       try {
         const notifPayload = {
           user_id: parsedStudentId,
           title: `💯 Grade Posted: ${resolvedTitle}`,
-          message: `Your score for "${resolvedTitle}" has been evaluated: ${numericScore}/${maxPoints}.`,
+          message: `Your work for "${resolvedTitle}" has been evaluated: ${numericScore}/${maxPoints}.`,
           is_read: false,
           created_at: new Date().toISOString()
         };
@@ -1763,7 +1800,6 @@ body, button, input, select, textarea {
 
         const { error: notifErr } = await client.from('notifications').insert([notifPayload]);
         if (notifErr) {
-          // Retry with baseline columns if optional foreign keys don't exist
           delete notifPayload.activity_id;
           delete notifPayload.submission_id;
           await client.from('notifications').insert([notifPayload]);
@@ -1772,7 +1808,7 @@ body, button, input, select, textarea {
         console.warn("In-app notification dispatch warning:", notifErr);
       }
 
-      // Push & Email Alerts via Flask API
+      // Automated Push/Email API Trigger
       const studentEmail = sub?.users?.email;
       const emails = studentEmail ? [studentEmail] : [];
       const studentIds = [String(studentUserId)];
@@ -1782,25 +1818,25 @@ body, button, input, select, textarea {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            class_title: selectedClassCode ? `Class ${selectedClassCode}` : 'Your Course',
+            class_title: selectedClassCode !== "all" ? `Class ${selectedClassCode}` : 'Your Course',
             title: `Grade Posted: ${resolvedTitle}`,
             type: 'grade_posted',
             student_emails: emails,
             student_ids: studentIds,
-            details: `Score: ${numericScore}/${maxPoints}. Log into your portal to view complete evaluation feedback.`
+            details: `Score: ${numericScore}/${maxPoints}. Log into your student portal to review feedback.`
           })
         });
       } catch (alertErr) {
-        console.warn("Could not dispatch automated push/email grade alerts:", alertErr);
+        console.warn("Automated notification dispatch notice:", alertErr);
       }
     }
 
-    alert("🎉 Score saved successfully! Student has been notified via portal, email, and mobile push.");
+    alert("🎉 Score saved successfully! The student has been notified.");
     await loadClassSubmissionsData();
   }
 
   function enableScoreEdit(submissionId) {
-    if (userRole !== "TEACHER" || isClassArchived) return;
+    if (userRole !== "TEACHER") return;
 
     const scoreInput = document.getElementById(`score_${submissionId}`);
     const actionCell = document.getElementById(`action_cell_${submissionId}`);
@@ -1814,42 +1850,35 @@ body, button, input, select, textarea {
       const updateBtn = actionCell.querySelector(".btn-update-grade");
       if (updateBtn) {
         const sub = rawSubmissionsList.find(s => String(s.id) === String(submissionId) || parseDbId(s.id) === parseDbId(submissionId));
-        const maxPts = sub?.activities?.total_points || 100;
+        const maxPts = Number(sub?.activities?.total_points) > 0 ? Number(sub.activities.total_points) : 100;
         const studentUid = sub?.user_id || sub?.student_id || (sub?.users ? sub.users.id : '');
         const actTitle = sub?.activities?.title || "Activity";
 
-        updateBtn.outerHTML = `<button class="btn-save-grade" id="save_btn_${submissionId}" onclick="saveGrade(${submissionId}, ${maxPts}, '${escapeJsString(studentUid)}', '${escapeJsString(actTitle)}')"><i class="fa-solid fa-floppy-disk"></i> Save</button>`;
+        updateBtn.outerHTML = `<button class="btn-save-grade" id="save_btn_${submissionId}" onclick="saveGrade('${escapeJsString(String(submissionId))}', ${maxPts}, '${escapeJsString(String(studentUid))}', '${escapeJsString(actTitle)}')"><i class="fa-solid fa-floppy-disk"></i> Save</button>`;
       }
     }
   }
 
   /* =====================================================
-     7. EXPORT CSV TO EXCEL (SECURED)
+      7. EXPORT TO CSV (UTF-8 BOM ENCODED)
   ===================================================== */
   function exportSubmissionsCSV() {
-    if (currentFilteredSubmissions.length === 0) {
+    if (!currentFilteredSubmissions || currentFilteredSubmissions.length === 0) {
       alert("No submission records available to export.");
       return;
     }
 
-    function sanitizeForCsv(val) {
-      let str = String(val !== null && val !== undefined ? val : "");
-      // Prevent formula injection
-      if (/^[=\+\-@]/.test(str)) {
-        str = "'" + str;
-      }
-      return `"${str.replace(/"/g, '""')}"`;
-    }
-
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Student Name,Student ID,Class Code,Activity Title,Max Points,Score Achieved,Percentage,Status,Timeliness,Submission Date\r\n";
+    let csvContent = "\uFEFF"; // UTF-8 BOM
+    csvContent += "REGIS MARIE COLLEGE - STUDENT SUBMISSION & GRADING LEDGER\r\n";
+    csvContent += `Filter Selection: ${escapeCsvCell(selectedClassCode === "all" ? "All Active Classes" : selectedClassCode)},Export Date: ${new Date().toLocaleDateString()}\r\n\r\n`;
+    csvContent += "Student Name,Email,Class Code,Activity Title,Max Points,Score Achieved,Percentage,Status,Timeliness,Submission Date\r\n";
 
     currentFilteredSubmissions.forEach(sub => {
       const studentName = sub.users?.full_name || sub.user_name || "Student";
-      const studentId = sub.users?.student_id || "N/A";
-      const classCode = selectedClassCode || "N/A";
+      const studentEmail = sub.users?.email || "N/A";
+      const classCode = sub.activities?.classes?.code || selectedClassCode || "N/A";
       const activityTitle = sub.activities?.title || "Activity";
-      const maxPoints = sub.activities?.total_points || 100;
+      const maxPoints = Number(sub.activities?.total_points) > 0 ? Number(sub.activities.total_points) : 100;
       const scoreAchieved = sub.grade !== null && sub.grade !== undefined ? sub.grade : (sub.score !== null && sub.score !== undefined ? sub.score : "Pending");
       const percentage = typeof scoreAchieved === "number" ? ((scoreAchieved / maxPoints) * 100).toFixed(1) + "%" : "N/A";
       const status = sub.status || "Submitted";
@@ -1869,48 +1898,68 @@ body, button, input, select, textarea {
       const dateStr = sDateObj && !isNaN(sDateObj.getTime()) ? sDateObj.toLocaleString() : "N/A";
 
       csvContent += [
-        sanitizeForCsv(studentName),
-        sanitizeForCsv(studentId),
-        sanitizeForCsv(classCode),
-        sanitizeForCsv(activityTitle),
-        sanitizeForCsv(maxPoints),
-        sanitizeForCsv(scoreAchieved),
-        sanitizeForCsv(percentage),
-        sanitizeForCsv(status),
-        sanitizeForCsv(timeliness),
-        sanitizeForCsv(dateStr)
+        escapeCsvCell(studentName),
+        escapeCsvCell(studentEmail),
+        escapeCsvCell(classCode),
+        escapeCsvCell(activityTitle),
+        escapeCsvCell(maxPoints),
+        escapeCsvCell(scoreAchieved),
+        escapeCsvCell(percentage),
+        escapeCsvCell(status),
+        escapeCsvCell(timeliness),
+        escapeCsvCell(dateStr)
       ].join(",") + "\r\n";
     });
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Submissions_${selectedClassCode}_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const downloadLink = document.createElement("a");
+    const sanitizedTitle = selectedClassCode.replace(/[^a-zA-Z0-9]/g, "_");
+
+    const url = URL.createObjectURL(blob);
+    downloadLink.href = url;
+    downloadLink.setAttribute("download", `Submissions_${sanitizedTitle}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
 
   /* =====================================================
-     8. ROUTE SHORTCUTS
+      8. ROUTE SHORTCUTS & STUDENT GRADES NAVIGATION
   ===================================================== */
-  function openStudentGrades(studentName, studentId) {
-    localStorage.setItem("selectedStudentName", studentName);
-    if (studentId) localStorage.setItem("selectedStudentId", String(studentId));
-    window.location.href = studentGradesUrl;
+  function openStudentGrades(studentName, studentId, classCode) {
+    if (!studentId || studentId === "undefined" || studentId === "null") {
+      alert("Unable to identify student record.");
+      return;
+    }
+
+    const sId = String(studentId).trim();
+    const sName = (studentName || "Student").trim();
+    const cCode = (classCode && classCode !== "all") ? String(classCode).trim() : (selectedClassCode !== "all" ? String(selectedClassCode).trim() : "");
+
+    localStorage.removeItem("isArchivedView");
+    localStorage.setItem("selectedStudentId", sId);
+    localStorage.setItem("gradingStudentId", sId);
+    localStorage.setItem("selectedStudentName", sName);
+    localStorage.setItem("selectedClass", cCode);
+
+    // 🎯 URL Query Parameters guarantee clean and accurate student targeting
+    const separator = studentGradesUrl.includes("?") ? "&" : "?";
+    window.location.href = `${studentGradesUrl}${separator}student_id=${encodeURIComponent(sId)}&class=${encodeURIComponent(cCode)}`;
   }
 
   function openStudentWork(submissionId) {
+    if (!submissionId) return;
     localStorage.setItem("selectedSubmissionId", String(submissionId));
     window.location.href = studentWorkUrl;
   }
 
   /* =====================================================
-     9. LOAD SIDEBAR CLASSES & GROUPS
+      9. LOAD SIDEBAR CLASSES & GROUPS (NON-ARCHIVED)
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
-    if (!client) return;
+    if (!client || !currentUserId) return;
 
     const sidebarClassList = document.getElementById("sidebarClassList");
     if (!sidebarClassList) return;
@@ -1920,34 +1969,26 @@ body, button, input, select, textarea {
     let myClasses = [];
 
     try {
+      let q = client
+        .from('classes')
+        .select('id, subject, code, status')
+        .neq('status', 'archived')
+        .order('created_at', { ascending: false });
+
       if (userRole === "TEACHER" && userSearchIds.length > 0) {
-        const { data } = await client
-          .from('classes')
-          .select('id, subject, code, status')
-          .eq('status', 'active')
-          .in('teacher_id', userSearchIds)
-          .order('created_at', { ascending: false });
-        myClasses = data || [];
-      } else {
-        const { data } = await client
-          .from('classes')
-          .select('id, subject, code, status')
-          .eq('status', 'active')
-          .order('created_at', { ascending: false });
-        myClasses = data || [];
+        q = q.in('teacher_id', userSearchIds);
       }
+      const { data } = await q;
+      myClasses = (data || []).filter(c => c && c.status !== 'archived');
     } catch (err) {
       console.error("Sidebar classes error:", err);
     }
 
-    myClasses = myClasses.filter(c => c && c.status !== 'archived');
-
     if (myClasses.length > 0) {
-      const currentSelectedCode = localStorage.getItem("selectedClass");
       myClasses.forEach(c => {
         const sideLink = document.createElement("a");
         sideLink.className = "sidebar-item";
-        if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
+        if (c.code === selectedClassCode) sideLink.style.fontWeight = "bold";
         sideLink.textContent = `📘 ${c.subject}`;
         sideLink.href = classPageUrl;
         sideLink.onclick = (e) => {
@@ -1966,7 +2007,7 @@ body, button, input, select, textarea {
 
   async function loadSidebarGroups() {
     const client = getSupabaseClient();
-    if (!client) return;
+    if (!client || !currentUserId) return;
 
     const sidebarGroupList = document.getElementById("sidebarGroupList");
     if (!sidebarGroupList) return;
@@ -1976,34 +2017,26 @@ body, button, input, select, textarea {
     let myGroups = [];
 
     try {
+      let q = client
+        .from('groups')
+        .select('id, name, code, status')
+        .neq('status', 'archived')
+        .order('created_at', { ascending: false });
+
       if (userRole === "TEACHER" && userSearchIds.length > 0) {
-        const { data } = await client
-          .from('groups')
-          .select('id, name, code, status')
-          .eq('status', 'active')
-          .in('teacher_id', userSearchIds)
-          .order('created_at', { ascending: false });
-        myGroups = data || [];
-      } else {
-        const { data } = await client
-          .from('groups')
-          .select('id, name, code, status')
-          .eq('status', 'active')
-          .order('created_at', { ascending: false });
-        myGroups = data || [];
+        q = q.in('teacher_id', userSearchIds);
       }
+      const { data } = await q;
+      myGroups = (data || []).filter(g => g && g.status !== 'archived');
     } catch (err) {
       console.error("Sidebar groups error:", err);
     }
-
-    myGroups = myGroups.filter(g => g && g.status !== 'archived');
 
     if (myGroups.length > 0) {
       const currentSelectedGroup = localStorage.getItem("selectedGroup");
       myGroups.forEach(g => {
         const sideLink = document.createElement("a");
         sideLink.className = "sidebar-item";
-        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
         sideLink.textContent = `👥 ${g.name}`;
         sideLink.href = groupPageUrl;
         sideLink.onclick = (e) => {

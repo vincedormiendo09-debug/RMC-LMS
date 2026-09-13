@@ -820,10 +820,10 @@ body, button, input, select, textarea {
   });
 
   /* =====================================================
-     0. TYPE-SAFE ID HELPERS
+      0. TYPE-SAFE ID HELPERS & UTILITIES
   ===================================================== */
   function parseDbId(idVal) {
-    if (!idVal) return idVal;
+    if (idVal === null || idVal === undefined || idVal === '') return idVal;
     if (typeof idVal === 'number') return idVal;
     const str = String(idVal).trim();
     return /^\d+$/.test(str) ? parseInt(str, 10) : str;
@@ -833,7 +833,7 @@ body, button, input, select, textarea {
     const result = new Set();
     (idArray || []).forEach(id => {
       if (id !== null && id !== undefined && id !== '') {
-        result.add(String(id));
+        result.add(String(id).trim());
         const num = parseDbId(id);
         if (typeof num === 'number' && !isNaN(num)) {
           result.add(num);
@@ -844,7 +844,7 @@ body, button, input, select, textarea {
   }
 
   function escapeHtml(text) {
-    if (!text) return "";
+    if (text === null || text === undefined) return "";
     return String(text)
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
@@ -854,7 +854,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-     1. USER SESSION & ROLE PROTECTION
+      1. USER SESSION & ROLE PROTECTION
   ===================================================== */
   const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "STUDENT";
   const userRole = rawRole.toUpperCase();
@@ -896,7 +896,8 @@ body, button, input, select, textarea {
         <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
         <a href="${studentDashboardUrl}">📈 At-Risk Student Monitor</a>
         <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
-        <a href="${gradesUrl}" class="active">💯 Master Gradebook</a>
+        <a href="${gradesUrl}">💯 Master Gradebook</a>
+        <a href="${studentGradesUrl}" class="active">📑 Student Grade Sheets</a>
         <a href="${archiveUrl}">📦 Archival Vault</a>
         <a href="${notifyUrl}">🔔 System Alerts</a>
         <a href="${accountUrl}">👤 Account Profile</a>
@@ -909,7 +910,8 @@ body, button, input, select, textarea {
         <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
         <a href="${classDashboardUrl}">📊 Class Dashboard</a>
         <a href="${studentDashboardUrl}">📈 Student Dashboard</a>
-        <a href="${gradesUrl}" class="active">💯 Grades</a>
+        <a href="${gradesUrl}">💯 Grades</a>
+        <a href="${studentGradesUrl}" class="active">📑 Student Grades View</a>
         <a href="${submissionsUrl}">📝 Submissions</a>
         <a href="${archiveUrl}">📦 Archive</a>
         <a href="${notifyUrl}">🔔 Notifications</a>
@@ -930,7 +932,7 @@ body, button, input, select, textarea {
     }
   }
 
-  /* MOBILE SIDEBAR TOGGLE */
+  /* MOBILE SIDEBAR TOGGLE & BACKDROP OVERLAY */
   const mobileMenuBtn = document.getElementById("mobileMenuBtn");
   const sidebar = document.getElementById("sidebar");
   const sidebarOverlay = document.getElementById("sidebarOverlay");
@@ -957,39 +959,24 @@ body, button, input, select, textarea {
     });
   }
 
-  /* SAFE LOGOUT: Selectively clear credentials while preserving deadline history */
+  /* SAFE LOGOUT */
   function logoutUser() {
     const authKeys = [
-      "user_id",
-      "userRole",
-      "role",
-      "full_name",
-      "email",
-      "selectedClass",
-      "selectedClassId",
-      "selectedGroup",
-      "selectedGroupId",
-      "selectedSubmissionId",
-      "selectedActivityId",
-      "selectedStudentId",
-      "gradingStudentId",
-      "updateType",
-      "updateClassId",
-      "updateGroupId",
-      "joinedClasses",
-      "joinedGroups",
-      "isArchivedView"
+      "user_id", "userRole", "role", "full_name", "email",
+      "selectedClass", "selectedClassId", "selectedGroup", "selectedGroupId",
+      "selectedSubmissionId", "selectedActivityId", "selectedStudentId",
+      "selectedStudentName", "gradingStudentId", "updateType", "updateClassId",
+      "updateGroupId", "joinedClasses", "joinedGroups", "isArchivedView"
     ];
 
     authKeys.forEach(key => localStorage.removeItem(key));
     sessionStorage.clear();
-
     window.location.replace("{{ url_for('logout') }}");
   }
 
   /* PHILIPPINE COLLEGIATE GPA STANDARD (1.00 - 5.00, 75% PASSING) */
   function getGpaEquivalent(pct) {
-    if (pct === null || pct === undefined || isNaN(pct)) return "N/A";
+    if (pct === null || pct === undefined || isNaN(pct) || pct <= 0) return "N/A";
     if (pct >= 97) return "1.00 (Excellent)";
     if (pct >= 94) return "1.25 (Superior)";
     if (pct >= 91) return "1.50 (Very Good)";
@@ -1003,8 +990,8 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-     2. SUPABASE INITIALIZATION
-  ===================================================== */
+      2. SUPABASE INITIALIZATION
+  ==================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
 
@@ -1020,18 +1007,25 @@ body, button, input, select, textarea {
 
   let enrolledClassesList = [];
   let currentTargetStudentId = null;
-  let currentTargetStudentName = "";
-  let selectedClassCode = localStorage.getItem("selectedClass") || "";
-  if (selectedClassCode === "ALL") selectedClassCode = "";
-
+  let currentTargetStudentName = "Student";
+  let selectedClassCode = "";
   let allClassWorkRows = [];
 
   document.addEventListener("DOMContentLoaded", () => {
-    setTimeout(() => {
-      initStudentGradesHub();
-      loadSidebarClasses();
-      loadSidebarGroups();
-      injectAuditBanner();
+    let attempts = 0;
+    const timer = setInterval(() => {
+      attempts++;
+      const client = getSupabaseClient();
+      if (client) {
+        clearInterval(timer);
+        initStudentGradesHub();
+        loadSidebarClasses();
+        loadSidebarGroups();
+        injectAuditBanner();
+      } else if (attempts >= 20) {
+        clearInterval(timer);
+        console.error("Supabase CDN failed to load.");
+      }
     }, 100);
   });
 
@@ -1049,28 +1043,84 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-     3. INITIALIZE ACTIVE CLASSES & STUDENT CONTEXT
+      3. INITIALIZE ACTIVE CLASSES & STUDENT CONTEXT
   ===================================================== */
   async function initStudentGradesHub() {
     const client = getSupabaseClient();
     if (!client) return;
 
-    // Determine target student ID based on viewing role
-    if (userRole === "ADMIN" || userRole === "TEACHER") {
-      currentTargetStudentId = localStorage.getItem("selectedStudentId") || currentUserId;
-      currentTargetStudentName = localStorage.getItem("selectedStudentName") || "Student";
-    } else {
-      currentTargetStudentId = currentUserId;
-      currentTargetStudentName = userName;
+    // 0. Hard State Reset: Immediately clear previous student data from DOM & memory
+    allClassWorkRows = [];
+    enrolledClassesList = [];
+    const tbody = document.getElementById("studentGradesBody");
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 30px; color: var(--muted);">
+            <i class="fa-solid fa-spinner fa-spin"></i> Initializing academic records...
+          </td>
+        </tr>
+      `;
     }
 
-    // Set Header titles
+    // 1. Read URL parameters first (Direct deep-linking from grades.html)
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramStudentId = urlParams.get("student_id") || urlParams.get("studentId") || urlParams.get("id");
+    const paramClassCode = urlParams.get("class") || urlParams.get("code") || urlParams.get("class_code");
+
+    if (paramStudentId && paramStudentId !== "undefined" && paramStudentId !== "null") {
+      localStorage.setItem("selectedStudentId", paramStudentId);
+      localStorage.setItem("gradingStudentId", paramStudentId);
+    }
+
+    if (paramClassCode && paramClassCode !== "undefined" && paramClassCode !== "null") {
+      selectedClassCode = (paramClassCode.toLowerCase() === "all" || paramClassCode === "ALL") ? "" : paramClassCode;
+      localStorage.setItem("selectedClass", selectedClassCode);
+    } else {
+      const storedClass = localStorage.getItem("selectedClass") || "";
+      selectedClassCode = (storedClass.toLowerCase() === "all" || storedClass === "ALL") ? "" : storedClass;
+    }
+
+    // 2. Resolve Target Student ID based on viewing role
+    if (userRole === "ADMIN" || userRole === "TEACHER") {
+      let resolvedId = paramStudentId || localStorage.getItem("selectedStudentId") || localStorage.getItem("gradingStudentId");
+      if (!resolvedId || resolvedId === "undefined" || resolvedId === "null") {
+        resolvedId = currentUserId;
+      }
+      currentTargetStudentId = resolvedId;
+    } else {
+      currentTargetStudentId = currentUserId;
+    }
+
+    // 3. Guarantee Clean Identity: Fetch Student's real name from DB in real time
+    if (currentTargetStudentId) {
+      const searchIds = getDualTypeIds([currentTargetStudentId]);
+      try {
+        const { data: userData } = await client
+          .from('users')
+          .select('id, full_name, email')
+          .in('id', searchIds)
+          .maybeSingle();
+
+        if (userData && (userData.full_name || userData.email)) {
+          currentTargetStudentName = userData.full_name || userData.email;
+          localStorage.setItem("selectedStudentName", currentTargetStudentName);
+        } else {
+          currentTargetStudentName = localStorage.getItem("selectedStudentName") || "Student";
+        }
+      } catch (e) {
+        console.warn("User name fetch error:", e);
+        currentTargetStudentName = localStorage.getItem("selectedStudentName") || "Student";
+      }
+    }
+
+    // 4. Update Header Labels
     updateHeaderLabels();
 
-    // Fetch All Active Enrolled Classes for this student
+    // 5. Fetch Active Enrolled Classes (strictly teacher-filtered if role is TEACHER)
     await loadActiveClassesSelector();
 
-    // Fetch and render the full deliverables table (graded, late, and missing=0)
+    // 6. Fetch deliverables & calculate marks
     await fetchStudentGradesFromSupabase();
   }
 
@@ -1090,11 +1140,11 @@ body, button, input, select, textarea {
       }
     } else if (userRole === "TEACHER") {
       if (titleEl) titleEl.textContent = `👤 ${currentTargetStudentName}'s Academic Work & Grades`;
-      if (subEl) subEl.textContent = `Class: ${selectedClassCode || 'All Subjects'} | Deliverables & Performance Summary`;
+      if (subEl) subEl.textContent = `Class: ${selectedClassCode || 'All Taught Subjects'} | Deliverables & Performance Summary`;
       if (secTitleEl) secTitleEl.innerHTML = `<i class="fa-solid fa-list-check"></i> Student Deliverables, Evaluations & Missing Work`;
       if (backBtnEl) {
-        backBtnEl.textContent = "← Back to Submissions";
-        backBtnEl.href = submissionsUrl;
+        backBtnEl.textContent = "← Back to Master Gradebook";
+        backBtnEl.href = gradesUrl;
       }
     } else {
       if (titleEl) titleEl.textContent = "💯 My Grades & Course Work";
@@ -1108,77 +1158,90 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-      4. RENDER ACTIVE CLASS LIST SELECTOR BAR
+      4. RENDER ACTIVE CLASS LIST SELECTOR BAR (PRIVACY SAFE)
   ===================================================== */
   async function loadActiveClassesSelector() {
     const client = getSupabaseClient();
     const container = document.getElementById("classChipsContainer");
     if (!client || !container) return;
 
-    const studentSearchIds = [...new Set(getDualTypeIds([currentTargetStudentId]))];
+    const studentSearchIds = getDualTypeIds([currentTargetStudentId]);
 
     try {
-      // 1. Query class memberships using verified user_id column
-      const { data: mems, error: memErr } = await client
-        .from('class_memberships')
-        .select('class_id')
-        .in('user_id', studentSearchIds);
+      // 1. Query class memberships across both user_id and student_id
+      const [memUser, memStudent] = await Promise.all([
+        client.from('class_memberships').select('class_id').in('user_id', studentSearchIds),
+        client.from('class_memberships').select('class_id').in('student_id', studentSearchIds)
+      ]);
 
-      if (memErr) {
-        console.warn("Class memberships query notice:", memErr.message);
-      }
-
-      let classIds = (mems || []).map(m => m.class_id).filter(Boolean);
+      const mems = [...(memUser.data || []), ...(memStudent.data || [])];
+      let classIds = mems.map(m => m.class_id).filter(Boolean);
       const dualClassIds = getDualTypeIds(classIds);
 
       if (dualClassIds.length > 0) {
-        const { data: classesData } = await client
+        let classesQuery = client
           .from('classes')
-          .select('id, subject, code, status')
-          .eq('status', 'active')
+          .select('id, subject, code, status, teacher_id')
+          .neq('status', 'archived')
           .in('id', dualClassIds)
           .order('created_at', { ascending: false });
 
-        enrolledClassesList = classesData || [];
-      } else {
-        // Fallback for localStorage joined classes
-        const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
-        if (joinedClasses.length > 0) {
-          const { data: fallbackData } = await client
-            .from('classes')
-            .select('id, subject, code, status')
-            .eq('status', 'active')
-            .in('code', joinedClasses);
-          enrolledClassesList = fallbackData || [];
+        // 🔒 STRICT TEACHER PRIVACY LOCK:
+        // A teacher can ONLY see classes that THEY own/teach.
+        // Any class belonging to another instructor is filtered out at the database level.
+        if (userRole === "TEACHER") {
+          const teacherSearchIds = getDualTypeIds([currentUserId]);
+          classesQuery = classesQuery.in('teacher_id', teacherSearchIds);
         }
+
+        const { data: classesData, error: clsErr } = await classesQuery;
+        if (clsErr) {
+          console.warn("Classes query notice:", clsErr.message);
+        }
+        enrolledClassesList = (classesData || []).filter(c => c && c.status !== 'archived');
+      } else {
+        enrolledClassesList = [];
       }
     } catch (err) {
       console.error("Error loading active classes selector:", err);
+      enrolledClassesList = [];
+    }
+
+    // Verify selectedClassCode belongs to authorized subjects
+    if (selectedClassCode) {
+      const match = enrolledClassesList.find(c => String(c.code).toLowerCase() === String(selectedClassCode).toLowerCase());
+      if (!match) {
+        selectedClassCode = "";
+        localStorage.setItem("selectedClass", "");
+      }
     }
 
     container.innerHTML = "";
+
+    // If the student is enrolled in 0 classes taught by this teacher
+    if (enrolledClassesList.length === 0) {
+      container.innerHTML = `<span style="font-size:12.5px; color:var(--muted); padding:4px 0;">This student is not enrolled in any of your active classes.</span>`;
+      return;
+    }
 
     // "All Active Classes" chip
     const allChip = document.createElement("button");
     allChip.type = "button";
     allChip.className = `class-chip ${!selectedClassCode ? 'active' : ''}`;
-    allChip.innerHTML = `<i class="fa-solid fa-border-all"></i> All Active Classes`;
+    allChip.innerHTML = `<i class="fa-solid fa-border-all"></i> ${userRole === 'TEACHER' ? 'All My Classes' : 'All Active Classes'}`;
     allChip.onclick = () => selectClassFilter("");
     container.appendChild(allChip);
 
-    if (enrolledClassesList.length > 0) {
-      enrolledClassesList.forEach(cls => {
-        const chip = document.createElement("button");
-        chip.type = "button";
-        const isActive = cls.code === selectedClassCode;
-        chip.className = `class-chip ${isActive ? 'active' : ''}`;
-        chip.innerHTML = `📘 ${escapeHtml(cls.subject)} <small style="opacity:0.85;">(${cls.code})</small>`;
-        chip.onclick = () => selectClassFilter(cls.code);
-        container.appendChild(chip);
-      });
-    } else {
-      container.innerHTML += `<span style="font-size:12.5px; color:var(--muted); padding:4px 0;">No active classes found.</span>`;
-    }
+    // Individual subject chips
+    enrolledClassesList.forEach(cls => {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      const isActive = String(cls.code).toLowerCase() === String(selectedClassCode).toLowerCase();
+      chip.className = `class-chip ${isActive ? 'active' : ''}`;
+      chip.innerHTML = `📘 ${escapeHtml(cls.subject)} <small style="opacity:0.85;">(${escapeHtml(cls.code)})</small>`;
+      chip.onclick = () => selectClassFilter(cls.code);
+      container.appendChild(chip);
+    });
   }
 
   function selectClassFilter(classCode) {
@@ -1189,7 +1252,26 @@ body, button, input, select, textarea {
     // Re-highlight active chip
     const chips = document.querySelectorAll(".class-chip");
     chips.forEach(chip => {
-      if (!classCode && chip.textContent.includes("All Active Classes")) {
+      if (!classCode && (chip.textContent.includes("All Active Classes") || chip.textContent.includes("All My Classes"))) {
+        chip.classList.add("active");
+      } else if (classCode && chip.textContent.includes(classCode)) {
+        chip.classList.add("active");
+      } else {
+        chip.classList.remove("active");
+      }
+    });
+
+    fetchStudentGradesFromSupabase();
+  }
+
+  function selectClassFilter(classCode) {
+    selectedClassCode = classCode;
+    localStorage.setItem("selectedClass", classCode);
+    updateHeaderLabels();
+
+    const chips = document.querySelectorAll(".class-chip");
+    chips.forEach(chip => {
+      if (!classCode && (chip.textContent.includes("All Active Classes") || chip.textContent.includes("All My Classes"))) {
         chip.classList.add("active");
       } else if (classCode && chip.textContent.includes(classCode)) {
         chip.classList.add("active");
@@ -1202,7 +1284,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-      5. FETCH WORK, LATE STATUS & AUTO-CALCULATE MISSING (0)
+      5. FETCH WORK, EVALUATION STATUS & ZERO GRADES
   ===================================================== */
   async function fetchStudentGradesFromSupabase() {
     const client = getSupabaseClient();
@@ -1212,63 +1294,62 @@ body, button, input, select, textarea {
     tbody.innerHTML = `
       <tr>
         <td colspan="6" style="text-align: center; padding: 30px; color: var(--muted);">
-          <i class="fa-solid fa-spinner fa-spin"></i> Loading academic work and grading records...
+          <i class="fa-solid fa-spinner fa-spin"></i> Loading academic deliverables and grading records...
         </td>
       </tr>
     `;
 
-    const userSearchIds = [...new Set(getDualTypeIds([currentTargetStudentId]))];
+    const userSearchIds = getDualTypeIds([currentTargetStudentId]);
 
-    // Determine target classes to pull activities for
+    // Determine target classes (strictly authorized)
     let targetClassIds = [];
     if (selectedClassCode) {
-      const match = enrolledClassesList.find(c => c.code === selectedClassCode);
+      const match = enrolledClassesList.find(c => String(c.code).toLowerCase() === String(selectedClassCode).toLowerCase());
       if (match) {
         targetClassIds = getDualTypeIds([match.id]);
-      } else {
-        const { data: cData } = await client.from('classes').select('id').eq('code', selectedClassCode).maybeSingle();
-        if (cData) targetClassIds = getDualTypeIds([cData.id]);
       }
     } else {
       targetClassIds = getDualTypeIds(enrolledClassesList.map(c => c.id));
     }
 
-    // 1. Fetch All Activities across these classes
-    let activitiesQuery = client.from('activities').select('*');
-    if (targetClassIds.length > 0) {
-      activitiesQuery = activitiesQuery.in('class_id', targetClassIds);
+    // Safety guard: If student is not in any of this teacher's classes, display empty
+    if (targetClassIds.length === 0) {
+      allClassWorkRows = [];
+      renderClassWorkTable([]);
+      return;
     }
-    const { data: allActivities, error: actErr } = await activitiesQuery.order('created_at', { ascending: false });
+
+    // 1. Fetch activities belonging to these classes
+    const { data: activitiesData, error: actErr } = await client
+      .from('activities')
+      .select('*')
+      .in('class_id', targetClassIds)
+      .order('created_at', { ascending: false });
 
     if (actErr) {
       console.error("Error fetching activities:", actErr);
     }
 
-    const activities = allActivities || [];
+    const activities = activitiesData || [];
 
-    // 2. Fetch All Submissions for this Student (Safe & Crash-Proof)
+    // 2. Fetch Submissions (Deduplicated across user_id & student_id)
     let submissions = [];
     try {
-      const { data: subsData, error: subErr } = await client
-        .from('submissions')
-        .select('*')
-        .in('user_id', userSearchIds);
+      const [subUser, subStudent] = await Promise.all([
+        client.from('submissions').select('*').in('user_id', userSearchIds),
+        client.from('submissions').select('*').in('student_id', userSearchIds)
+      ]);
 
-      if (subErr) {
-        console.warn("Submissions query warning, attempting fallback:", subErr.message);
-        const { data: fallbackSubs } = await client
-          .from('submissions')
-          .select('*')
-          .in('student_id', userSearchIds);
-        submissions = fallbackSubs || [];
-      } else {
-        submissions = subsData || [];
-      }
+      const combinedSubs = [...(subUser.data || []), ...(subStudent.data || [])];
+      const uniqueMap = new Map();
+      combinedSubs.forEach(s => {
+        if (s && s.id) uniqueMap.set(String(s.id), s);
+      });
+      submissions = Array.from(uniqueMap.values());
     } catch (err) {
       console.error("Error fetching student submissions:", err);
     }
 
-    // Build Submissions Map by activity_id
     const subMap = {};
     submissions.forEach(sub => {
       subMap[String(sub.activity_id)] = sub;
@@ -1276,7 +1357,6 @@ body, button, input, select, textarea {
       if (parsedAid) subMap[parsedAid] = sub;
     });
 
-    // 3. Build Class Meta Map
     const classMetaMap = {};
     enrolledClassesList.forEach(c => {
       classMetaMap[String(c.id)] = c;
@@ -1287,10 +1367,10 @@ body, button, input, select, textarea {
     const now = new Date().getTime();
     allClassWorkRows = [];
 
-    // 4. Synthesize Every Activity into Evaluated, Late, or Missing (0)
+    // 3. Synthesize deliverables
     activities.forEach(act => {
       const sub = subMap[String(act.id)] || subMap[parseDbId(act.id)];
-      const maxPts = Number(act.total_points) || 100;
+      const maxPts = Number(act.total_points) > 0 ? Number(act.total_points) : 100;
       const classObj = classMetaMap[String(act.class_id)] || classMetaMap[parseDbId(act.class_id)] || {};
 
       let deadlineTime = null;
@@ -1322,14 +1402,14 @@ body, button, input, select, textarea {
 
         const subTime = sub.submitted_at ? new Date(sub.submitted_at).getTime() : null;
         const isLate = deadlineTime && subTime && subTime > deadlineTime;
-
         const subDateObj = sub.submitted_at ? new Date(sub.submitted_at) : null;
         rowData.dateDisplay = subDateObj && !isNaN(subDateObj.getTime())
           ? subDateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
           : 'Turned In';
 
         if (st === 'graded' || hasScore) {
-          const score = Number(sub.grade !== null && sub.grade !== undefined ? sub.grade : sub.score) || 0;
+          const rawScore = sub.grade !== null && sub.grade !== undefined ? sub.grade : sub.score;
+          const score = Math.round(Number(rawScore) * 100) / 100 || 0;
           rowData.scoreAchieved = score;
           rowData.percentage = Math.round((score / maxPts) * 100);
 
@@ -1365,7 +1445,7 @@ body, button, input, select, textarea {
             rowData.statusType = 'pending';
             rowData.scoreAchieved = 0;
             rowData.percentage = 0;
-            rowData.statusLabel = 'Pending Work / Not Yet Submitted';
+            rowData.statusLabel = 'Assigned / In Progress';
             rowData.badgeClass = 'badge badge-pending';
           }
         }
@@ -1402,7 +1482,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-     6. RENDER WORK TABLE & UPDATE GPA SUMMARY METRICS
+      6. RENDER WORK TABLE & UPDATE GPA SUMMARY METRICS
   ===================================================== */
   function renderClassWorkTable(rows) {
     const tbody = document.getElementById("studentGradesBody");
@@ -1412,13 +1492,12 @@ body, button, input, select, textarea {
     if (rows.length === 0) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="6" class="empty-state">
-            <i class="fa-solid fa-folder-open" style="font-size: 32px; color: #94a3b8; margin-bottom: 10px;"></i><br>
-            No published activities or deliverables found for ${selectedClassCode ? 'Class <strong>' + escapeHtml(selectedClassCode) + '</strong>' : 'your enrolled classes'}.
+          <td colspan="6" class="empty-state" style="text-align: center; padding: 35px; color: var(--muted);">
+            <i class="fa-solid fa-folder-open" style="font-size: 30px; color: #94a3b8; margin-bottom: 10px;"></i><br>
+            No published deliverables found for ${selectedClassCode ? 'Class <strong>' + escapeHtml(selectedClassCode) + '</strong>' : 'enrolled subjects under this faculty'}.
           </td>
         </tr>
       `;
-
       updateSummaryMetrics(0, 0, 0, 0, 0);
       return;
     }
@@ -1432,7 +1511,6 @@ body, button, input, select, textarea {
     rows.forEach(item => {
       const tr = document.createElement("tr");
 
-      // Points accounting: Graded & Missing(0) count towards the real grade
       if (item.statusType === 'graded' || item.statusType === 'late') {
         completedGradedCount++;
         totalPointsEarned += item.scoreAchieved;
@@ -1440,14 +1518,14 @@ body, button, input, select, textarea {
         totalWeightedPctSum += item.percentage;
         countableActivitiesCount++;
       } else if (item.statusType === 'missing') {
-        // Missing activities count as ZERO against the student's average
+        // Missing activities count as ZERO in student's grade percentage
         totalPointsEarned += 0;
         totalPointsPossible += item.maxPoints;
         totalWeightedPctSum += 0;
         countableActivitiesCount++;
       }
 
-      // Action Button Routing
+      // Action routing
       let actionBtn = "";
       if (item.submissionId) {
         if (userRole === "STUDENT") {
@@ -1456,7 +1534,6 @@ body, button, input, select, textarea {
           actionBtn = `<button class="btn-inspect" onclick="inspectStudentSubmission('${item.submissionId}')"><i class="fa-solid fa-eye"></i> Audit Work</button>`;
         }
       } else {
-        // Not submitted yet or missing: Shortcut directly to submit work
         if (userRole === "STUDENT") {
           actionBtn = `<button class="btn-submit-work" onclick="goToSubmitActivity('${item.activityId}', '${item.subjectCode}')"><i class="fa-solid fa-arrow-up-from-bracket"></i> Turn In Work</button>`;
         } else {
@@ -1480,7 +1557,7 @@ body, button, input, select, textarea {
       ? Math.round(totalWeightedPctSum / countableActivitiesCount)
       : 0;
 
-    updateSummaryMetrics(completedGradedCount, rows.length, totalPointsEarned, totalPointsPossible, averagePercentage);
+    updateSummaryMetrics(completedGradedCount, rows.length, Math.round(totalPointsEarned * 100) / 100, totalPointsPossible, averagePercentage);
   }
 
   function updateSummaryMetrics(completed, total, earned, possible, avgPct) {
@@ -1496,7 +1573,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-     7. ROUTING ACTIONS & SHORTCUTS
+      7. ROUTING ACTIONS & SHORTCUTS
   ===================================================== */
   function goToSubmitActivity(activityId, classCode) {
     localStorage.setItem("selectedActivityId", String(activityId));
@@ -1516,7 +1593,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-     8. EXPORT FULL AUDIT REPORT TO EXCEL CSV
+      8. EXPORT AUDIT REPORT TO CSV
   ===================================================== */
   function exportStudentGradeReportToExcel() {
     if (!allClassWorkRows || allClassWorkRows.length === 0) {
@@ -1527,7 +1604,7 @@ body, button, input, select, textarea {
     let csvRows = [];
     csvRows.push(["REGIS MARIE COLLEGE - STUDENT ACADEMIC GRADE & COMPLIANCE REPORT"]);
     csvRows.push([`Student Name: ${currentTargetStudentName}`, `Class Filter: ${selectedClassCode || 'All Enrolled Classes'}`]);
-    csvRows.push([`Generated On: ${new Date().toLocaleString()}`, userRole === 'ADMIN' ? 'Registrar Audit Transcript' : 'Official Academic Record']);
+    csvRows.push([`Generated On: ${new Date().toLocaleString()}`, userRole === 'ADMIN' ? 'Registrar Audit Transcript' : 'Official Faculty Record']);
     csvRows.push([]);
     csvRows.push(["Activity Title", "Class Code", "Due / Submitted", "Score Given", "Max Points", "Percentage", "Performance Status"]);
 
@@ -1546,29 +1623,30 @@ body, button, input, select, textarea {
     const csvContent = "\uFEFF" + csvRows.map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(",")).join("\r\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    const cleanStudentName = currentTargetStudentName.replace(/\s+/g, '_');
-    link.setAttribute("download", `Gradebook_${cleanStudentName}_${selectedClassCode || 'AllClasses'}.csv`);
+    const cleanStudentName = currentTargetStudentName.replace(/[^a-zA-Z0-9]/g, '_');
+    const cleanClass = (selectedClassCode || 'AllClasses').replace(/[^a-zA-Z0-9]/g, '_');
+    link.setAttribute("download", `Gradebook_${cleanStudentName}_${cleanClass}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
 
   /* =====================================================
-     9. SIDEBAR ACTIVE CLASSES & GROUPS SYNC
+      9. SIDEBAR ACTIVE CLASSES & GROUPS SYNC
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
-    if (!client) return;
+    if (!client || !currentUserId) return;
 
     const sidebarClassList = document.getElementById("sidebarClassList");
     if (!sidebarClassList) return;
     sidebarClassList.innerHTML = "";
 
-    const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+    const userSearchIds = getDualTypeIds([currentUserId]);
     let myClasses = [];
 
     try {
@@ -1576,22 +1654,23 @@ body, button, input, select, textarea {
         const { data } = await client
           .from('classes')
           .select('id, subject, code, status')
-          .eq('status', 'active')
+          .neq('status', 'archived')
           .in('teacher_id', userSearchIds)
           .order('created_at', { ascending: false });
         myClasses = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
-        const { data: mems, error: memErr } = await client
+        const { data: mems } = await client
           .from('class_memberships')
           .select('class_id')
           .in('user_id', userSearchIds);
 
-        if (!memErr && mems && mems.length > 0) {
-          const classSearchIds = [...new Set(getDualTypeIds(mems.map(m => m.class_id)))];
+        if (mems && mems.length > 0) {
+          const classSearchIds = getDualTypeIds(mems.map(m => m.class_id));
           if (classSearchIds.length > 0) {
             const { data: fetchedClasses } = await client
               .from('classes')
               .select('id, subject, code, status')
+              .neq('status', 'archived')
               .in('id', classSearchIds);
             myClasses = fetchedClasses || [];
           }
@@ -1600,7 +1679,7 @@ body, button, input, select, textarea {
         const { data } = await client
           .from('classes')
           .select('id, subject, code, status')
-          .eq('status', 'active')
+          .neq('status', 'archived')
           .order('created_at', { ascending: false });
         myClasses = data || [];
       }
@@ -1630,13 +1709,13 @@ body, button, input, select, textarea {
 
   async function loadSidebarGroups() {
     const client = getSupabaseClient();
-    if (!client) return;
+    if (!client || !currentUserId) return;
 
     const sidebarGroupList = document.getElementById("sidebarGroupList");
     if (!sidebarGroupList) return;
     sidebarGroupList.innerHTML = "";
 
-    const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+    const userSearchIds = getDualTypeIds([currentUserId]);
     let myGroups = [];
 
     try {
@@ -1644,22 +1723,23 @@ body, button, input, select, textarea {
         const { data } = await client
           .from('groups')
           .select('id, name, code, status')
-          .eq('status', 'active')
+          .neq('status', 'archived')
           .in('teacher_id', userSearchIds)
           .order('created_at', { ascending: false });
         myGroups = data || [];
       } else if (userRole === "STUDENT" && userSearchIds.length > 0) {
-        const { data: mems, error: memErr } = await client
+        const { data: mems } = await client
           .from('group_memberships')
           .select('group_id')
           .in('user_id', userSearchIds);
 
-        if (!memErr && mems && mems.length > 0) {
-          const groupSearchIds = [...new Set(getDualTypeIds(mems.map(m => m.group_id)))];
+        if (mems && mems.length > 0) {
+          const groupSearchIds = getDualTypeIds(mems.map(m => m.group_id));
           if (groupSearchIds.length > 0) {
             const { data: fetchedGroups } = await client
               .from('groups')
               .select('id, name, code, status')
+              .neq('status', 'archived')
               .in('id', groupSearchIds);
             myGroups = fetchedGroups || [];
           }
@@ -1668,7 +1748,7 @@ body, button, input, select, textarea {
         const { data } = await client
           .from('groups')
           .select('id, name, code, status')
-          .eq('status', 'active')
+          .neq('status', 'archived')
           .order('created_at', { ascending: false });
         myGroups = data || [];
       }
