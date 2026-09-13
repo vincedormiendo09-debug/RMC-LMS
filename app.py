@@ -1772,13 +1772,81 @@ def notify_page():
     ))
     return prevent_caching(response)
 
+import random
+import time
+from flask_mail import Message
+
 # =====================================================
 # 🔐 PASSWORD RESET & OTP EMAIL DISPATCH ENDPOINTS
 # =====================================================
 
+def send_otp_email(to_email, otp_code):
+    """Dispatches a 6-digit OTP code using Python's native smtplib and SSL/TLS."""
+    smtp_server = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("MAIL_PORT", 465))
+    sender_email = os.environ.get("MAIL_USERNAME") or os.environ.get("SMTP_USER")
+    sender_password = os.environ.get("MAIL_PASSWORD") or os.environ.get("SMTP_PASS")
+
+    if not sender_email or not sender_password:
+        raise ValueError("Missing mail credentials. Set MAIL_USERNAME and MAIL_PASSWORD in Render environment variables.")
+
+    msg = EmailMessage()
+    msg["Subject"] = "🔐 Regis Marie College - Password Reset Verification Code"
+    msg["From"] = f"RMC LMS Support <{sender_email}>"
+    msg["To"] = to_email
+    msg.set_content(
+        f"Hello,\n\n"
+        f"You requested to reset your password on the Regis Marie College LMS.\n\n"
+        f"Your 6-digit verification code is:\n\n"
+        f"   {otp_code}\n\n"
+        f"This code will expire in 10 minutes. If you did not request this, please ignore this email.\n\n"
+        f"— RMC LMS Security Team"
+    )
+
+    if smtp_port == 465:
+        with smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=15) as server:
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+    else:
+        with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+
+
+@app.route('/api/send-password-otp', methods=['POST'])
+def send_password_otp():
+    """Generates a 6-digit OTP, saves session state, and sends verification email."""
+    data = request.get_json() or {}
+    email = str(data.get('email', '')).strip().lower()
+
+    if not email:
+        return jsonify({'success': False, 'message': 'Target email address is required.'}), 400
+
+    # 1. Generate 6-digit numeric OTP
+    otp_code = f"{random.randint(100000, 999999)}"
+
+    # 2. Store in session (10-minute expiration window)
+    session['password_reset_otp'] = otp_code
+    session['password_reset_email'] = email
+    session['password_reset_expiry'] = time.time() + 600
+    session['password_reset_verified'] = False
+
+    # 3. Dispatch via native SMTP
+    try:
+        send_otp_email(email, otp_code)
+        return jsonify({'success': True, 'message': 'Verification code sent successfully.'})
+    except Exception as e:
+        print(f"❌ [SMTP DISPATCH ERROR]: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Email dispatch failed: {str(e)}'
+        }), 500
+
+
 @app.route('/api/verify-password-otp', methods=['POST'])
 def verify_password_otp():
-    """Validates the 6-digit code against the server session."""
+    """Validates the 6-digit code against server session state."""
     data = request.get_json() or {}
     entered_code = str(data.get('code', '')).strip()
 
@@ -1791,7 +1859,7 @@ def verify_password_otp():
     if entered_code != str(stored_code):
         return jsonify({'valid': False, 'message': 'Incorrect 6-digit code. Please check your inbox.'}), 400
 
-    # Flag session as verified for the target email and clear OTP
+    # Mark session as verified for the target email and clear one-time OTP
     session['password_reset_verified'] = True
     session.pop('password_reset_otp', None)
     session.pop('password_reset_expiry', None)
@@ -1801,7 +1869,7 @@ def verify_password_otp():
 
 @app.route('/api/complete-password-reset', methods=['POST'])
 def complete_password_reset():
-    """Updates password for the verified session email."""
+    """Updates password in Supabase for the verified session email."""
     data = request.get_json() or {}
     new_password = str(data.get('new_password', '')).strip()
 
@@ -1813,10 +1881,9 @@ def complete_password_reset():
         return jsonify({'success': False, 'message': 'Password must be at least 6 characters.'}), 400
 
     try:
-        # Direct Supabase REST update
         supa_url = os.environ.get("SUPABASE_URL", "https://wndiqgyuvjenglfydqdt.supabase.co")
         supa_key = os.environ.get("SUPABASE_KEY", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU")
-        
+
         headers = {
             "apikey": supa_key,
             "Authorization": f"Bearer {supa_key}",

@@ -818,22 +818,46 @@
     /* MOBILE SIDEBAR TOGGLE */
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    function toggleMobileDrawer(open) {
+      const shouldOpen = open !== undefined ? open : !sidebar.classList.contains("active");
+      if (shouldOpen) {
+        sidebar.classList.add("active");
+        if (sidebarOverlay) sidebarOverlay.classList.add("active");
+      } else {
+        sidebar.classList.remove("active");
+        if (sidebarOverlay) sidebarOverlay.classList.remove("active");
+      }
+    }
 
     if (mobileMenuBtn && sidebar) {
       mobileMenuBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        sidebar.classList.toggle('active');
-      });
-
-      document.addEventListener('click', (e) => {
-        if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
-          sidebar.classList.remove('active');
-        }
+        toggleMobileDrawer();
       });
     }
 
+    if (sidebarOverlay) {
+      sidebarOverlay.addEventListener('click', () => toggleMobileDrawer(false));
+    }
+
+    document.addEventListener('click', (e) => {
+      if (sidebar && !sidebar.contains(e.target) && mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
+        toggleMobileDrawer(false);
+      }
+    });
+
+    /* 🔒 SAFE LOGOUT: Preserve student acknowledged_deadlines ledger */
     function logoutUser() {
-      localStorage.clear();
+      const authKeys = [
+        "user_id", "userRole", "role", "full_name", "email",
+        "selectedClass", "selectedClassId", "selectedGroup", "selectedGroupId",
+        "selectedSubmissionId", "selectedActivityId", "selectedStudentId",
+        "gradingStudentId", "updateType", "updateClassId", "updateGroupId",
+        "joinedClasses", "joinedGroups", "isArchivedView"
+      ];
+      authKeys.forEach(k => localStorage.removeItem(k));
       sessionStorage.clear();
       window.location.replace("{{ url_for('logout') }}");
     }
@@ -848,7 +872,14 @@
       if (window._supabase) return window._supabase;
       const supabaseLib = window.supabase || window.Supabase;
       if (supabaseLib && typeof supabaseLib.createClient === 'function') {
-        window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY);
+        window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY, {
+          global: {
+            headers: {
+              apikey: SUPABASE_KEY,
+              Authorization: `Bearer ${SUPABASE_KEY}`
+            }
+          }
+        });
         return window._supabase;
       }
       return null;
@@ -857,8 +888,6 @@
     let isEditMode = false;
     let isPasswordEditMode = false;
     let isOtpBypassActive = false;
-    let activeOtpCode = null;
-    let otpExpiryTime = 0;
     let currentUserRecord = null;
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -1081,7 +1110,6 @@
       const pwdActionBtn = document.getElementById("passwordActionBtn");
 
       if (!isPasswordEditMode) {
-        // Unlock fields for editing
         isPasswordEditMode = true;
         isOtpBypassActive = false;
 
@@ -1108,12 +1136,10 @@
           pwdActionBtn.style.background = "#16a34a";
         }
       } else {
-        // Save Mode: Validate and persist
         const oldPwd = oldPwdInput?.value.trim();
         const newPwd = newPwdInput?.value.trim();
         const confirmPwd = confirmPwdInput?.value.trim();
 
-        // If not verified via 6-digit OTP, require the old password
         if (!isOtpBypassActive && !oldPwd) {
           alert("Please enter your current/old password to authorize this change.");
           if (oldPwdInput) oldPwdInput.focus();
@@ -1151,7 +1177,7 @@
 
         const userSearchIds = getDualTypeIds([currentUserId]);
 
-        // Step 1: Verify old password if OTP bypass was not used
+        // Step 1: Verify current password if OTP was not used
         if (!isOtpBypassActive) {
           const { data: userVerify, error: verifyErr } = await client
             .from('users')
@@ -1160,7 +1186,7 @@
             .maybeSingle();
 
           if (verifyErr || !userVerify) {
-            alert("Security verification error: Unable to retrieve current user credentials.");
+            alert("Security verification error: Unable to retrieve user credentials.");
             if (pwdActionBtn) {
               pwdActionBtn.disabled = false;
               pwdActionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save New Password`;
@@ -1169,7 +1195,7 @@
           }
 
           if (String(userVerify.password) !== String(oldPwd)) {
-            alert("🛑 Incorrect Current Password: The password you entered does not match our records. Please click 'Forgot your password?' to verify with a 6-digit code.");
+            alert("🛑 Incorrect Current Password: The password you entered does not match our records. Click 'Forgot your password?' to verify using a 6-digit code.");
             if (pwdActionBtn) {
               pwdActionBtn.disabled = false;
               pwdActionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save New Password`;
@@ -1191,26 +1217,62 @@
           }
         }
 
-        // Step 2: Persist new password to Supabase
+        // Step 2: Persist new password (synced with backend endpoint and Supabase fallback)
         if (pwdActionBtn) {
           pwdActionBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Updating Password...';
         }
 
-        const { error: updateErr } = await client
-          .from('users')
-          .update({ password: newPwd })
-          .in('id', userSearchIds);
+        let updateSuccess = false;
+        let updateErrorMsg = "";
 
-        if (updateErr) {
-          alert("Error updating password: " + updateErr.message);
+        if (isOtpBypassActive) {
+          try {
+            const resetResp = await fetch('/api/complete-password-reset', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ new_password: newPwd })
+            });
+            const resetResult = await resetResp.json().catch(() => ({}));
+            if (resetResp.ok && resetResult.success) {
+              updateSuccess = true;
+            } else {
+              throw new Error(resetResult.message || "Endpoint completion failed.");
+            }
+          } catch (endpointErr) {
+            console.warn("Backend reset endpoint fallback:", endpointErr);
+            const { error: directErr } = await client
+              .from('users')
+              .update({ password: newPwd })
+              .in('id', userSearchIds);
+
+            if (!directErr) {
+              updateSuccess = true;
+            } else {
+              updateErrorMsg = directErr.message;
+            }
+          }
+        } else {
+          const { error: directErr } = await client
+            .from('users')
+            .update({ password: newPwd })
+            .in('id', userSearchIds);
+
+          if (!directErr) {
+            updateSuccess = true;
+          } else {
+            updateErrorMsg = directErr.message;
+          }
+        }
+
+        if (!updateSuccess) {
+          alert("Error updating password: " + (updateErrorMsg || "Unable to save credentials."));
           if (pwdActionBtn) {
             pwdActionBtn.disabled = false;
             pwdActionBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save New Password`;
           }
         } else {
-          alert("🎉 Password updated successfully! Your new password is now active.");
+          alert("🎉 Password updated successfully! Your new credentials are active.");
 
-          // Reset values and re-lock inputs
           if (oldPwdInput) {
             oldPwdInput.value = "";
             oldPwdInput.disabled = true;
@@ -1250,38 +1312,60 @@
     async function openForgotPasswordFlow() {
       const targetEmail = currentUserRecord?.email || "{{ session.get('email', '') }}";
       if (!targetEmail) {
-        alert("No registered email address found for this account. Please contact the administrator.");
+        alert("No registered email address found for this account. Please contact an administrator.");
         return;
       }
 
       const emailDisplay = document.getElementById("otpTargetEmail");
-      if (emailDisplay) emailDisplay.textContent = targetEmail;
-
       const otpInput = document.getElementById("otpInput");
       const errBox = document.getElementById("otpErrorMsg");
-      if (otpInput) otpInput.value = "";
-      if (errBox) errBox.style.display = "none";
-
       const modal = document.getElementById("otpModal");
+
+      if (emailDisplay) emailDisplay.textContent = targetEmail;
+      if (otpInput) otpInput.value = "";
+      if (errBox) {
+        errBox.textContent = "";
+        errBox.style.display = "none";
+      }
       if (modal) modal.style.display = "flex";
 
-      // Dispatch code securely through the backend mailer
+      // Show temporary loading indicator in modal
+      if (errBox) {
+        errBox.style.display = "block";
+        errBox.style.color = "#2563eb";
+        errBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Contacting email service...';
+      }
+
       try {
         const resp = await fetch('/api/send-password-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: targetEmail })
         });
-        const result = await resp.json();
+
+        let result = {};
+        try {
+          result = await resp.json();
+        } catch (jsonErr) {
+          throw new Error(`Server returned HTTP ${resp.status} instead of a JSON response.`);
+        }
+
+        if (errBox) errBox.style.display = "none";
 
         if (resp.ok && result.success) {
-          alert(`🔐 Verification Code Dispatched:\n\nA 6-digit security code has been sent directly to ${targetEmail}.\n\nPlease check your inbox (and spam folder) and enter the code below to verify ownership.`);
+          alert(`🔐 Verification Code Dispatched:\n\nA 6-digit code has been sent to ${targetEmail}.\n\nPlease check your inbox (and spam folder) and enter the code below.`);
         } else {
           alert(`⚠️ ${result.message || 'Could not send verification email. Please try again later.'}`);
         }
       } catch (err) {
         console.error("OTP send error:", err);
-        alert("Network error: Could not reach email dispatch service. Please try again.");
+        if (errBox) {
+          errBox.style.color = "#dc2626";
+          errBox.textContent = err.message || "Failed to reach dispatch service.";
+          errBox.style.display = "block";
+        } else {
+          alert(`⚠️ ${err.message || 'Could not reach email dispatch service.'}`);
+        }
       }
 
       if (otpInput) otpInput.focus();
@@ -1296,7 +1380,12 @@
       const targetEmail = currentUserRecord?.email || "{{ session.get('email', '') }}";
       const otpInput = document.getElementById("otpInput");
       const errBox = document.getElementById("otpErrorMsg");
-      if (errBox) errBox.style.display = "none";
+
+      if (errBox) {
+        errBox.style.color = "#2563eb";
+        errBox.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Resending verification code...';
+        errBox.style.display = "block";
+      }
 
       try {
         const resp = await fetch('/api/send-password-otp', {
@@ -1304,7 +1393,15 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: targetEmail })
         });
-        const result = await resp.json();
+
+        let result = {};
+        try {
+          result = await resp.json();
+        } catch (jsonErr) {
+          throw new Error(`Server returned HTTP ${resp.status}`);
+        }
+
+        if (errBox) errBox.style.display = "none";
 
         if (resp.ok && result.success) {
           alert(`📨 Code Resent:\n\nA fresh 6-digit code has been dispatched to ${targetEmail}.`);
@@ -1312,7 +1409,13 @@
           alert(`⚠️ ${result.message || 'Failed to resend code.'}`);
         }
       } catch (err) {
-        alert("Network error: Unable to resend verification email.");
+        if (errBox) {
+          errBox.style.color = "#dc2626";
+          errBox.textContent = err.message || "Unable to resend verification email.";
+          errBox.style.display = "block";
+        } else {
+          alert("Network error: Unable to resend verification email.");
+        }
       }
 
       if (otpInput) {
@@ -1329,6 +1432,7 @@
 
       if (!enteredCode || enteredCode.length !== 6) {
         if (errBox) {
+          errBox.style.color = "#dc2626";
           errBox.textContent = "Please enter the complete 6-digit code.";
           errBox.style.display = "block";
         }
@@ -1346,10 +1450,15 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: enteredCode })
         });
-        const result = await resp.json();
+
+        let result = {};
+        try {
+          result = await resp.json();
+        } catch (jsonErr) {
+          throw new Error(`Server returned HTTP ${resp.status}`);
+        }
 
         if (resp.ok && result.valid) {
-          // Identity verified exclusively via email receipt
           closeOtpModal();
           isPasswordEditMode = true;
           isOtpBypassActive = true;
@@ -1384,13 +1493,15 @@
           alert("✅ Email Identity Verified!\n\nYou can now set your new password below.");
         } else {
           if (errBox) {
+            errBox.style.color = "#dc2626";
             errBox.textContent = result.message || "Invalid or expired code. Please check your inbox.";
             errBox.style.display = "block";
           }
         }
       } catch (err) {
         if (errBox) {
-          errBox.textContent = "Server verification error. Please try again.";
+          errBox.style.color = "#dc2626";
+          errBox.textContent = err.message || "Server verification error. Please try again.";
           errBox.style.display = "block";
         }
       } finally {
@@ -1571,5 +1682,5 @@
         sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
       }
     }
-  </script>
+</script>
 </body>
