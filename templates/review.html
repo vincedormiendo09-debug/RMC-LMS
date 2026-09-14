@@ -805,8 +805,8 @@ body, button, input, select, textarea {
     }
   });
 
-  /* =====================================================
-     0. TYPE-SAFE ID HELPERS & ESCAPE UTILITIES
+ /* =====================================================
+      0. TYPE-SAFE ID HELPERS & ESCAPE UTILITIES
   ===================================================== */
   function parseDbId(idVal) {
     if (!idVal) return idVal;
@@ -842,6 +842,29 @@ body, button, input, select, textarea {
   function escapeJsString(str) {
     if (!str) return "";
     return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+  }
+
+  function parseMaterials(raw, defaultType = 'file') {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {}
+    return [{
+      name: defaultType === 'file' ? 'Attached File' : raw,
+      url: raw,
+      type: defaultType
+    }];
+  }
+
+  function formatUrl(url) {
+    if (!url) return "#";
+    let trimmed = url.trim();
+    if (!trimmed) return "#";
+    if (!/^https?:\/\//i.test(trimmed)) {
+      return 'https://' + trimmed;
+    }
+    return trimmed;
   }
 
   /* =====================================================
@@ -1038,14 +1061,19 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-     3. FETCH REVIEW DATA FROM SUPABASE (DUAL-SCHEMA)
+      3. FETCH REVIEW DATA FROM SUPABASE (DUAL-SCHEMA & MULTI-ATTACHMENT)
   ===================================================== */
   async function fetchReviewDataFromSupabase() {
     const client = getSupabaseClient();
     if (!client) return;
 
-    const selectedSubmissionId = localStorage.getItem("selectedSubmissionId");
-    const selectedActivityId = localStorage.getItem("selectedActivityId");
+    // 0. Read URL query parameters first, fallback to localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramSubId = urlParams.get("submission_id") || urlParams.get("id");
+    const paramActId = urlParams.get("activity_id") || urlParams.get("actId");
+
+    const selectedSubmissionId = paramSubId || localStorage.getItem("selectedSubmissionId");
+    const selectedActivityId = paramActId || localStorage.getItem("selectedActivityId");
     const selectedClassCode = localStorage.getItem("selectedClass") || "";
     const selectedStudentId = localStorage.getItem("selectedStudentId");
 
@@ -1104,8 +1132,10 @@ body, button, input, select, textarea {
 
     // Render Header UI
     const actTitle = actData?.title || "Activity Review";
-    document.getElementById("revActivityTitle").textContent = `Review: ${actTitle}`;
-    document.getElementById("revActivitySubtitle").textContent = `Class Code: ${selectedClassCode || 'Course'} | Score Evaluation & Instructions`;
+    const titleEl = document.getElementById("revActivityTitle");
+    const subTitleEl = document.getElementById("revActivitySubtitle");
+    if (titleEl) titleEl.textContent = `Review: ${actTitle}`;
+    if (subTitleEl) subTitleEl.textContent = `Class Code: ${selectedClassCode || 'Course'} | Score Evaluation & Instructions`;
 
     // Determine Evaluation Status
     const st = String(subData?.status || '').toLowerCase();
@@ -1114,6 +1144,9 @@ body, button, input, select, textarea {
     const isGraded = st === 'graded' || hasGrade;
 
     const maxPts = Number(actData?.total_points) || 100;
+    const scoreValEl = document.getElementById("revScoreVal");
+    const pctValEl = document.getElementById("revPctVal");
+    const gpaValEl = document.getElementById("revGpaVal");
 
     if (isGraded) {
       let scoreVal = 0;
@@ -1124,13 +1157,13 @@ body, button, input, select, textarea {
       }
 
       const pct = Math.round((scoreVal / maxPts) * 100);
-      document.getElementById("revScoreVal").textContent = `${scoreVal} / ${maxPts}`;
-      document.getElementById("revPctVal").textContent = `${pct}%`;
-      document.getElementById("revGpaVal").textContent = getGpaEquivalent(pct);
+      if (scoreValEl) scoreValEl.textContent = `${scoreVal} / ${maxPts}`;
+      if (pctValEl) pctValEl.textContent = `${pct}%`;
+      if (gpaValEl) gpaValEl.textContent = getGpaEquivalent(pct);
     } else {
-      document.getElementById("revScoreVal").textContent = `- / ${maxPts}`;
-      document.getElementById("revPctVal").textContent = `Pending`;
-      document.getElementById("revGpaVal").textContent = `Pending Evaluation`;
+      if (scoreValEl) scoreValEl.textContent = `- / ${maxPts}`;
+      if (pctValEl) pctValEl.textContent = `Pending`;
+      if (gpaValEl) gpaValEl.textContent = `Pending Evaluation`;
     }
 
     // Render Teacher Instructions & Description
@@ -1139,57 +1172,55 @@ body, button, input, select, textarea {
       revActivityDescription.textContent = actData?.description || "No detailed instructions provided for this activity.";
     }
 
-    // Render Teacher Uploaded Materials / Reference Links
+    // Render Teacher Uploaded Materials / Reference Links (Multi-Attachment Safe)
     const teacherAttachmentsList = document.getElementById("revTeacherAttachmentsList");
     if (teacherAttachmentsList) {
       teacherAttachmentsList.innerHTML = "";
-      let teacherResourceCount = 0;
+      const teacherFiles = parseMaterials(actData?.file_url, 'file');
+      const teacherLinks = parseMaterials(actData?.link_url, 'link');
+      const allTeacherMaterials = [...teacherFiles, ...teacherLinks];
 
-      if (actData?.file_url) {
-        teacherResourceCount++;
-        teacherAttachmentsList.innerHTML += `
-          <div class="attachment-item">
-            <div class="file-meta">
-              <i class="fa-solid fa-file-arrow-down"></i>
-              <span>Teacher Reference File / Worksheet</span>
-            </div>
-            <a href="${actData.file_url}" target="_blank" download onclick="event.preventDefault(); downloadFileDirectly('${escapeJsString(actData.file_url)}', '${escapeJsString(actTitle)}_Reference');" class="btn-download">
-              <i class="fa-solid fa-download"></i> Download Reference File
-            </a>
-          </div>
-        `;
-      }
-
-      if (actData?.link_url) {
-        teacherResourceCount++;
-        teacherAttachmentsList.innerHTML += `
-          <div class="attachment-item">
-            <div class="file-meta">
-              <i class="fa-solid fa-link"></i>
-              <span>Teacher Resource Link</span>
-            </div>
-            <a href="${escapeHtml(actData.link_url)}" target="_blank" class="btn-download">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Resource Link
-            </a>
-          </div>
-        `;
-      }
-
-      if (teacherResourceCount === 0) {
+      if (allTeacherMaterials.length > 0) {
+        allTeacherMaterials.forEach((item, idx) => {
+          if (item.type === 'link') {
+            teacherAttachmentsList.innerHTML += `
+              <div class="attachment-item" style="margin-bottom: 8px;">
+                <div class="file-meta">
+                  <i class="fa-solid fa-link"></i>
+                  <span>${escapeHtml(item.name || 'Resource Link')}</span>
+                </div>
+                <a href="${escapeHtml(formatUrl(item.url))}" target="_blank" rel="noopener noreferrer" class="btn-download">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link
+                </a>
+              </div>
+            `;
+          } else {
+            const fileName = item.name || `${actTitle}_Reference_${idx + 1}`;
+            teacherAttachmentsList.innerHTML += `
+              <div class="attachment-item" style="margin-bottom: 8px;">
+                <div class="file-meta">
+                  <i class="fa-solid fa-file-arrow-down"></i>
+                  <span>${escapeHtml(fileName)}</span>
+                </div>
+                <a href="${escapeHtml(item.url)}" target="_blank" class="btn-download" onclick="event.preventDefault(); downloadFileDirectly('${escapeJsString(item.url)}', '${escapeJsString(fileName)}');">
+                  <i class="fa-solid fa-download"></i> Download File
+                </a>
+              </div>
+            `;
+          }
+        });
+      } else {
         teacherAttachmentsList.innerHTML = `<div style="color:var(--muted); font-size:13px; font-style:italic;">No reference files or external links attached by the teacher.</div>`;
       }
     }
 
-    // Render Teacher Remarks / Feedback
+    // Render Evaluation Status Notice
     const feedbackBox = document.getElementById("revTeacherFeedback");
-    const teacherFeedback = subData?.feedback || subData?.remarks || subData?.teacher_comments;
     if (feedbackBox) {
-      if (teacherFeedback && teacherFeedback.trim() !== "") {
-        feedbackBox.innerHTML = `<i class="fa-solid fa-quote-left"></i> ${escapeHtml(teacherFeedback.trim())}`;
-      } else if (isGraded) {
-        feedbackBox.innerHTML = `<i class="fa-solid fa-circle-check"></i> Great effort! Your activity submission was successfully evaluated by your teacher.`;
+      if (isGraded) {
+        feedbackBox.innerHTML = `<i class="fa-solid fa-circle-check" style="color:var(--success, #16a34a);"></i> Your activity submission was successfully evaluated and recorded in the official grade registry.`;
       } else {
-        feedbackBox.innerHTML = `<i class="fa-solid fa-hourglass-half" style="color:var(--warning);"></i> Your submission has been received and is currently awaiting faculty evaluation.`;
+        feedbackBox.innerHTML = `<i class="fa-solid fa-hourglass-half" style="color:var(--warning, #d97706);"></i> Your submission has been received and is currently awaiting faculty evaluation.`;
       }
     }
 
@@ -1228,42 +1259,89 @@ body, button, input, select, textarea {
       ? `<span style="display:inline-block; margin-left:8px; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:#fee2e2; color:#991b1b;">Late Submission</span>`
       : `<span style="display:inline-block; margin-left:8px; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; background:#dcfce7; color:#166534;">On Time</span>`;
 
-    // Render Student's Submitted Deliverable File / Link
+    // Render Student Submitted Deliverables (Multi-Attachment Safe)
     const fileNameEl = document.getElementById("revFileName");
     const turnedInDateEl = document.getElementById("revTurnedInDate");
     const downloadBtn = document.getElementById("revFileDownload");
     const fileIcon = document.getElementById("revFileIcon");
 
-    if (subData?.file_url) {
-      let cleanName = "Submitted_Work_File";
-      try {
-        const parts = subData.file_url.split('/');
-        cleanName = decodeURIComponent(parts[parts.length - 1].split('?')[0]);
-      } catch (e) {
-        cleanName = "Submitted_Work_File";
+    if (turnedInDateEl) {
+      turnedInDateEl.innerHTML = subData ? `Turned in on ${dateFormatted} ${timelinessTag}` : `No record of submission turned in.`;
+    }
+
+    const studentFiles = parseMaterials(subData?.file_url, 'file');
+    const studentLinks = parseMaterials(subData?.link_url, 'link');
+    const allStudentDeliverables = [...studentFiles, ...studentLinks];
+
+    // Clean up any previously generated dynamic deliverables list
+    const existingDynamicList = document.getElementById("revMultiDeliverablesList");
+    if (existingDynamicList) existingDynamicList.remove();
+
+    if (allStudentDeliverables.length === 1) {
+      const item = allStudentDeliverables[0];
+      if (item.type === 'link') {
+        if (fileNameEl) fileNameEl.textContent = item.name || "External Submission Link";
+        if (downloadBtn) {
+          downloadBtn.href = formatUrl(item.url);
+          downloadBtn.target = "_blank";
+          downloadBtn.rel = "noopener noreferrer";
+          downloadBtn.style.display = "inline-flex";
+          downloadBtn.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i> Open Submission Link`;
+          downloadBtn.onclick = null;
+        }
+        if (fileIcon) fileIcon.className = "fa-solid fa-link";
+      } else {
+        const cleanName = item.name || "Submitted_Work_File";
+        if (fileNameEl) fileNameEl.textContent = cleanName;
+        if (downloadBtn) {
+          downloadBtn.href = item.url;
+          downloadBtn.style.display = "inline-flex";
+          downloadBtn.innerHTML = `<i class="fa-solid fa-download"></i> Download Work`;
+          downloadBtn.onclick = (e) => {
+            e.preventDefault();
+            downloadFileDirectly(item.url, cleanName);
+          };
+        }
+        if (fileIcon) fileIcon.className = "fa-solid fa-file-arrow-down";
       }
-      fileNameEl.textContent = cleanName;
-      turnedInDateEl.innerHTML = `Turned in on ${dateFormatted} ${timelinessTag}`;
-      downloadBtn.href = subData.file_url;
-      downloadBtn.style.display = "inline-flex";
-      downloadBtn.innerHTML = `<i class="fa-solid fa-download"></i> Download Work`;
-      downloadBtn.onclick = (e) => {
-        e.preventDefault();
-        downloadFileDirectly(subData.file_url, cleanName);
-      };
-      if (fileIcon) fileIcon.className = "fa-solid fa-file-arrow-down";
-    } else if (subData?.link_url) {
-      fileNameEl.textContent = "External Submission Link";
-      turnedInDateEl.innerHTML = `Submitted link on ${dateFormatted} ${timelinessTag}`;
-      downloadBtn.href = subData.link_url;
-      downloadBtn.style.display = "inline-flex";
-      downloadBtn.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square"></i> Open Submission Link`;
-      downloadBtn.onclick = null;
-      if (fileIcon) fileIcon.className = "fa-solid fa-link";
+    } else if (allStudentDeliverables.length > 1) {
+      if (fileNameEl) fileNameEl.innerHTML = `<strong>${allStudentDeliverables.length} Submitted Items</strong> (${studentFiles.length} files, ${studentLinks.length} links)`;
+      if (downloadBtn) downloadBtn.style.display = "none";
+      if (fileIcon) fileIcon.className = "fa-solid fa-paperclip";
+
+      if (fileNameEl && fileNameEl.parentElement) {
+        const listContainer = document.createElement("div");
+        listContainer.id = "revMultiDeliverablesList";
+        listContainer.style.cssText = "display: flex; flex-direction: column; gap: 8px; margin-top: 12px; width: 100%;";
+
+        allStudentDeliverables.forEach((item, idx) => {
+          if (item.type === 'link') {
+            listContainer.innerHTML += `
+              <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <span style="font-size: 13px; font-weight: 600; color: #1e293b;"><i class="fa-solid fa-link" style="color:#6366f1; margin-right: 6px;"></i> ${escapeHtml(item.name || 'Submission Link')}</span>
+                <a href="${escapeHtml(formatUrl(item.url))}" target="_blank" rel="noopener noreferrer" class="btn-download" style="padding: 4px 10px; font-size: 12px;">
+                  <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link
+                </a>
+              </div>
+            `;
+          } else {
+            const fName = item.name || `Attachment_${idx + 1}`;
+            listContainer.innerHTML += `
+              <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                <span style="font-size: 13px; font-weight: 600; color: #1e293b;"><i class="fa-solid fa-file-lines" style="color:#6366f1; margin-right: 6px;"></i> ${escapeHtml(fName)}</span>
+                <a href="${escapeHtml(item.url)}" target="_blank" class="btn-download" style="padding: 4px 10px; font-size: 12px;" onclick="event.preventDefault(); downloadFileDirectly('${escapeJsString(item.url)}', '${escapeJsString(fName)}');">
+                  <i class="fa-solid fa-download"></i> Download
+                </a>
+              </div>
+            `;
+          }
+        });
+
+        fileNameEl.parentElement.appendChild(listContainer);
+      }
     } else {
-      fileNameEl.textContent = "No file uploaded (Text / Comment Submission)";
-      turnedInDateEl.innerHTML = `Turned in on ${dateFormatted} ${timelinessTag}`;
-      downloadBtn.style.display = "none";
+      if (fileNameEl) fileNameEl.textContent = "No attachments uploaded (Text / Comment Only)";
+      if (downloadBtn) downloadBtn.style.display = "none";
       if (fileIcon) fileIcon.className = "fa-solid fa-comment-dots";
     }
   }

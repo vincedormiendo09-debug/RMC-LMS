@@ -825,7 +825,7 @@
 
             <!-- DROPDOWN MENU -->
             <div class="attach-menu" id="attachMenu">
-              <button type="button" class="attach-menu-item item-drive" onclick="openLinkModal('drive')">
+              <button type="button" class="attach-menu-item item-drive" onclick="openGoogleDrivePicker()">
                 <i class="fa-brands fa-google-drive"></i> Google Drive
               </button>
               <button type="button" class="attach-menu-item item-link" onclick="openLinkModal('link')">
@@ -850,8 +850,8 @@
             </div>
           </div>
 
-          <!-- HIDDEN STATE INPUTS -->
-          <input type="file" id="lessonFiles" style="display: none;" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg,.webp" onchange="handleFileSelected(this)">
+          <!-- HIDDEN STATE INPUTS (MULTI-FILE ENABLED) -->
+          <input type="file" id="lessonFiles" style="display: none;" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg,.webp" onchange="handleFileSelected(this)">
           <input type="hidden" id="link" value="">
 
           <!-- DYNAMIC ATTACHMENTS LIST PREVIEW CONTAINER -->
@@ -904,7 +904,6 @@
   </div>
 
 </body>
-
   <script>
   /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
   window.addEventListener('pageshow', function (event) {
@@ -1144,9 +1143,9 @@
   }
 
   /* =====================================================
-      3. GOOGLE PICKER API & ATTACHMENT HUB (COMPLETE)
+      3. GOOGLE PICKER API & ATTACHMENT HUB (AUDITED)
   ===================================================== */
-  // ⚠️ Replace with your Google Cloud Console credentials
+  // Google Cloud Credentials
   const GOOGLE_API_KEY = "AIzaSyAEaYW2AL3_1wvqKXGiJKh8MhA9CwlyAqk";
   const GOOGLE_CLIENT_ID = "701458926445-u1sf7bn0s2q2k7goqcv4gh6ag2fg2pst.apps.googleusercontent.com";
   const GOOGLE_APP_ID = "701458926445";
@@ -1161,16 +1160,16 @@
   let attachedItems = [];
   let currentLinkModalType = 'link'; // 'link' | 'drive' | 'docs' | 'slides' | 'sheets'
 
-  // File size formatter
+  // Safe file size formatter (prevents NaN / -Infinity on 0-byte edge cases)
   function formatAttachmentSize(bytes) {
-    if (!bytes || isNaN(bytes)) return '0 Bytes';
+    if (!bytes || isNaN(bytes) || bytes <= 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
   }
 
-  // 1. Google API / GIS Initializers
+  // 1. Google API & GIS Initialization Handlers
   function gapiLoaded() {
     gapi.load('picker', () => {
       pickerInited = true;
@@ -1197,7 +1196,7 @@
     if (menu) menu.classList.remove("active");
 
     if (!GOOGLE_API_KEY || GOOGLE_API_KEY === "YOUR_GOOGLE_API_KEY") {
-      alert("⚠️ Google Drive Picker requires your Google API Key and OAuth Client ID. Opening link entry modal instead.");
+      alert("⚠️ Google Drive Picker requires valid credentials. Opening manual link input.");
       openLinkModal('drive');
       return;
     }
@@ -1218,7 +1217,7 @@
     }
   }
 
-  // 3. Build Google Drive Window
+  // 3. Build & Render Google Drive Modal
   function createPicker(token) {
     if (!pickerInited || !token) return;
 
@@ -1242,10 +1241,11 @@
     picker.setVisible(true);
   }
 
-  // 4. Handle Selected File from Google Drive
+  // 4. Handle Selected Files from Google Drive (Appends Multiple Files)
   function pickerCallback(data) {
     if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
       const documents = data[google.picker.Response.DOCUMENTS];
+      if (!documents || documents.length === 0) return;
 
       documents.forEach((doc) => {
         const fileUrl = doc[google.picker.Document.URL];
@@ -1261,30 +1261,26 @@
           itemType = 'sheets';
         }
 
-        attachedItems = attachedItems.filter(item => item.url !== fileUrl);
-
-        attachedItems.push({
-          type: itemType,
-          url: fileUrl,
-          name: fileName
-        });
-
-        const hiddenLink = document.getElementById("link");
-        if (hiddenLink) hiddenLink.value = fileUrl;
+        if (!attachedItems.some(item => item.url === fileUrl)) {
+          attachedItems.push({
+            type: itemType,
+            url: fileUrl,
+            name: fileName
+          });
+        }
       });
 
       renderAttachments();
     }
   }
 
-  // Dropdown menu toggle
+  // 5. Dropdown Menu Toggle & Outside Click Listener
   function toggleAttachMenu(event) {
     if (event) event.stopPropagation();
     const menu = document.getElementById("attachMenu");
     if (menu) menu.classList.toggle("active");
   }
 
-  // Close dropdown when clicking outside
   document.addEventListener("click", (e) => {
     const menu = document.getElementById("attachMenu");
     const btn = document.getElementById("addCreateBtn");
@@ -1295,7 +1291,7 @@
     }
   });
 
-  // Trigger hidden file input
+  // 6. Handle Multiple Local File Uploads
   function triggerFileUpload() {
     const menu = document.getElementById("attachMenu");
     if (menu) menu.classList.remove("active");
@@ -1303,44 +1299,37 @@
     if (fileInput) fileInput.click();
   }
 
-  // Handle selected local file
   function handleFileSelected(input) {
     if (!input.files || input.files.length === 0) return;
-    const file = input.files[0];
-    const ext = file.name.split('.').pop().toLowerCase();
 
-    if (typeof BLOCKED_EXTENSIONS !== 'undefined' && BLOCKED_EXTENSIONS.has(ext)) {
-      alert(`🛑 Restricted File Format: The file type (.${ext}) is prohibited to protect school infrastructure.`);
-      input.value = "";
-      return;
-    }
+    Array.from(input.files).forEach((file) => {
+      const ext = file.name.split('.').pop().toLowerCase();
 
-    if (typeof ALLOWED_EXTENSIONS !== 'undefined' && !ALLOWED_EXTENSIONS.has(ext)) {
-      alert(`🛑 Format Denied: Reference worksheets must be academic documents (PDF, Word, PPT, Excel, Text) or valid images.`);
-      input.value = "";
-      return;
-    }
+      if (typeof BLOCKED_EXTENSIONS !== 'undefined' && BLOCKED_EXTENSIONS.has(ext)) {
+        alert(`🛑 Restricted: (.${ext}) is prohibited.`);
+        return;
+      }
+      if (typeof MAX_FILE_SIZE !== 'undefined' && file.size > MAX_FILE_SIZE) {
+        alert(`🛑 "${file.name}" exceeds the 25MB limit.`);
+        return;
+      }
 
-    if (typeof MAX_FILE_SIZE !== 'undefined' && file.size > MAX_FILE_SIZE) {
-      alert("🛑 File Limit Exceeded: Maximum allowed reference material upload size is 25MB.");
-      input.value = "";
-      return;
-    }
-
-    attachedItems = attachedItems.filter(item => item.type !== 'file');
-
-    attachedItems.push({
-      type: 'file',
-      file: file,
-      name: file.name,
-      size: file.size,
-      ext: ext
+      if (!attachedItems.some(i => i.name === file.name && i.size === file.size)) {
+        attachedItems.push({
+          type: 'file',
+          file: file,
+          name: file.name,
+          size: file.size,
+          ext: ext
+        });
+      }
     });
 
+    input.value = "";
     renderAttachments();
   }
 
-  // Open Add Link Modal
+  // 7. Modal Open, Close, & Link Submission (Appends Multiple Links)
   function openLinkModal(type) {
     const menu = document.getElementById("attachMenu");
     if (menu) menu.classList.remove("active");
@@ -1387,7 +1376,7 @@
       return;
     }
 
-    const formatted = formatUrl(rawVal);
+    const formatted = typeof formatUrl === 'function' ? formatUrl(rawVal) : (rawVal.startsWith('http') ? rawVal : 'https://' + rawVal);
     let itemType = currentLinkModalType;
 
     if (formatted.includes("drive.google.com")) {
@@ -1400,22 +1389,19 @@
       itemType = "sheets";
     }
 
-    attachedItems = attachedItems.filter(item => item.type !== 'link' && item.type !== 'drive' && item.type !== 'docs' && item.type !== 'slides' && item.type !== 'sheets');
-
-    attachedItems.push({
-      type: itemType,
-      url: formatted,
-      name: formatted
-    });
-
-    const hiddenLink = document.getElementById("link");
-    if (hiddenLink) hiddenLink.value = formatted;
+    if (!attachedItems.some(i => i.url === formatted)) {
+      attachedItems.push({
+        type: itemType,
+        url: formatted,
+        name: formatted
+      });
+    }
 
     closeLinkModal();
     renderAttachments();
   }
 
-  // Create new Google Doc, Slide, or Sheet
+  // 8. Create New Google Doc / Slide / Sheet
   function createNewGoogleDoc(docType) {
     const menu = document.getElementById("attachMenu");
     if (menu) menu.classList.remove("active");
@@ -1434,22 +1420,13 @@
     }, 400);
   }
 
-  // Remove attachment card
+  // 9. Remove Individual Attachment Card
   function removeAttachment(index) {
-    const item = attachedItems[index];
-    if (item && item.type === 'file') {
-      const fileInput = document.getElementById("lessonFiles");
-      if (fileInput) fileInput.value = "";
-    } else {
-      const hiddenLink = document.getElementById("link");
-      if (hiddenLink) hiddenLink.value = "";
-    }
-
     attachedItems.splice(index, 1);
     renderAttachments();
   }
 
-  // Render attachment preview cards
+  // 10. Render Attachment Preview Cards
   function renderAttachments() {
     const container = document.getElementById("attachmentsList");
     if (!container) return;
@@ -1503,8 +1480,9 @@
       const card = document.createElement("div");
       card.className = "attachment-card";
 
-      const previewHref = item.url ? escapeHtml(item.url) : "#";
+      const previewHref = item.url ? (typeof escapeHtml === 'function' ? escapeHtml(item.url) : item.url) : "#";
       const targetAttr = item.url ? 'target="_blank" rel="noopener noreferrer"' : '';
+      const displayTitle = typeof escapeHtml === 'function' ? escapeHtml(item.name) : item.name;
 
       card.innerHTML = `
         <div class="attachment-info">
@@ -1512,7 +1490,7 @@
             <i class="${iconClass}"></i>
           </div>
           <div class="attachment-details">
-            <div class="attachment-title" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+            <div class="attachment-title" title="${displayTitle}">${displayTitle}</div>
             <div class="attachment-meta">
               ${item.url ? `<a href="${previewHref}" ${targetAttr}>${typeLabel} — Open Resource</a>` : typeLabel}
             </div>
@@ -1527,7 +1505,7 @@
     });
   }
 
-  // Backdrop modal click listener
+  // 11. Modal Backdrop Click & Keyboard Listeners
   document.addEventListener("click", (e) => {
     const modal = document.getElementById("attachLinkModal");
     if (modal && modal.classList.contains("active") && e.target === modal) {
@@ -1535,7 +1513,6 @@
     }
   });
 
-  // Keyboard accessibility listeners
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeLinkModal();
@@ -1554,7 +1531,7 @@
   });
 
   /* =====================================================
-      4. SUBMIT ACTIVITY (WITH SECURITY & AI MODERATION)
+      4. SUBMIT ACTIVITY (AUDITED MULTI-ATTACHMENT PROCESSOR)
   ===================================================== */
   const activityForm = document.getElementById('activityForm');
   const submitBtn = document.getElementById('submitBtn');
@@ -1591,10 +1568,9 @@
         return;
       }
 
-      // Extract file item and link item from attachment state
-      const fileAttachment = attachedItems.find(i => i.type === 'file');
-      const linkAttachment = attachedItems.find(i => i.type !== 'file');
-      const linkVal = linkAttachment ? linkAttachment.url : null;
+      // Collect all selected files and links without discarding items
+      const fileAttachments = attachedItems.filter(i => i.type === 'file' && i.file);
+      const linkAttachments = attachedItems.filter(i => i.type !== 'file' && i.url);
 
       // 1. Multilingual AI Content Safety Check on Title & Instructions
       try {
@@ -1615,18 +1591,18 @@
         console.warn("AI text moderation check warning:", err);
       }
 
-      // 2. Server-side File Name / Type Moderation Check
-      if (fileAttachment && fileAttachment.file) {
+      // 2. Server-side File Moderation Check (Iterates every file)
+      for (const item of fileAttachments) {
         try {
           const fileCheckResp = await fetch('/api/ai-moderate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ file_name: fileAttachment.file.name })
+            body: JSON.stringify({ file_name: item.file.name })
           });
           if (fileCheckResp.ok) {
             const checkData = await fileCheckResp.json();
             if (!checkData.allowed) {
-              alert(`🛑 File Check Failed: ${checkData.reason}`);
+              alert(`🛑 File Check Failed for "${item.file.name}": ${checkData.reason}`);
               return;
             }
           }
@@ -1642,12 +1618,12 @@
 
       const deadlineIso = new Date(`${dateVal}T${timeVal}:00`).toISOString();
 
-      // 3. Upload Reference File to Supabase Storage Bucket ('lesson-files')
-      let uploadedFileUrl = null;
-      if (fileAttachment && fileAttachment.file) {
-        const pickedFile = fileAttachment.file;
+      // 3. Upload ALL Reference Files to Supabase Storage Bucket ('lesson-files')
+      const uploadedFiles = [];
+      for (const item of fileAttachments) {
+        const pickedFile = item.file;
         try {
-          const fileExt = pickedFile.name.split('.').pop().toLowerCase();
+          const fileExt = item.ext;
           const fileName = `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
           const filePath = `${currentClassId}/${fileName}`;
 
@@ -1657,33 +1633,71 @@
 
           if (!uploadError && uploadData) {
             const { data: urlData } = client.storage.from('lesson-files').getPublicUrl(filePath);
-            uploadedFileUrl = urlData.publicUrl;
+            uploadedFiles.push({
+              name: item.name,
+              url: urlData.publicUrl,
+              ext: item.ext,
+              size: item.size
+            });
           } else {
-            uploadedFileUrl = await readFileAsDataURL(pickedFile);
+            const base64Url = await readFileAsDataURL(pickedFile);
+            uploadedFiles.push({
+              name: item.name,
+              url: base64Url,
+              ext: item.ext,
+              size: item.size
+            });
           }
         } catch (err) {
-          uploadedFileUrl = await readFileAsDataURL(pickedFile);
+          console.error("Storage upload failure on file:", item.name, err);
+          const base64Url = await readFileAsDataURL(pickedFile);
+          uploadedFiles.push({
+            name: item.name,
+            url: base64Url,
+            ext: item.ext,
+            size: item.size
+          });
         }
       }
 
+      // 4. Format All Resource Links & Google Drive Attachments
+      const linkItems = linkAttachments.map(i => ({
+        name: i.name || i.url,
+        url: typeof formatUrl === 'function' ? formatUrl(i.url) : i.url,
+        type: i.type
+      }));
+
+      // Serialize into JSON if multiple items exist, or keep string if single
+      const finalFileUrl = uploadedFiles.length > 1
+        ? JSON.stringify(uploadedFiles)
+        : (uploadedFiles[0]?.url || null);
+
+      const finalLinkUrl = linkItems.length > 1
+        ? JSON.stringify(linkItems)
+        : (linkItems[0]?.url || null);
+
       const parsedClassId = parseDbId(currentClassId);
 
-      // 4. Insert Activity into Supabase Database
+      // 5. Insert Activity into Supabase Database
+      const insertPayload = {
+        class_id: parsedClassId,
+        title: title,
+        description: description,
+        deadline: deadlineIso,
+        due_date: deadlineIso,
+        total_points: scoreVal,
+        link_url: finalLinkUrl,
+        file_url: finalFileUrl,
+        notification_log: {}
+      };
+
+      if (typeof currentUserId !== 'undefined' && currentUserId) {
+        insertPayload.teacher_id = parseDbId(currentUserId);
+      }
+
       const { data: newActivity, error: actError } = await client
         .from('activities')
-        .insert([
-          {
-            class_id: parsedClassId,
-            title: title,
-            description: description,
-            deadline: deadlineIso,
-            due_date: deadlineIso,
-            total_points: scoreVal,
-            link_url: formatUrl(linkVal),
-            file_url: uploadedFileUrl,
-            notification_log: {}
-          }
-        ])
+        .insert([insertPayload])
         .select()
         .maybeSingle();
 
@@ -1696,7 +1710,7 @@
         return;
       }
 
-      // 5. Trigger Multi-Channel Notifications (Portal, Email, and Mobile Push)
+      // 6. Trigger Multi-Channel Notifications (Portal, Email, and Mobile Push)
       const classSearchIds = getDualTypeIds([currentClassId]);
 
       const { data: enrolledStudents } = await client
@@ -1753,7 +1767,7 @@
       }
 
       alert("🎉 Activity published successfully! Enrolled students have been notified via email, push alerts, and their portal dashboard.");
-      window.location.href = classUrl;
+      window.location.href = typeof classUrl !== 'undefined' ? classUrl : classPageUrl;
     });
   }
 

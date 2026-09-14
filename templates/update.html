@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- ðŸ”’ PREVENT BROWSER CACHING AFTER LOGOUT -->
+  <!-- PREVENT BROWSER CACHING AFTER LOGOUT -->
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -16,7 +16,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
-  <!-- âš¡ SUPABASE JS CLIENT SDK -->
+  <!-- GOOGLE PICKER & GIS APIS -->
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script src="https://accounts.google.com/gsi/client"></script>
+
+  <!-- SUPABASE JS CLIENT SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
@@ -26,7 +30,7 @@
 
   <style>
   /* =========================================
-     GLOBAL RESET & BRAND DESIGN SYSTEM
+      GLOBAL RESET & BRAND DESIGN SYSTEM
   ========================================= */
   :root {
     --primary: #2563eb;
@@ -42,15 +46,15 @@
     --shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
   }
 
-       *, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-body, button, input, select, textarea {
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-}
+  body, button, input, select, textarea {
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  }
 
   html {
     scroll-behavior: smooth;
@@ -69,7 +73,7 @@ body, button, input, select, textarea {
   }
 
   /* =========================================
-     SIDEBAR NAVIGATION RAIL & OVERLAY
+      SIDEBAR NAVIGATION RAIL & OVERLAY
   ========================================= */
   .sidebar {
     position: fixed;
@@ -229,7 +233,7 @@ body, button, input, select, textarea {
   }
 
   /* =========================================
-     MAIN FORM CONTAINER
+      MAIN FORM CONTAINER
   ========================================= */
   .main-content {
     margin-left: 240px;
@@ -384,7 +388,6 @@ body, button, input, select, textarea {
   input[type="time"],
   input[type="number"],
   input[type="url"],
-  input[type="file"],
   select,
   textarea {
     width: 100%;
@@ -439,6 +442,261 @@ body, button, input, select, textarea {
     background: #e2e8f0;
   }
 
+  /* =========================================================
+      GOOGLE CLASSROOM "+ ADD OR CREATE" ATTACHMENT HUB STYLES
+  ========================================================= */
+  .attach-section {
+    margin-top: 16px;
+    margin-bottom: 12px;
+  }
+
+  .attach-dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-top: 6px;
+    margin-bottom: 12px;
+  }
+
+  .btn-add-create {
+    background: #ffffff;
+    color: var(--primary);
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .btn-add-create:hover {
+    background: #f8fafc;
+    border-color: var(--primary);
+  }
+
+  .attach-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    min-width: 220px;
+    z-index: 50;
+    padding: 6px 0;
+  }
+
+  .attach-menu.active {
+    display: block;
+  }
+
+  .attach-menu-item {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 10px 18px;
+    font-size: 13.5px;
+    color: #334155;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .attach-menu-item:hover {
+    background: #f1f5f9;
+  }
+
+  .attach-menu-item i {
+    font-size: 16px;
+    width: 18px;
+    text-align: center;
+  }
+
+  .item-drive i { color: #0f9d58; }
+  .item-link i { color: var(--primary); }
+  .item-file i { color: #64748b; }
+  .item-docs i { color: #4285f4; }
+  .item-slides i { color: #f4b400; }
+  .item-sheets i { color: #0f9d58; }
+
+  .attach-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 6px 0;
+  }
+
+  .attach-menu-label {
+    padding: 4px 18px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  /* PREVIEW ATTACHMENT CARDS */
+  .attachments-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .attachment-card {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .attachment-card:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+  }
+
+  .attachment-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .attachment-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .attachment-details {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .attachment-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .attachment-meta {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .attachment-meta a {
+    color: var(--primary);
+    text-decoration: underline;
+  }
+
+  .btn-remove-attachment {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .btn-remove-attachment:hover {
+    color: var(--danger);
+    background: #fee2e2;
+  }
+
+  /* ATTACH LINK / DRIVE MODAL */
+  .attach-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .attach-modal-overlay.active {
+    display: flex;
+  }
+
+  .attach-modal-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .attach-modal-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .attach-modal-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .attach-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .btn-modal-cancel {
+    background: #f1f5f9;
+    color: #475569;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-modal-submit {
+    background: var(--primary);
+    color: #ffffff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-modal-submit:hover {
+    background: var(--primary-dark);
+  }
+
   /* ACTION BUTTONS */
   .buttons {
     display: flex;
@@ -488,9 +746,8 @@ body, button, input, select, textarea {
   }
 
   /* =========================================
-     RESPONSIVE BREAKPOINTS (RWD)
+      RESPONSIVE BREAKPOINTS (RWD)
   ========================================= */
-  /* Tablets and Standard Mobile Screens */
   @media (max-width: 768px) {
     .sidebar {
       transform: translateX(-100%);
@@ -516,20 +773,17 @@ body, button, input, select, textarea {
       padding: 24px 20px;
     }
 
-    /* iOS auto-zoom prevention */
     input[type="text"],
     input[type="date"],
     input[type="time"],
     input[type="number"],
     input[type="url"],
-    input[type="file"],
     select,
     textarea {
       font-size: 16px;
     }
   }
 
-  /* Compact Smartphones (320px - 480px) */
   @media (max-width: 480px) {
     .main-content {
       padding: 12px;
@@ -631,14 +885,52 @@ body, button, input, select, textarea {
         <label for="description">Description / Content Overview:</label>
         <textarea id="description" rows="5" placeholder="Explain details or instructions"></textarea>
 
-        <!-- RESOURCE LINK FIELD -->
-        <label for="link">Resource Link / External URL:</label>
-        <input type="url" id="link" placeholder="https://example.com or Google Drive Link">
+        <!-- =========================================================
+             GOOGLE CLASSROOM STYLE "+ ADD OR CREATE" ATTACHMENT HUB
+        ========================================================= -->
+        <div class="attach-section">
+          <label><i class="fa-solid fa-paperclip"></i> Reference Materials & Attachments:</label>
 
-        <!-- ATTACHMENT FILE FIELD -->
-        <label for="lessonFiles">Replace or Add Attachment File:</label>
-        <input type="file" id="lessonFiles" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.png,.jpg,.jpeg,.zip">
-        <div class="note" id="currentFileNote">Upload a new document or worksheet if replacing the current file.</div>
+          <div class="attach-dropdown-wrapper">
+            <button type="button" class="btn-add-create" id="addCreateBtn" onclick="toggleAttachMenu(event)">
+              <i class="fa-solid fa-plus"></i> Add or create
+              <i class="fa-solid fa-caret-down" style="font-size: 11px; margin-left: 2px;"></i>
+            </button>
+
+            <!-- DROPDOWN MENU -->
+            <div class="attach-menu" id="attachMenu">
+              <button type="button" class="attach-menu-item item-drive" onclick="openGoogleDrivePicker()">
+                <i class="fa-brands fa-google-drive"></i> Google Drive
+              </button>
+              <button type="button" class="attach-menu-item item-link" onclick="openLinkModal('link')">
+                <i class="fa-solid fa-link"></i> Link
+              </button>
+              <button type="button" class="attach-menu-item item-file" onclick="triggerFileUpload()">
+                <i class="fa-solid fa-paperclip"></i> File
+              </button>
+
+              <div class="attach-menu-divider"></div>
+              <div class="attach-menu-label">Create new</div>
+
+              <button type="button" class="attach-menu-item item-docs" onclick="createNewGoogleDoc('docs')">
+                <i class="fa-solid fa-file-word"></i> Docs
+              </button>
+              <button type="button" class="attach-menu-item item-slides" onclick="createNewGoogleDoc('slides')">
+                <i class="fa-solid fa-file-powerpoint"></i> Slides
+              </button>
+              <button type="button" class="attach-menu-item item-sheets" onclick="createNewGoogleDoc('sheets')">
+                <i class="fa-solid fa-file-excel"></i> Sheets
+              </button>
+            </div>
+          </div>
+
+          <!-- HIDDEN STATE INPUTS (MULTI-FILE ENABLED) -->
+          <input type="file" id="lessonFiles" style="display: none;" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg,.webp" onchange="handleFileSelected(this)">
+          <input type="hidden" id="link" value="">
+
+          <!-- DYNAMIC ATTACHMENTS LIST CONTAINER -->
+          <div class="attachments-container" id="attachmentsList"></div>
+        </div>
 
         <!-- ACTIVITY-SPECIFIC FIELDS (DYNAMICALLY TOGGLED) -->
         <div id="activityFields" style="display: none;">
@@ -666,8 +958,25 @@ body, button, input, select, textarea {
     </div>
   </main>
 
+  <!-- ATTACH LINK / GOOGLE DRIVE MODAL -->
+  <div class="attach-modal-overlay" id="attachLinkModal">
+    <div class="attach-modal-card">
+      <div class="attach-modal-title" id="linkModalTitle">Add Link</div>
+      <div class="attach-modal-sub" id="linkModalSub">Enter any web resource, video, or shared file URL.</div>
+
+      <input type="url" id="linkModalInput" placeholder="https://..." style="margin-top: 0;">
+
+      <div class="attach-modal-actions">
+        <button type="button" class="btn-modal-cancel" onclick="closeLinkModal()">Cancel</button>
+        <button type="button" class="btn-modal-submit" onclick="submitModalLink()">Add link</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
 <script>
-  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  /* PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
   window.addEventListener('pageshow', function (event) {
     if (event.persisted) {
       window.location.reload();
@@ -675,7 +984,7 @@ body, button, input, select, textarea {
   });
 
   /* =====================================================
-     0. TYPE-SAFE ID HELPERS & ESCAPE UTILITIES
+      0. TYPE-SAFE ID HELPERS & ESCAPE UTILITIES
   ===================================================== */
   function parseDbId(idVal) {
     if (!idVal) return idVal;
@@ -711,8 +1020,51 @@ body, button, input, select, textarea {
       .replace(/'/g, "&#039;");
   }
 
+  function formatUrl(url) {
+    if (!url) return null;
+    let trimmed = url.trim();
+    if (!trimmed) return null;
+    if (!/^https?:\/\//i.test(trimmed)) {
+      return 'https://' + trimmed;
+    }
+    return trimmed;
+  }
+
+  function formatAttachmentSize(bytes) {
+    if (!bytes || isNaN(bytes) || bytes <= 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  }
+
+  // Safe deserializer handling both JSON arrays and single URL strings
+  function parseMaterials(raw, defaultType = 'file') {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      // Plain string fallback
+    }
+    return [{
+      name: defaultType === 'file' ? 'Attached Reference File' : raw,
+      url: raw,
+      type: defaultType
+    }];
+  }
+
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+      reader.readAsDataURL(file);
+    });
+  }
+
   /* =====================================================
-     1. USER SESSION & ROLE PROTECTION
+      1. USER SESSION & ROLE PROTECTION
   ===================================================== */
   const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
   const userRole = rawRole.toUpperCase();
@@ -760,7 +1112,6 @@ body, button, input, select, textarea {
         <a href="${accountUrl}">👤 Account</a>
       `;
     } else {
-      // TEACHER POV
       sidebarMenu.innerHTML = `
         <a href="${homeUrl}">🏠 Home</a>
         <a href="${createUrl}">➕ Create Class/Group</a>
@@ -780,16 +1131,19 @@ body, button, input, select, textarea {
   /* MOBILE SIDEBAR TOGGLE */
   const mobileMenuBtn = document.getElementById("mobileMenuBtn");
   const sidebar = document.getElementById("sidebar");
+  const sidebarOverlay = document.getElementById("sidebarOverlay");
 
   if (mobileMenuBtn && sidebar) {
     mobileMenuBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       sidebar.classList.toggle("active");
+      if (sidebarOverlay) sidebarOverlay.classList.toggle("active");
     });
 
     document.addEventListener("click", (e) => {
       if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
         sidebar.classList.remove("active");
+        if (sidebarOverlay) sidebarOverlay.classList.remove("active");
       }
     });
   }
@@ -813,7 +1167,7 @@ body, button, input, select, textarea {
   });
 
   /* =====================================================
-     2. SUPABASE INITIALIZATION & CONSTANTS
+      2. SUPABASE INITIALIZATION & CREDENTIALS
   ===================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
@@ -835,10 +1189,355 @@ body, button, input, select, textarea {
     "ps1", "py", "php", "asp", "aspx", "jsp", "cgi", "zip", "rar", "7z", "tar", "gz", "iso", "dll"
   ]);
 
+  // Google Cloud Credentials
+  const GOOGLE_API_KEY = "AIzaSyAEaYW2AL3_1wvqKXGiJKh8MhA9CwlyAqk";
+  const GOOGLE_CLIENT_ID = "701458926445-u1sf7bn0s2q2k7goqcv4gh6ag2fg2pst.apps.googleusercontent.com";
+  const GOOGLE_APP_ID = "701458926445";
+  const SCOPES = "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file";
+
+  let tokenClient = null;
+  let accessToken = null;
+  let pickerInited = false;
+  let gisInited = false;
+
+  let attachedItems = [];
+  let currentLinkModalType = 'link';
+
   let currentRecord = null;
   let updateType = null;
   let activeRecordId = null;
 
+  function gapiLoaded() {
+    gapi.load('picker', () => {
+      pickerInited = true;
+    });
+  }
+
+  function gisLoaded() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: SCOPES,
+      callback: '',
+    });
+    gisInited = true;
+  }
+
+  window.addEventListener('load', () => {
+    if (typeof gapi !== 'undefined') gapiLoaded();
+    if (typeof google !== 'undefined' && google.accounts) gisLoaded();
+  });
+
+  /* =====================================================
+      3. ATTACHMENT HUB & GOOGLE DRIVE PICKER
+  ===================================================== */
+  function openGoogleDrivePicker() {
+    const menu = document.getElementById("attachMenu");
+    if (menu) menu.classList.remove("active");
+
+    if (!GOOGLE_API_KEY || GOOGLE_API_KEY === "YOUR_GOOGLE_API_KEY") {
+      alert("⚠️ Google Drive Picker requires valid credentials. Opening manual link input.");
+      openLinkModal('drive');
+      return;
+    }
+
+    // Safety guard if GIS is still initializing
+    if (!tokenClient) {
+      if (typeof google !== 'undefined' && google.accounts) {
+        gisLoaded();
+      }
+    }
+
+    if (!tokenClient) {
+      alert("Google Services are still initializing. Opening manual link input.");
+      openLinkModal('drive');
+      return;
+    }
+
+    tokenClient.callback = async (response) => {
+      if (response.error !== undefined) {
+        console.error("Google Auth Error:", response);
+        return;
+      }
+      accessToken = response.access_token;
+      createPicker(accessToken);
+    };
+
+    if (accessToken === null) {
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    } else {
+      tokenClient.requestAccessToken({ prompt: '' });
+    }
+  }
+
+  function createPicker(token) {
+    if (!pickerInited || !token) return;
+
+    const viewRecent = new google.picker.DocsView(google.picker.ViewId.RECENTLY_PICKED);
+    const viewDocs = new google.picker.DocsView(google.picker.ViewId.DOCS);
+    const viewDrive = new google.picker.DocsView(google.picker.ViewId.DOCS).setIncludeFolders(true);
+
+    const pickerBuilder = new google.picker.PickerBuilder()
+      .enableFeature(google.picker.Feature.NAV_HIDDEN, false)
+      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+      .setAppId(GOOGLE_APP_ID)
+      .setOAuthToken(token)
+      .addView(viewRecent)
+      .addView(viewDocs)
+      .addView(viewDrive)
+      .setDeveloperKey(GOOGLE_API_KEY)
+      .setTitle("Insert files using Google Drive")
+      .setCallback(pickerCallback);
+
+    const picker = pickerBuilder.build();
+    picker.setVisible(true);
+  }
+
+  function pickerCallback(data) {
+    if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+      const documents = data[google.picker.Response.DOCUMENTS];
+      if (!documents || documents.length === 0) return;
+
+      documents.forEach((doc) => {
+        const fileUrl = doc[google.picker.Document.URL];
+        const fileName = doc[google.picker.Document.NAME];
+        const mimeType = doc[google.picker.Document.MIME_TYPE] || "";
+
+        let itemType = 'drive';
+        if (mimeType.includes("document")) itemType = 'docs';
+        else if (mimeType.includes("presentation")) itemType = 'slides';
+        else if (mimeType.includes("spreadsheet")) itemType = 'sheets';
+
+        if (!attachedItems.some(item => item.url === fileUrl)) {
+          attachedItems.push({
+            type: itemType,
+            url: fileUrl,
+            name: fileName
+          });
+        }
+      });
+
+      renderAttachments();
+    }
+  }
+
+  function toggleAttachMenu(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById("attachMenu");
+    if (menu) menu.classList.toggle("active");
+  }
+
+  document.addEventListener("click", (e) => {
+    const menu = document.getElementById("attachMenu");
+    const btn = document.getElementById("addCreateBtn");
+    if (menu && menu.classList.contains("active")) {
+      if (!menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
+        menu.classList.remove("active");
+      }
+    }
+  });
+
+  function triggerFileUpload() {
+    const menu = document.getElementById("attachMenu");
+    if (menu) menu.classList.remove("active");
+    const fileInput = document.getElementById("lessonFiles");
+    if (fileInput) fileInput.click();
+  }
+
+  function handleFileSelected(input) {
+    if (!input.files || input.files.length === 0) return;
+
+    Array.from(input.files).forEach((file) => {
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      if (dangerousExtensions.has(ext)) {
+        alert(`🛑 Restricted Format: (.${ext}) is prohibited.`);
+        return;
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        alert(`🛑 File Too Large: "${file.name}" exceeds the 25MB limit.`);
+        return;
+      }
+
+      if (!attachedItems.some(i => i.name === file.name && i.size === file.size)) {
+        attachedItems.push({
+          type: 'file',
+          file: file,
+          name: file.name,
+          size: file.size,
+          ext: ext
+        });
+      }
+    });
+
+    input.value = "";
+    renderAttachments();
+  }
+
+  function openLinkModal(type) {
+    const menu = document.getElementById("attachMenu");
+    if (menu) menu.classList.remove("active");
+
+    currentLinkModalType = type;
+    const modal = document.getElementById("attachLinkModal");
+    const title = document.getElementById("linkModalTitle");
+    const sub = document.getElementById("linkModalSub");
+    const input = document.getElementById("linkModalInput");
+
+    if (type === 'drive') {
+      title.textContent = "Add Google Drive link";
+      sub.textContent = "Paste any shareable Google Drive file, folder, or doc link.";
+      input.placeholder = "https://drive.google.com/...";
+    } else if (type === 'docs' || type === 'slides' || type === 'sheets') {
+      const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+      title.textContent = `Attach Google ${typeLabel}`;
+      sub.textContent = `Paste the shareable URL of the new Google ${typeLabel} you just created.`;
+      input.placeholder = `https://docs.google.com/${type}/...`;
+    } else {
+      title.textContent = "Add link";
+      sub.textContent = "Enter any web resource, video, or online document URL.";
+      input.placeholder = "https://...";
+    }
+
+    input.value = "";
+    if (modal) modal.classList.add("active");
+    setTimeout(() => input.focus(), 120);
+  }
+
+  function closeLinkModal() {
+    const modal = document.getElementById("attachLinkModal");
+    if (modal) modal.classList.remove("active");
+    const input = document.getElementById("linkModalInput");
+    if (input) input.value = "";
+  }
+
+  function submitModalLink() {
+    const input = document.getElementById("linkModalInput");
+    const rawVal = input ? input.value.trim() : "";
+
+    if (!rawVal) {
+      alert("Please enter a valid link address.");
+      return;
+    }
+
+    const formatted = formatUrl(rawVal);
+    let itemType = currentLinkModalType;
+
+    if (formatted.includes("drive.google.com")) itemType = "drive";
+    else if (formatted.includes("docs.google.com/document")) itemType = "docs";
+    else if (formatted.includes("docs.google.com/presentation")) itemType = "slides";
+    else if (formatted.includes("docs.google.com/spreadsheets")) itemType = "sheets";
+
+    if (!attachedItems.some(i => i.url === formatted)) {
+      attachedItems.push({
+        type: itemType,
+        url: formatted,
+        name: formatted
+      });
+    }
+
+    closeLinkModal();
+    renderAttachments();
+  }
+
+  function createNewGoogleDoc(docType) {
+    const menu = document.getElementById("attachMenu");
+    if (menu) menu.classList.remove("active");
+
+    const newDocUrls = { docs: "https://docs.new", slides: "https://slides.new", sheets: "https://sheets.new" };
+    window.open(newDocUrls[docType] || "https://docs.new", "_blank");
+    setTimeout(() => openLinkModal(docType), 350);
+  }
+
+  function removeAttachment(index) {
+    attachedItems.splice(index, 1);
+    renderAttachments();
+  }
+
+  function renderAttachments() {
+    const container = document.getElementById("attachmentsList");
+    if (!container) return;
+    container.innerHTML = "";
+
+    attachedItems.forEach((item, index) => {
+      let iconClass = "fa-solid fa-file-lines";
+      let iconColor = "var(--primary)";
+      let typeLabel = "File";
+
+      if (item.type === 'file') {
+        typeLabel = item.size ? formatAttachmentSize(item.size) : 'Attached Document';
+        const ext = item.ext || (item.name ? item.name.split('.').pop().toLowerCase() : '');
+        if (ext === 'pdf') { iconClass = "fa-solid fa-file-pdf"; iconColor = "#dc2626"; }
+        else if (['doc', 'docx'].includes(ext)) { iconClass = "fa-solid fa-file-word"; iconColor = "#2563eb"; }
+        else if (['ppt', 'pptx'].includes(ext)) { iconClass = "fa-solid fa-file-powerpoint"; iconColor = "#ea580c"; }
+        else if (['xls', 'xlsx', 'csv'].includes(ext)) { iconClass = "fa-solid fa-file-excel"; iconColor = "#16a34a"; }
+        else if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) { iconClass = "fa-solid fa-file-image"; iconColor = "#0284c7"; }
+      } else if (item.type === 'drive') {
+        iconClass = "fa-brands fa-google-drive"; iconColor = "#0f9d58"; typeLabel = "Google Drive";
+      } else if (item.type === 'docs') {
+        iconClass = "fa-solid fa-file-word"; iconColor = "#4285f4"; typeLabel = "Google Docs";
+      } else if (item.type === 'slides') {
+        iconClass = "fa-solid fa-file-powerpoint"; iconColor = "#f4b400"; typeLabel = "Google Slides";
+      } else if (item.type === 'sheets') {
+        iconClass = "fa-solid fa-file-excel"; iconColor = "#0f9d58"; typeLabel = "Google Sheets";
+      } else {
+        iconClass = "fa-solid fa-link"; iconColor = "var(--primary)"; typeLabel = "Web Link";
+      }
+
+      const card = document.createElement("div");
+      card.className = "attachment-card";
+
+      const previewHref = item.url ? escapeHtml(item.url) : "#";
+      const targetAttr = item.url ? 'target="_blank" rel="noopener noreferrer"' : '';
+      const displayTitle = escapeHtml(item.name || "Attached Item");
+
+      card.innerHTML = `
+        <div class="attachment-info">
+          <div class="attachment-icon" style="color: ${iconColor};">
+            <i class="${iconClass}"></i>
+          </div>
+          <div class="attachment-details">
+            <div class="attachment-title" title="${displayTitle}">${displayTitle}</div>
+            <div class="attachment-meta">
+              ${item.url ? `<a href="${previewHref}" ${targetAttr}>${typeLabel} — Open Resource</a>` : typeLabel}
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-remove-attachment" onclick="removeAttachment(${index})" title="Remove attachment">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      `;
+
+      container.appendChild(card);
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    const modal = document.getElementById("attachLinkModal");
+    if (modal && modal.classList.contains("active") && e.target === modal) {
+      closeLinkModal();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeLinkModal();
+      const menu = document.getElementById("attachMenu");
+      if (menu) menu.classList.remove("active");
+    } else if (e.key === "Enter") {
+      const modal = document.getElementById("attachLinkModal");
+      if (modal && modal.classList.contains("active")) {
+        const input = document.getElementById("linkModalInput");
+        if (document.activeElement === input) {
+          e.preventDefault();
+          submitModalLink();
+        }
+      }
+    }
+  });
+
+  /* =====================================================
+      4. FETCH & PRE-FILL LESSON OR ACTIVITY (SINGLE DOM LOAD)
+  ===================================================== */
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
       initUpdateForm();
@@ -847,28 +1546,6 @@ body, button, input, select, textarea {
     }, 100);
   });
 
-  function readFileAsDataURL(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  function formatUrl(url) {
-    if (!url) return null;
-    let trimmed = url.trim();
-    if (!trimmed) return null;
-    if (!/^https?:\/\//i.test(trimmed)) {
-      return 'https://' + trimmed;
-    }
-    return trimmed;
-  }
-
-  /* =====================================================
-     3. FETCH & PRE-FILL LESSON OR ACTIVITY
-  ===================================================== */
   async function initUpdateForm() {
     const client = getSupabaseClient();
     if (!client) return;
@@ -900,6 +1577,7 @@ body, button, input, select, textarea {
     }
 
     const searchIds = getDualTypeIds([activeRecordId]);
+    attachedItems = [];
 
     if (updateType === "activity") {
       if (pageTitle) pageTitle.innerHTML = '✏️ Update Activity';
@@ -916,30 +1594,67 @@ body, button, input, select, textarea {
         currentRecord = activity;
         document.getElementById('title').value = activity.title || "";
         document.getElementById('description').value = activity.description || "";
-        document.getElementById('link').value = activity.link_url || "";
-        document.getElementById('score').value = activity.total_points || 100;
+        document.getElementById('score').value = (activity.total_points !== null && activity.total_points !== undefined) ? activity.total_points : 100;
 
-        // Pre-fill Late Deadline Policy Toggles if elements exist
-        const allowLateEl = document.getElementById('allowLateCheckbox');
-        const markLateEl = document.getElementById('markLateCheckbox');
-        if (allowLateEl) allowLateEl.checked = activity.allow_late ?? true;
-        if (markLateEl) markLateEl.checked = activity.mark_late ?? true;
-
+        // Unpack multi-item file materials with intelligent filename decoding
         if (activity.file_url) {
-          const noteEl = document.getElementById('currentFileNote');
-          if (noteEl) noteEl.textContent = "Current file attached. Select a new file to replace it.";
+          const files = parseMaterials(activity.file_url, 'file');
+          files.forEach(f => {
+            if (!f.url) return;
+            const ext = f.ext || f.url.split('.').pop().split('?')[0].toLowerCase();
+            let fileName = f.name || "";
+            if (!fileName || fileName === 'Attached Reference File' || fileName.startsWith('http')) {
+              try {
+                const parts = f.url.split('/');
+                fileName = decodeURIComponent(parts[parts.length - 1].split('?')[0]);
+              } catch (e) {
+                fileName = `Reference_File.${ext}`;
+              }
+            }
+
+            attachedItems.push({
+              type: 'file',
+              url: f.url,
+              name: fileName,
+              size: f.size || 0,
+              ext: ext
+            });
+          });
         }
+
+        // Unpack multi-item link and Drive resources
+        if (activity.link_url) {
+          const links = parseMaterials(activity.link_url, 'link');
+          links.forEach(l => {
+            if (!l.url) return;
+            let itemType = l.type || 'link';
+            if (l.url.includes("drive.google.com")) itemType = 'drive';
+            else if (l.url.includes("docs.google.com/document")) itemType = 'docs';
+            else if (l.url.includes("docs.google.com/presentation")) itemType = 'slides';
+            else if (l.url.includes("docs.google.com/spreadsheets")) itemType = 'sheets';
+
+            attachedItems.push({
+              type: itemType,
+              url: l.url,
+              name: l.name || l.url
+            });
+          });
+        }
+
+        renderAttachments();
 
         const deadlineVal = activity.deadline || activity.due_date;
         if (deadlineVal) {
           const dt = new Date(deadlineVal);
-          const year = dt.getFullYear();
-          const month = String(dt.getMonth() + 1).padStart(2, '0');
-          const day = String(dt.getDate()).padStart(2, '0');
-          const hours = String(dt.getHours()).padStart(2, '0');
-          const minutes = String(dt.getMinutes()).padStart(2, '0');
-          document.getElementById('date').value = `${year}-${month}-${day}`;
-          document.getElementById('time').value = `${hours}:${minutes}`;
+          if (!isNaN(dt.getTime())) {
+            const year = dt.getFullYear();
+            const month = String(dt.getMonth() + 1).padStart(2, '0');
+            const day = String(dt.getDate()).padStart(2, '0');
+            const hours = String(dt.getHours()).padStart(2, '0');
+            const minutes = String(dt.getMinutes()).padStart(2, '0');
+            document.getElementById('date').value = `${year}-${month}-${day}`;
+            document.getElementById('time').value = `${hours}:${minutes}`;
+          }
         }
       } else {
         alert("Could not load activity details from database.");
@@ -960,11 +1675,51 @@ body, button, input, select, textarea {
         currentRecord = lesson;
         document.getElementById('title').value = lesson.title || "";
         document.getElementById('description').value = lesson.content || lesson.description || "";
-        document.getElementById('link').value = lesson.link_url || "";
+
         if (lesson.file_url) {
-          const noteEl = document.getElementById('currentFileNote');
-          if (noteEl) noteEl.textContent = "Current file attached. Select a new file to replace it.";
+          const files = parseMaterials(lesson.file_url, 'file');
+          files.forEach(f => {
+            if (!f.url) return;
+            const ext = f.ext || f.url.split('.').pop().split('?')[0].toLowerCase();
+            let fileName = f.name || "";
+            if (!fileName || fileName === 'Attached Reference File' || fileName.startsWith('http')) {
+              try {
+                const parts = f.url.split('/');
+                fileName = decodeURIComponent(parts[parts.length - 1].split('?')[0]);
+              } catch (e) {
+                fileName = `Lesson_File.${ext}`;
+              }
+            }
+
+            attachedItems.push({
+              type: 'file',
+              url: f.url,
+              name: fileName,
+              size: f.size || 0,
+              ext: ext
+            });
+          });
         }
+
+        if (lesson.link_url) {
+          const links = parseMaterials(lesson.link_url, 'link');
+          links.forEach(l => {
+            if (!l.url) return;
+            let itemType = l.type || 'link';
+            if (l.url.includes("drive.google.com")) itemType = 'drive';
+            else if (l.url.includes("docs.google.com/document")) itemType = 'docs';
+            else if (l.url.includes("docs.google.com/presentation")) itemType = 'slides';
+            else if (l.url.includes("docs.google.com/spreadsheets")) itemType = 'sheets';
+
+            attachedItems.push({
+              type: itemType,
+              url: l.url,
+              name: l.name || l.url
+            });
+          });
+        }
+
+        renderAttachments();
       } else {
         alert("Could not load lesson details from database.");
       }
@@ -978,7 +1733,7 @@ body, button, input, select, textarea {
   };
 
   /* =====================================================
-     4. SUBMIT UPDATED DATA WITH AI SAFETY & VALIDATION
+      5. SUBMIT UPDATED DATA WITH AI SAFETY & MULTI-UPLOAD
   ===================================================== */
   const updateForm = document.getElementById('updateForm');
   const submitBtn = document.getElementById('submitBtn');
@@ -995,10 +1750,8 @@ body, button, input, select, textarea {
 
       const title = document.getElementById('title').value.trim();
       const description = document.getElementById('description').value.trim();
-      const linkInput = document.getElementById('link').value.trim();
-      const fileInput = document.getElementById('lessonFiles');
 
-      // 1. Local AI Content Pre-flight Moderation Check
+      // Content Moderation
       try {
         const aiResponse = await fetch('/api/ai-moderate', {
           method: 'POST',
@@ -1016,80 +1769,122 @@ body, button, input, select, textarea {
         console.warn("AI moderation check bypassed due to network issue:", err);
       }
 
+      // Group all queued files and links
+      const fileAttachments = attachedItems.filter(i => i.type === 'file');
+      const linkAttachments = attachedItems.filter(i => i.type !== 'file' && i.url);
+
+      // Date validation for activities
+      let deadlineIso = null;
+      let dateVal = "";
+      let timeVal = "23:59";
+      let scoreVal = 100;
+
+      if (updateType === "activity") {
+        dateVal = document.getElementById('date').value;
+        timeVal = document.getElementById('time').value || "23:59";
+        scoreVal = parseInt(document.getElementById('score').value, 10) || 100;
+
+        if (!dateVal) {
+          alert("Due Date is a required field for activities.");
+          return;
+        }
+        deadlineIso = new Date(`${dateVal}T${timeVal}:00`).toISOString();
+      }
+
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving Changes & Notifying Students...';
 
-      let updatedFileUrl = currentRecord ? (currentRecord.file_url || null) : null;
+      // Upload newly added files to Supabase Storage Bucket ('lesson-files')
+      const uploadedFiles = [];
+      const classId = currentRecord?.class_id || localStorage.getItem("selectedClassId") || "general";
 
-      if (fileInput && fileInput.files && fileInput.files.length > 0) {
-        const pickedFile = fileInput.files[0];
+      for (const item of fileAttachments) {
+        if (item.file) {
+          const pickedFile = item.file;
+          const ext = item.ext || pickedFile.name.split('.').pop().toLowerCase();
 
-        // 2. File size verification (25MB Limit)
-        if (pickedFile.size > MAX_FILE_SIZE) {
-          alert("🛑 File Limit Exceeded: Maximum attachment size is 25MB.");
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
-          return;
-        }
+          try {
+            const fileName = `update_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
+            const filePath = `${classId}/${fileName}`;
 
-        // 3. Extension Block & Whitelisting
-        const fileExt = pickedFile.name.split('.').pop().toLowerCase();
-        if (dangerousExtensions.has(fileExt)) {
-          alert(`🛑 Security Alert: The file extension (.${fileExt}) is prohibited.`);
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Save Changes';
-          return;
-        }
+            const { data: uploadData, error: uploadError } = await client.storage
+              .from('lesson-files')
+              .upload(filePath, pickedFile);
 
-        try {
-          const fileName = `update_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-          const filePath = `updates/${fileName}`;
-
-          const { data: uploadData, error: uploadError } = await client.storage
-            .from('lesson-files')
-            .upload(filePath, pickedFile);
-
-          if (!uploadError && uploadData) {
-            const { data: urlData } = client.storage.from('lesson-files').getPublicUrl(filePath);
-            updatedFileUrl = urlData.publicUrl;
-          } else {
-            updatedFileUrl = await readFileAsDataURL(pickedFile);
+            if (!uploadError && uploadData) {
+              const { data: urlData } = client.storage.from('lesson-files').getPublicUrl(filePath);
+              uploadedFiles.push({
+                name: item.name,
+                url: urlData.publicUrl,
+                ext: ext,
+                size: item.size
+              });
+            } else {
+              const base64Url = await readFileAsDataURL(pickedFile);
+              uploadedFiles.push({
+                name: item.name,
+                url: base64Url,
+                ext: ext,
+                size: item.size
+              });
+            }
+          } catch (err) {
+            const base64Url = await readFileAsDataURL(pickedFile);
+            uploadedFiles.push({
+              name: item.name,
+              url: base64Url,
+              ext: ext,
+              size: item.size
+            });
           }
-        } catch (err) {
-          updatedFileUrl = await readFileAsDataURL(pickedFile);
+        } else if (item.url) {
+          // Keep existing file URL
+          uploadedFiles.push({
+            name: item.name,
+            url: item.url,
+            ext: item.ext || item.url.split('.').pop().split('?')[0].toLowerCase(),
+            size: item.size || 0
+          });
         }
       }
 
+      // Format Links and Drive Resources
+      const linkItems = linkAttachments.map(i => ({
+        name: i.name || i.url,
+        url: formatUrl(i.url),
+        type: i.type
+      }));
+
+      // Serialize arrays: JSON string if multiple, plain string if 1, null if empty
+      const finalFileUrl = uploadedFiles.length > 1
+        ? JSON.stringify(uploadedFiles)
+        : (uploadedFiles[0]?.url || null);
+
+      const finalLinkUrl = linkItems.length > 1
+        ? JSON.stringify(linkItems)
+        : (linkItems[0]?.url || null);
+
       const searchIds = getDualTypeIds([activeRecordId]);
-      const classId = currentRecord?.class_id || localStorage.getItem("selectedClassId");
 
       if (updateType === "activity") {
-        const dateVal = document.getElementById('date').value;
-        const timeVal = document.getElementById('time').value || "23:59";
-        const scoreVal = parseInt(document.getElementById('score').value, 10) || 100;
-        
-        const allowLateVal = document.getElementById('allowLateCheckbox')?.checked ?? true;
-        const markLateVal = document.getElementById('markLateCheckbox')?.checked ?? true;
+        const updatePayload = {
+          title: title,
+          description: description,
+          deadline: deadlineIso,
+          due_date: deadlineIso,
+          total_points: scoreVal,
+          link_url: finalLinkUrl,
+          file_url: finalFileUrl,
+          notification_log: {}
+        };
 
-        let deadlineIso = null;
-        if (dateVal) {
-          deadlineIso = new Date(`${dateVal}T${timeVal}:00`).toISOString();
-        }
+        // Retain policies if present on record
+        if (currentRecord?.allow_late !== undefined) updatePayload.allow_late = currentRecord.allow_late;
+        if (currentRecord?.mark_late !== undefined) updatePayload.mark_late = currentRecord.mark_late;
 
         const { error } = await client
           .from('activities')
-          .update({
-            title: title,
-            description: description,
-            deadline: deadlineIso,
-            due_date: deadlineIso,
-            total_points: scoreVal,
-            link_url: formatUrl(linkInput),
-            file_url: updatedFileUrl,
-            allow_late: allowLateVal,
-            mark_late: markLateVal,
-            notification_log: {}
-          })
+          .update(updatePayload)
           .in('id', searchIds);
 
         if (error) {
@@ -1117,8 +1912,8 @@ body, button, input, select, textarea {
           .update({
             title: title,
             content: description,
-            link_url: formatUrl(linkInput),
-            file_url: updatedFileUrl
+            link_url: finalLinkUrl,
+            file_url: finalFileUrl
           })
           .in('id', searchIds);
 
@@ -1145,7 +1940,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-     5. NOTIFICATION DISPATCH HELPER (PUSH + EMAIL + IN-APP)
+      6. NOTIFICATION DISPATCH HELPER (PUSH + EMAIL + IN-APP)
   ===================================================== */
   async function dispatchUpdateNotifications({ client, classId, title, notifType, detailsText, activityId }) {
     if (!classId) return;
@@ -1159,7 +1954,6 @@ body, button, input, select, textarea {
         .maybeSingle();
       if (clsData?.subject) className = clsData.subject;
 
-      const userIdsFormatted = getDualTypeIds([currentUserId]).map(id => `"${id}"`).join(',');
       const { data: enrolledMembers } = await client
         .from('class_memberships')
         .select('user_id')
@@ -1168,15 +1962,17 @@ body, button, input, select, textarea {
       if (!enrolledMembers || enrolledMembers.length === 0) return;
 
       const studentUserIds = getDualTypeIds(enrolledMembers.map(m => m.user_id));
-
       const notifHeader = notifType === 'updated_activity' ? `✏️ Activity Updated: ${title}` : `📖 Lesson Updated: ${title}`;
+
       const inAppRecords = enrolledMembers.map(m => ({
         user_id: parseDbId(m.user_id),
         title: notifHeader,
         message: `${title} in ${className} was modified. ${detailsText}`,
         is_read: false,
-        activity_id: activityId ? parseDbId(activityId) : null
+        activity_id: activityId ? parseDbId(activityId) : null,
+        created_at: new Date().toISOString()
       }));
+
       await client.from('notifications').insert(inAppRecords);
 
       const { data: studentUsers } = await client
@@ -1207,7 +2003,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-     6. LOAD SIDEBAR CLASSES & GROUPS (DUAL-SCHEMA)
+      7. LOAD SIDEBAR CLASSES & GROUPS
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
@@ -1315,3 +2111,5 @@ body, button, input, select, textarea {
     }
   }
 </script>
+</body>
+</html>

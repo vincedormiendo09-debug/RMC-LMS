@@ -1087,6 +1087,29 @@ body, button, input, select, textarea {
     return str;
   }
 
+  function parseMaterials(raw, defaultType = 'file') {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {}
+    return [{
+      name: defaultType === 'file' ? 'Attached File' : raw,
+      url: raw,
+      type: defaultType
+    }];
+  }
+
+  function formatUrl(url) {
+    if (!url) return "#";
+    let trimmed = url.trim();
+    if (!trimmed) return "#";
+    if (!/^https?:\/\//i.test(trimmed)) {
+      return 'https://' + trimmed;
+    }
+    return trimmed;
+  }
+
   /* =====================================================
       1. USER SESSION & SAFE LOGOUT FUNCTION
   ===================================================== */
@@ -1650,12 +1673,28 @@ body, button, input, select, textarea {
 
       const timelinessTag = `<span class="${tagClass}"><i class="fa-solid ${iconClass}"></i> ${dateFormatted} ${timeFormatted ? '- ' + timeFormatted : ''} (${statusLabel})</span>`;
 
+      // Safe multi-attachment unpacker
+      const attachedFiles = parseMaterials(sub.file_url, 'file');
+      const attachedLinks = parseMaterials(sub.link_url, 'link');
+      const totalAttached = attachedFiles.length + attachedLinks.length;
+
       let fileDisplay = `<span style="color: #94a3b8; font-style: italic;">No file</span>`;
-      if (sub.file_url) {
-        const ext = sub.file_url.split('.').pop().toUpperCase();
-        fileDisplay = `<button class="file-download-btn" onclick="downloadFileDirectly('${escapeJsString(sub.file_url)}', '${escapeJsString(studentName)}_${escapeJsString(activityTitle)}.${ext.toLowerCase()}')"><i class="fa-solid fa-file-arrow-down"></i> Download (${ext})</button>`;
-      } else if (sub.link_url) {
-        fileDisplay = `<a href="${escapeHtml(sub.link_url)}" target="_blank" class="file-download-btn"><i class="fa-solid fa-link"></i> Open Link</a>`;
+
+      if (totalAttached === 1 && attachedFiles.length === 1) {
+        const singleFile = attachedFiles[0];
+        const ext = singleFile.ext || (singleFile.url ? singleFile.url.split('.').pop().split('?')[0].toUpperCase() : 'FILE');
+        const fileName = singleFile.name || `${studentName}_${activityTitle}.${ext.toLowerCase()}`;
+        fileDisplay = `<button class="file-download-btn" onclick="downloadFileDirectly('${escapeJsString(singleFile.url)}', '${escapeJsString(fileName)}')"><i class="fa-solid fa-file-arrow-down"></i> Download (${escapeHtml(ext)})</button>`;
+      } else if (totalAttached === 1 && attachedLinks.length === 1) {
+        const singleLink = attachedLinks[0];
+        const targetUrl = formatUrl(singleLink.url);
+        fileDisplay = `<a href="${escapeHtml(targetUrl)}" target="_blank" rel="noopener noreferrer" class="file-download-btn"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link</a>`;
+      } else if (totalAttached > 1) {
+        const fileCountText = attachedFiles.length > 0 ? `${attachedFiles.length} file${attachedFiles.length > 1 ? 's' : ''}` : '';
+        const linkCountText = attachedLinks.length > 0 ? `${attachedLinks.length} link${attachedLinks.length > 1 ? 's' : ''}` : '';
+        const summaryText = [fileCountText, linkCountText].filter(Boolean).join(', ');
+
+        fileDisplay = `<button class="file-download-btn" onclick="openStudentWork('${escapeJsString(String(sub.id))}')" style="background: #e0e7ff; color: #3730a3; border-color: #c7d2fe;" title="Review all attachments in grading desk"><i class="fa-solid fa-paperclip"></i> ${escapeHtml(summaryText)}</button>`;
       }
 
       const studentUid = sub.user_id || sub.student_id || (sub.users ? sub.users.id : '');

@@ -1731,7 +1731,9 @@ body, button, input, select, textarea {
     if (!client) return;
 
     try {
-      const mySearchIds = getDualTypeIds([studentId || currentUserId]);
+      const resolvedStudentId = studentId || getSafeUserId();
+      if (!resolvedStudentId) return;
+      const mySearchIds = getDualTypeIds([resolvedStudentId]);
 
       // 1. Fetch student's enrolled classes
       const [memUser, memStudent] = await Promise.all([
@@ -1791,32 +1793,38 @@ body, button, input, select, textarea {
         }
       });
 
-      // 🧼 Auto-purge lingering reminder notifications for activities already turned in
+      // Purge lingering reminder notifications for activities already turned in
       if (submittedActIds.size > 0) {
         submittedActIds.forEach(actId => {
           fetch('/api/clear-activity-reminders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: currentUserId, activity_id: actId })
+            body: JSON.stringify({ user_id: resolvedStudentId, activity_id: actId })
           }).catch(() => {});
         });
       }
 
-      // 5. Intelligent Filtering (Active reminders vs. 1-Time Past-Due Notice)
+      // 5. Intelligent Filtering: Only alert for OPEN, UN-SUBMITTED activities
       const nowMs = Date.now();
       const acknowledgedDeadlines = getAcknowledgedDeadlines();
 
       activePendingActivities = activities.filter(act => {
         const actIdStr = String(act.id);
 
-        // RULE A: If turned in, never show it again
+        // RULE A: If turned in, never alert
         if (submittedActIds.has(actIdStr)) {
+          return false;
+        }
+
+        // RULE B: If already acknowledged/dismissed, never alert
+        if (acknowledgedDeadlines.has(actIdStr)) {
           return false;
         }
 
         const deadlineStr = act.deadline || act.due_date;
         if (!deadlineStr) {
-          return true; // Open-ended without cutoff: keep active until submitted
+          // Open-ended assignments without a deadline remain visible
+          return true;
         }
 
         const deadlineDate = new Date(deadlineStr);
@@ -1826,24 +1834,14 @@ body, button, input, select, textarea {
 
         const deadlineMs = deadlineDate.getTime();
 
-        // RULE B: If deadline is in the future, keep reminding
-        if (nowMs < deadlineMs) {
-          return true;
-        }
-
-        // RULE C: If deadline has passed and already acknowledged, never show again
-        if (acknowledgedDeadlines.has(actIdStr)) {
-          return false;
-        }
-
-        // Automatically retire activities expired more than 3 days ago to avoid historical clutter
-        const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
-        if (nowMs - deadlineMs > threeDaysMs) {
+        // RULE C: If deadline has passed, DO NOT SPAM the modal.
+        // Stamp it acknowledged so it stays muted permanently.
+        if (nowMs >= deadlineMs) {
           recordAcknowledgedDeadline(act.id);
           return false;
         }
 
-        // Eligible for one-time past-due notice
+        // RULE D: Valid pending activity with upcoming deadline
         return true;
       });
 
@@ -1871,28 +1869,15 @@ body, button, input, select, textarea {
     listContainer.innerHTML = "";
     currentTargetActivity = activePendingActivities[0];
 
-    // Immediately record any expired items so they never show again after this display
-    activePendingActivities.forEach(act => {
-      const deadlineVal = act.deadline || act.due_date;
-      if (deadlineVal) {
-        const dt = new Date(deadlineVal);
-        if (!isNaN(dt.getTime()) && Date.now() >= dt.getTime()) {
-          recordAcknowledgedDeadline(act.id);
-        }
-      }
-    });
-
     activePendingActivities.forEach((act, idx) => {
       const cls = classMap[String(act.class_id)] || {};
       const subjectName = cls.subject || "Course Activity";
       const deadlineVal = act.deadline || act.due_date;
       
       let dueText = "No deadline";
-      let isPastDue = false;
       if (deadlineVal) {
         const dt = new Date(deadlineVal);
         if (!isNaN(dt.getTime())) {
-          isPastDue = Date.now() >= dt.getTime();
           dueText = dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + " · " +
                     dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
         }
@@ -1903,13 +1888,8 @@ body, button, input, select, textarea {
       item.id = `pendingItem_${act.id}`;
       item.onclick = () => selectPendingItem(act, cls.code);
 
-      const statusBadge = isPastDue
-        ? `<span style="font-size: 12px; color: #b91c1c; font-weight: 700;">⚠️ Deadline Passed: ${dueText} (Closed)</span>`
-        : `<span style="font-size: 12px; color: #dc2626; font-weight: 600;">⏰ Due: ${dueText}</span>`;
-
-      const pointsBadge = isPastDue
-        ? `<div style="font-size: 11px; font-weight: 700; color: #b91c1c; background: #fee2e2; padding: 4px 8px; border-radius: 6px; white-space: nowrap;">CLOSED</div>`
-        : `<div style="font-size: 11.5px; font-weight: 600; color: #64748b; background: #e2e8f0; padding: 4px 8px; border-radius: 6px; white-space: nowrap;">${act.total_points || 100} pts</div>`;
+      const statusBadge = `<span style="font-size: 12px; color: #dc2626; font-weight: 600;">⏰ Due: ${dueText}</span>`;
+      const pointsBadge = `<div style="font-size: 11.5px; font-weight: 600; color: #64748b; background: #e2e8f0; padding: 4px 8px; border-radius: 6px; white-space: nowrap;">${act.total_points || 100} pts</div>`;
 
       item.innerHTML = `
         <div style="flex: 1; min-width: 0;">
@@ -1942,7 +1922,7 @@ body, button, input, select, textarea {
     if (selectedEl) selectedEl.classList.add('selected');
   }
 
-  /* 🚪 OKAY BUTTON: Dismiss modal & stamp any displayed expired items */
+  /* 🚪 OKAY BUTTON: Dismiss modal & stamp current active items as acknowledged */
   function dismissPendingModal() {
     const modal = document.getElementById("pendingActivityModal");
     if (modal) {
@@ -1951,13 +1931,7 @@ body, button, input, select, textarea {
 
     if (activePendingActivities && activePendingActivities.length > 0) {
       activePendingActivities.forEach(act => {
-        const deadlineVal = act.deadline || act.due_date;
-        if (deadlineVal) {
-          const dt = new Date(deadlineVal);
-          if (!isNaN(dt.getTime()) && Date.now() >= dt.getTime()) {
-            recordAcknowledgedDeadline(act.id);
-          }
-        }
+        recordAcknowledgedDeadline(act.id);
       });
     }
   }
@@ -1969,14 +1943,7 @@ body, button, input, select, textarea {
       return;
     }
 
-    // Record past-due items before navigating away
-    const deadlineVal = currentTargetActivity.deadline || currentTargetActivity.due_date;
-    if (deadlineVal) {
-      const dt = new Date(deadlineVal);
-      if (!isNaN(dt.getTime()) && Date.now() >= dt.getTime()) {
-        recordAcknowledgedDeadline(currentTargetActivity.id);
-      }
-    }
+    recordAcknowledgedDeadline(currentTargetActivity.id);
 
     localStorage.setItem("selectedActivityId", String(currentTargetActivity.id));
     if (currentTargetActivity._classCode) {

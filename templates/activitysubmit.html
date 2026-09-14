@@ -46,15 +46,15 @@
     --shadow: 0 4px 15px rgba(15, 23, 42, 0.06);
   }
 
-      *, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-body, button, input, select, textarea {
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-}
+  body, button, input, select, textarea {
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  }
 
   body {
     background: var(--background);
@@ -357,26 +357,6 @@ body, button, input, select, textarea {
     color: var(--primary);
   }
 
-  .badge {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: bold;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-  }
-
-  .badge-pending {
-    background: var(--warning-light);
-    color: #b45309;
-  }
-
-  .badge-graded {
-    background: var(--success-light);
-    color: var(--success);
-  }
-
   /* CARDS */
   .card, .submission-card {
     background: var(--surface);
@@ -464,7 +444,6 @@ body, button, input, select, textarea {
   }
 
   input[type="url"],
-  input[type="file"],
   textarea {
     width: 100%;
     min-height: 44px;
@@ -500,6 +479,318 @@ body, button, input, select, textarea {
     cursor: not-allowed !important;
     border-color: #cbd5e1 !important;
     opacity: 0.85;
+  }
+
+  /* =========================================
+     GOOGLE CLASSROOM-STYLE + ADD OR CREATE
+  ========================================= */
+  .attach-section {
+    margin-top: 16px;
+  }
+
+  .attach-dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+    margin-top: 8px;
+  }
+
+  .btn-add-create {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: #ffffff;
+    color: var(--primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  }
+
+  .btn-add-create:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: var(--primary);
+    color: var(--primary-dark);
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.12);
+  }
+
+  .btn-add-create:disabled {
+    background: #f1f5f9;
+    color: var(--muted);
+    border-color: var(--border);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .attach-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    width: 220px;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+    padding: 6px 0;
+    z-index: 200;
+    display: none;
+    animation: menuFadeIn 0.15s ease-out;
+  }
+
+  .attach-menu.active {
+    display: block;
+  }
+
+  @keyframes menuFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .attach-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 13.5px;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .attach-menu-item:hover {
+    background: #f1f5f9;
+    color: var(--primary);
+  }
+
+  .attach-menu-item i {
+    font-size: 15px;
+    width: 18px;
+    text-align: center;
+    color: var(--muted);
+    transition: color 0.15s ease;
+  }
+
+  .attach-menu-item:hover i {
+    color: var(--primary);
+  }
+
+  .attach-menu-item.item-drive i { color: #0f9d58; }
+  .attach-menu-item.item-docs i { color: #4285f4; }
+  .attach-menu-item.item-slides i { color: #f4b400; }
+  .attach-menu-item.item-sheets i { color: #0f9d58; }
+
+  .attach-menu-divider {
+    height: 1px;
+    background: #e2e8f0;
+    margin: 6px 0;
+  }
+
+  .attach-menu-label {
+    padding: 6px 16px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+  }
+
+  /* ATTACHMENT CARDS */
+  .attachments-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .attachment-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .attachment-card:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+
+  .attachment-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .attachment-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 6px;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .attachment-details {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .attachment-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .attachment-meta {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .attachment-meta a {
+    color: var(--primary);
+    text-decoration: none;
+  }
+
+  .attachment-meta a:hover {
+    text-decoration: underline;
+  }
+
+  .btn-remove-attachment {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .btn-remove-attachment:hover:not(:disabled) {
+    background: #fee2e2;
+    color: var(--danger);
+  }
+
+  .btn-remove-attachment:disabled {
+    display: none;
+  }
+
+  /* MODAL FOR ATTACHING LINK / DRIVE URL */
+  .attach-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+    z-index: 1200;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+
+  .attach-modal-overlay.active {
+    display: flex;
+  }
+
+  .attach-modal-card {
+    background: #ffffff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 480px;
+    padding: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    animation: menuFadeIn 0.2s ease;
+  }
+
+  .attach-modal-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .attach-modal-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+
+  .attach-modal-card input[type="url"] {
+    margin-top: 0;
+  }
+
+  .attach-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .btn-modal-cancel {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .btn-modal-cancel:hover {
+    background: #f1f5f9;
+    color: var(--text);
+  }
+
+  .btn-modal-submit {
+    background: var(--primary);
+    border: none;
+    color: #ffffff;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .btn-modal-submit:hover {
+    background: var(--primary-dark);
   }
 
   /* ACTION BAR & BUTTONS */
@@ -554,7 +845,6 @@ body, button, input, select, textarea {
     background: var(--primary-dark);
   }
 
-  /* GREEN SUBMITTED STATE BUTTON */
   .btn-submit-now.submitted {
     background: var(--success) !important;
   }
@@ -595,7 +885,6 @@ body, button, input, select, textarea {
     }
 
     input[type="url"],
-    input[type="file"],
     textarea {
       font-size: 16px;
     }
@@ -671,6 +960,16 @@ body, button, input, select, textarea {
     transform: translateY(-1px);
   }
 
+  .badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
   .badge-ontime {
     background: #dcfce7 !important;
     color: #166534 !important;
@@ -710,7 +1009,7 @@ body, button, input, select, textarea {
     font-size: 11px;
     font-weight: bold;
   }
-  </style>
+</style>
 </head>
 
 <body>
@@ -813,10 +1112,6 @@ body, button, input, select, textarea {
             <div>Rating: <strong id="feedbackRatingDisplay" style="color: #166534;">100%</strong></div>
             <div>Punctuality: <span id="punctualityBadge" class="badge badge-ontime">On Time</span></div>
           </div>
-          <div id="feedbackRemarksContainer" style="background: #ffffff; border: 1px solid var(--border); padding: 12px 14px; border-radius: 8px; font-size: 13.5px; line-height: 1.5; color: #334155; margin-top: 4px;">
-            <strong>Instructor Feedback:</strong>
-            <p id="feedbackRemarksText" style="margin-top: 4px; color: #475569;">No written feedback provided yet.</p>
-          </div>
         </div>
       </div>
 
@@ -836,7 +1131,7 @@ body, button, input, select, textarea {
           <h2><i class="fa-solid fa-folder-open"></i> Lesson Materials & Resources</h2>
         </div>
         <div class="attachments-list" id="attachmentsList">
-          <!-- Dynamically Populated -->
+          <!-- Dynamically Populated by Teacher -->
         </div>
       </div>
 
@@ -850,13 +1145,54 @@ body, button, input, select, textarea {
           <label for="studentComments">Notes / Comments for Teacher:</label>
           <textarea id="studentComments" rows="3" placeholder="Type any notes or comments about your work..."></textarea>
 
-          <label for="studentLink">Submission Link (e.g., Google Drive, GitHub, Figma):</label>
-          <input type="url" id="studentLink" placeholder="https://docs.google.com/...">
+          <!-- GOOGLE CLASSROOM STYLE "+ ADD OR CREATE" ATTACHMENT HUB -->
+          <div class="attach-section">
+            <label><i class="fa-solid fa-paperclip"></i> Your Work / Attachments:</label>
 
-          <label for="studentFiles">Upload Academic Submission File (PDF, Word, PPT, Excel, Images - Max 25MB):</label>
-          <input type="file" id="studentFiles" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg,.webp">
-          <div id="existingFileNote" style="font-size: 12.5px; color: #2563eb; margin-top: 6px; display: none;"></div>
+            <div class="attach-dropdown-wrapper">
+              <button type="button" class="btn-add-create" id="addCreateBtn" onclick="toggleAttachMenu(event)">
+                <i class="fa-solid fa-plus"></i> Add or create
+                <i class="fa-solid fa-caret-down" style="font-size: 11px; margin-left: 2px;"></i>
+              </button>
 
+              <!-- DROPDOWN MENU -->
+              <div class="attach-menu" id="attachMenu">
+                <button type="button" class="attach-menu-item item-drive" onclick="openGoogleDrivePicker()">
+                  <i class="fa-brands fa-google-drive"></i> Google Drive
+                </button>
+                <button type="button" class="attach-menu-item item-link" onclick="openLinkModal('link')">
+                  <i class="fa-solid fa-link"></i> Link
+                </button>
+                <button type="button" class="attach-menu-item item-file" onclick="triggerFileUpload()">
+                  <i class="fa-solid fa-paperclip"></i> File
+                </button>
+
+                <div class="attach-menu-divider"></div>
+                <div class="attach-menu-label">Create new</div>
+
+                <button type="button" class="attach-menu-item item-docs" onclick="createNewGoogleDoc('docs')">
+                  <i class="fa-solid fa-file-word"></i> Docs
+                </button>
+                <button type="button" class="attach-menu-item item-slides" onclick="createNewGoogleDoc('slides')">
+                  <i class="fa-solid fa-file-powerpoint"></i> Slides
+                </button>
+                <button type="button" class="attach-menu-item item-sheets" onclick="createNewGoogleDoc('sheets')">
+                  <i class="fa-solid fa-file-excel"></i> Sheets
+                </button>
+              </div>
+            </div>
+
+            <!-- HIDDEN STATE INPUTS FOR DB COMPATIBILITY (MULTI-FILE ENABLED) -->
+            <input type="file" id="studentFiles" style="display: none;" multiple accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.png,.jpg,.jpeg,.webp" onchange="handleFileSelected(this)">
+            <input type="hidden" id="studentLink" value="">
+
+            <div id="existingFileNote" style="font-size: 12.5px; color: #2563eb; margin-top: 6px; display: none;"></div>
+
+            <!-- STUDENT ATTACHMENTS PREVIEW LIST -->
+            <div class="attachments-container" id="studentAttachmentsList"></div>
+          </div>
+
+          <!-- ACTION BAR -->
           <div class="action-bar">
             <a href="{{ url_for('class_page') }}" class="btn-back"><i class="fa-solid fa-arrow-left"></i> Back to Class</a>
             <button type="button" class="btn-submit-now" id="submitBtn" onclick="handleSubmissionButtonClick()">
@@ -868,6 +1204,22 @@ body, button, input, select, textarea {
 
     </div>
   </main>
+
+  <!-- ATTACH LINK / GOOGLE DRIVE MODAL -->
+  <div class="attach-modal-overlay" id="attachLinkModal">
+    <div class="attach-modal-card">
+      <div class="attach-modal-title" id="linkModalTitle">Add Link</div>
+      <div class="attach-modal-sub" id="linkModalSub">Enter any web resource, project repository, or shared link.</div>
+
+      <input type="url" id="linkModalInput" placeholder="https://..." style="margin-top: 0;">
+
+      <div class="attach-modal-actions">
+        <button type="button" class="btn-modal-cancel" onclick="closeLinkModal()">Cancel</button>
+        <button type="button" class="btn-modal-submit" onclick="submitModalLink()">Add link</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 
 <script>
@@ -917,6 +1269,14 @@ body, button, input, select, textarea {
     return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
+  function formatAttachmentSize(bytes) {
+    if (!bytes || isNaN(bytes) || bytes <= 0) return 'Academic File';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  }
+
   function readFileAsDataURL(file) {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -925,7 +1285,7 @@ body, button, input, select, textarea {
     });
   }
 
- /* =====================================================
+  /* =====================================================
       1. USER SESSION & SAFE LOGOUT FUNCTION
   ===================================================== */
   const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "STUDENT";
@@ -1020,36 +1380,21 @@ body, button, input, select, textarea {
 
   function logoutUser() {
     const authKeys = [
-      "user_id",
-      "userRole",
-      "role",
-      "full_name",
-      "email",
-      "selectedClass",
-      "selectedClassId",
-      "selectedGroup",
-      "selectedGroupId",
-      "selectedSubmissionId",
-      "selectedActivityId",
-      "selectedStudentId",
-      "gradingStudentId",
-      "updateType",
-      "updateClassId",
-      "updateGroupId",
-      "joinedClasses",
-      "joinedGroups",
-      "isArchivedView"
+      "user_id", "userRole", "role", "full_name", "email",
+      "selectedClass", "selectedClassId", "selectedGroup", "selectedGroupId",
+      "selectedSubmissionId", "selectedActivityId", "selectedStudentId",
+      "gradingStudentId", "updateType", "updateClassId", "updateGroupId",
+      "joinedClasses", "joinedGroups", "isArchivedView"
     ];
 
     authKeys.forEach(key => localStorage.removeItem(key));
     sessionStorage.clear();
-
     window.location.replace("{{ url_for('logout') }}");
   }
 
   /* =====================================================
-      2. SUPABASE INITIALIZATION & RESOLUTION
-  ==================================================== */
+      2. SUPABASE INITIALIZATION & CONFIGURATION
+  ===================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
 
@@ -1175,9 +1520,373 @@ body, button, input, select, textarea {
     return { gpa: "5.00", rating: "Failed", passed: false, percentage };
   }
 
- /* =====================================================
-      3. FETCH ACTIVITY & STUDENT SUBMISSION (SCHEMA-SAFE)
+  /* =====================================================
+      3. GOOGLE PICKER API & "+ ADD OR CREATE" ATTACHMENT HUB
   ===================================================== */
+  const GOOGLE_API_KEY = "AIzaSyAEaYW2AL3_1wvqKXGiJKh8MhA9CwlyAqk";
+  const GOOGLE_CLIENT_ID = "701458926445-u1sf7bn0s2q2k7goqcv4gh6ag2fg2pst.apps.googleusercontent.com";
+  const GOOGLE_APP_ID = "701458926445";
+
+  const SCOPES = "https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.file";
+
+  let tokenClient = null;
+  let accessToken = null;
+  let pickerInited = false;
+  let gisInited = false;
+
+  let attachedItems = [];
+  let currentLinkModalType = 'link';
+
+  function gapiLoaded() {
+    gapi.load('picker', () => {
+      pickerInited = true;
+    });
+  }
+
+  function gisLoaded() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GOOGLE_CLIENT_ID,
+      scope: SCOPES,
+      callback: '',
+    });
+    gisInited = true;
+  }
+
+  window.addEventListener('load', () => {
+    if (typeof gapi !== 'undefined') gapiLoaded();
+    if (typeof google !== 'undefined' && google.accounts) gisLoaded();
+  });
+
+  function openGoogleDrivePicker() {
+    if (isClassArchived || isCurrentlySubmitted) return;
+
+    const menu = document.getElementById("attachMenu");
+    if (menu) menu.classList.remove("active");
+
+    if (!GOOGLE_API_KEY || !GOOGLE_CLIENT_ID) {
+      alert("⚠️ Google Drive Picker credentials not configured. Opening manual link input.");
+      openLinkModal('drive');
+      return;
+    }
+
+    tokenClient.callback = async (response) => {
+      if (response.error !== undefined) {
+        console.error("Google Auth Error:", response);
+        return;
+      }
+      accessToken = response.access_token;
+      createPicker(accessToken);
+    };
+
+    if (accessToken === null) {
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    } else {
+      tokenClient.requestAccessToken({ prompt: '' });
+    }
+  }
+
+  function createPicker(token) {
+    if (!pickerInited || !token) return;
+
+    const viewRecent = new google.picker.DocsView(google.picker.ViewId.RECENTLY_PICKED);
+    const viewDocs = new google.picker.DocsView(google.picker.ViewId.DOCS);
+    const viewDrive = new google.picker.DocsView(google.picker.ViewId.DOCS).setIncludeFolders(true);
+
+    const pickerBuilder = new google.picker.PickerBuilder()
+      .enableFeature(google.picker.Feature.NAV_HIDDEN, false)
+      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+      .setAppId(GOOGLE_APP_ID)
+      .setOAuthToken(token)
+      .addView(viewRecent)
+      .addView(viewDocs)
+      .addView(viewDrive)
+      .setDeveloperKey(GOOGLE_API_KEY)
+      .setTitle("Insert files using Google Drive")
+      .setCallback(pickerCallback);
+
+    const picker = pickerBuilder.build();
+    picker.setVisible(true);
+  }
+
+  // Handles multiple files selected from Google Drive
+  function pickerCallback(data) {
+    if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+      const documents = data[google.picker.Response.DOCUMENTS];
+      if (!documents || documents.length === 0) return;
+
+      documents.forEach((doc) => {
+        const fileUrl = doc[google.picker.Document.URL];
+        const fileName = doc[google.picker.Document.NAME];
+        const mimeType = doc[google.picker.Document.MIME_TYPE] || "";
+
+        let itemType = 'drive';
+        if (mimeType.includes("document")) itemType = 'docs';
+        else if (mimeType.includes("presentation")) itemType = 'slides';
+        else if (mimeType.includes("spreadsheet")) itemType = 'sheets';
+
+        if (!attachedItems.some(item => item.url === fileUrl)) {
+          attachedItems.push({
+            type: itemType,
+            url: fileUrl,
+            name: fileName
+          });
+        }
+      });
+
+      renderAttachments();
+    }
+  }
+
+  function toggleAttachMenu(event) {
+    if (event) event.stopPropagation();
+    if (isClassArchived || isCurrentlySubmitted) return;
+    const menu = document.getElementById("attachMenu");
+    if (menu) menu.classList.toggle("active");
+  }
+
+  document.addEventListener("click", (e) => {
+    const menu = document.getElementById("attachMenu");
+    const btn = document.getElementById("addCreateBtn");
+    if (menu && menu.classList.contains("active")) {
+      if (!menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
+        menu.classList.remove("active");
+      }
+    }
+  });
+
+  function triggerFileUpload() {
+    if (isClassArchived || isCurrentlySubmitted) return;
+    const menu = document.getElementById("attachMenu");
+    if (menu) menu.classList.remove("active");
+    const fileInput = document.getElementById("studentFiles");
+    if (fileInput) fileInput.click();
+  }
+
+  // Appends multiple local files without overwriting existing files
+  function handleFileSelected(input) {
+    if (!input.files || input.files.length === 0) return;
+
+    Array.from(input.files).forEach((file) => {
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      if (typeof BLOCKED_EXTENSIONS !== 'undefined' && BLOCKED_EXTENSIONS.has(ext)) {
+        alert(`🛑 Restricted File Format: (.${ext}) is prohibited.`);
+        return;
+      }
+
+      if (typeof ALLOWED_EXTENSIONS !== 'undefined' && !ALLOWED_EXTENSIONS.has(ext)) {
+        alert(`🛑 Prohibited Format: Only academic documents (PDF, Word, PPT, Excel, Text) and valid images are permitted.`);
+        return;
+      }
+
+      if (typeof MAX_FILE_SIZE !== 'undefined' && file.size > MAX_FILE_SIZE) {
+        alert(`🛑 File Limit Exceeded: "${file.name}" exceeds the 25MB limit.`);
+        return;
+      }
+
+      if (!attachedItems.some(i => i.name === file.name && i.size === file.size)) {
+        attachedItems.push({
+          type: 'file',
+          file: file,
+          name: file.name,
+          size: file.size,
+          ext: ext
+        });
+      }
+    });
+
+    input.value = ""; // Reset file input so identical file names can be re-uploaded if cleared
+    renderAttachments();
+  }
+
+  function openLinkModal(type) {
+    if (isClassArchived || isCurrentlySubmitted) return;
+    const menu = document.getElementById("attachMenu");
+    if (menu) menu.classList.remove("active");
+
+    currentLinkModalType = type;
+    const modal = document.getElementById("attachLinkModal");
+    const title = document.getElementById("linkModalTitle");
+    const sub = document.getElementById("linkModalSub");
+    const input = document.getElementById("linkModalInput");
+
+    if (type === 'drive') {
+      title.textContent = "Add Google Drive Link";
+      sub.textContent = "Paste any shareable Google Drive file, folder, or doc link.";
+      input.placeholder = "https://drive.google.com/...";
+    } else if (type === 'docs' || type === 'slides' || type === 'sheets') {
+      const typeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+      title.textContent = `Attach Google ${typeLabel}`;
+      sub.textContent = `Paste the shareable URL of the new Google ${typeLabel} you just created.`;
+      input.placeholder = `https://docs.google.com/${type}/...`;
+    } else {
+      title.textContent = "Add Link";
+      sub.textContent = "Enter any web resource, project repository, or shared link.";
+      input.placeholder = "https://...";
+    }
+
+    input.value = "";
+    if (modal) modal.classList.add("active");
+    setTimeout(() => input.focus(), 120);
+  }
+
+  function closeLinkModal() {
+    const modal = document.getElementById("attachLinkModal");
+    if (modal) modal.classList.remove("active");
+    const input = document.getElementById("linkModalInput");
+    if (input) input.value = "";
+  }
+
+  // Appends links and Google Docs without wiping out other attachments
+  function submitModalLink() {
+    const input = document.getElementById("linkModalInput");
+    const rawVal = input ? input.value.trim() : "";
+
+    if (!rawVal) {
+      alert("Please enter a valid link address.");
+      return;
+    }
+
+    const formatted = typeof formatUrl === 'function' ? formatUrl(rawVal) : (rawVal.startsWith('http') ? rawVal : 'https://' + rawVal);
+    let itemType = currentLinkModalType;
+
+    if (formatted.includes("drive.google.com")) itemType = "drive";
+    else if (formatted.includes("docs.google.com/document")) itemType = "docs";
+    else if (formatted.includes("docs.google.com/presentation")) itemType = "slides";
+    else if (formatted.includes("docs.google.com/spreadsheets")) itemType = "sheets";
+
+    if (!attachedItems.some(i => i.url === formatted)) {
+      attachedItems.push({
+        type: itemType,
+        url: formatted,
+        name: formatted
+      });
+    }
+
+    closeLinkModal();
+    renderAttachments();
+  }
+
+  function createNewGoogleDoc(docType) {
+    if (isClassArchived || isCurrentlySubmitted) return;
+    const menu = document.getElementById("attachMenu");
+    if (menu) menu.classList.remove("active");
+
+    const newDocUrls = { docs: "https://docs.new", slides: "https://slides.new", sheets: "https://sheets.new" };
+    window.open(newDocUrls[docType] || "https://docs.new", "_blank");
+    setTimeout(() => openLinkModal(docType), 350);
+  }
+
+  function removeAttachment(index) {
+    if (isClassArchived || isCurrentlySubmitted) return;
+    attachedItems.splice(index, 1);
+    renderAttachments();
+  }
+
+  function renderAttachments() {
+    const container = document.getElementById("studentAttachmentsList");
+    if (!container) return;
+    container.innerHTML = "";
+
+    const isLocked = isCurrentlySubmitted || isClassArchived;
+
+    attachedItems.forEach((item, index) => {
+      let iconClass = "fa-solid fa-file-lines";
+      let iconColor = "var(--primary)";
+      let typeLabel = "File";
+
+      if (item.type === 'file') {
+        typeLabel = item.size ? formatAttachmentSize(item.size) : 'Submitted File';
+        const ext = item.ext || (item.name ? item.name.split('.').pop().toLowerCase() : '');
+        if (ext === 'pdf') { iconClass = "fa-solid fa-file-pdf"; iconColor = "#dc2626"; }
+        else if (['doc', 'docx'].includes(ext)) { iconClass = "fa-solid fa-file-word"; iconColor = "#2563eb"; }
+        else if (['ppt', 'pptx'].includes(ext)) { iconClass = "fa-solid fa-file-powerpoint"; iconColor = "#ea580c"; }
+        else if (['xls', 'xlsx', 'csv'].includes(ext)) { iconClass = "fa-solid fa-file-excel"; iconColor = "#16a34a"; }
+        else if (['png', 'jpg', 'jpeg', 'webp'].includes(ext)) { iconClass = "fa-solid fa-file-image"; iconColor = "#0284c7"; }
+      } else if (item.type === 'drive') {
+        iconClass = "fa-brands fa-google-drive"; iconColor = "#0f9d58"; typeLabel = "Google Drive";
+      } else if (item.type === 'docs') {
+        iconClass = "fa-solid fa-file-word"; iconColor = "#4285f4"; typeLabel = "Google Docs";
+      } else if (item.type === 'slides') {
+        iconClass = "fa-solid fa-file-powerpoint"; iconColor = "#f4b400"; typeLabel = "Google Slides";
+      } else if (item.type === 'sheets') {
+        iconClass = "fa-solid fa-file-excel"; iconColor = "#0f9d58"; typeLabel = "Google Sheets";
+      } else {
+        iconClass = "fa-solid fa-link"; iconColor = "var(--primary)"; typeLabel = "Web Link";
+      }
+
+      const card = document.createElement("div");
+      card.className = "attachment-card";
+
+      const previewHref = item.url ? escapeHtml(item.url) : "#";
+      const targetAttr = item.url ? 'target="_blank" rel="noopener noreferrer"' : '';
+
+      card.innerHTML = `
+        <div class="attachment-info">
+          <div class="attachment-icon" style="color: ${iconColor};">
+            <i class="${iconClass}"></i>
+          </div>
+          <div class="attachment-details">
+            <div class="attachment-title" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+            <div class="attachment-meta">
+              ${item.url ? `<a href="${previewHref}" ${targetAttr}>${typeLabel} — Open Resource</a>` : typeLabel}
+            </div>
+          </div>
+        </div>
+        ${!isLocked ? `
+          <button type="button" class="btn-remove-attachment" onclick="removeAttachment(${index})" title="Remove attachment">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        ` : ''}
+      `;
+
+      container.appendChild(card);
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    const modal = document.getElementById("attachLinkModal");
+    if (modal && modal.classList.contains("active") && e.target === modal) {
+      closeLinkModal();
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeLinkModal();
+      const menu = document.getElementById("attachMenu");
+      if (menu) menu.classList.remove("active");
+    } else if (e.key === "Enter") {
+      const modal = document.getElementById("attachLinkModal");
+      if (modal && modal.classList.contains("active")) {
+        const input = document.getElementById("linkModalInput");
+        if (document.activeElement === input) {
+          e.preventDefault();
+          submitModalLink();
+        }
+      }
+    }
+  });
+
+  /* =====================================================
+      4. FETCH ACTIVITY & STUDENT SUBMISSION DETAILS
+  ===================================================== */
+  // Safe material deserializer handling both JSON arrays and legacy string URLs
+  function parseMaterials(raw, defaultType = 'file') {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      // Fallback for plain URL strings
+    }
+    return [{
+      name: defaultType === 'file' ? 'Reference File / Worksheet' : raw,
+      url: raw,
+      type: defaultType
+    }];
+  }
+
   async function loadActivityAndSubmissionDetails() {
     const client = getSupabaseClient();
     if (!client) return;
@@ -1279,47 +1988,59 @@ body, button, input, select, textarea {
       document.getElementById("dueTime").textContent = "11:59 PM";
     }
 
+    // Populate All Teacher Materials (Unpacks Multi-Item JSON Arrays and Single URLs)
     const attachmentsList = document.getElementById("attachmentsList");
     if (attachmentsList) {
       attachmentsList.innerHTML = "";
       let resourceCount = 0;
 
-      if (activity.file_url) {
+      const fileItems = parseMaterials(activity.file_url, 'file');
+      const linkItems = parseMaterials(activity.link_url, 'link');
+
+      // Render all reference files
+      fileItems.forEach((file) => {
+        if (!file.url) return;
         resourceCount++;
         attachmentsList.innerHTML += `
           <div class="attachment-item">
             <div class="file-info">
               <i class="fa-solid fa-file-arrow-down" style="color:var(--primary);"></i>
-              <span>Attached Reference File / Worksheet</span>
+              <span>${escapeHtml(file.name || 'Reference File / Worksheet')}</span>
             </div>
-            <a href="${activity.file_url}" target="_blank" download onclick="event.preventDefault(); downloadFileDirectly('${escapeJsString(activity.file_url)}', '${escapeJsString(activity.title)}_Reference');" class="btn-download">
+            <a href="${file.url}" target="_blank" download onclick="event.preventDefault(); downloadFileDirectly('${escapeJsString(file.url)}', '${escapeJsString(file.name || activity.title + '_Reference')}');" class="btn-download">
               <i class="fa-solid fa-download"></i> Download File
             </a>
           </div>
         `;
-      }
+      });
 
-      if (activity.link_url) {
+      // Render all reference links & Drive docs
+      linkItems.forEach((link) => {
+        if (!link.url) return;
         resourceCount++;
+        const isDrive = (link.url || "").includes("drive.google.com");
+        const iconClass = isDrive ? "fa-brands fa-google-drive" : "fa-solid fa-link";
+        const iconColor = isDrive ? "#0f9d58" : "var(--primary)";
+
         attachmentsList.innerHTML += `
           <div class="attachment-item">
             <div class="file-info">
-              <i class="fa-solid fa-link" style="color:var(--primary);"></i>
-              <span>External Resource Link</span>
+              <i class="${iconClass}" style="color:${iconColor};"></i>
+              <span>${escapeHtml(link.name || link.url)}</span>
             </div>
-            <a href="${escapeHtml(activity.link_url)}" target="_blank" class="btn-download">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Resource Link
+            <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener noreferrer" class="btn-download">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Resource
             </a>
           </div>
         `;
-      }
+      });
 
       if (resourceCount === 0) {
         attachmentsList.innerHTML = `<div style="color:var(--muted); font-size:13px; font-style:italic;">No reference files or links attached by the teacher.</div>`;
       }
     }
 
-    // Direct user_id query (eliminates 400 errors)
+    // Direct user_id query for existing student submission
     if (userRole === "STUDENT" && currentUserId) {
       const userSearchIds = getDualTypeIds([currentUserId]);
 
@@ -1355,21 +2076,48 @@ body, button, input, select, textarea {
         currentSubmissionData = submission;
         const st = String(submission.status || '').trim().toLowerCase();
 
+        // Restore all prior student attachments (Array-Safe Deserialization)
+        attachedItems = [];
+
+        if (submission.file_url) {
+          const restoredFiles = parseMaterials(submission.file_url, 'file');
+          restoredFiles.forEach(f => {
+            if (!f.url) return;
+            const ext = f.ext || f.url.split('.').pop().toLowerCase();
+            attachedItems.push({
+              type: 'file',
+              url: f.url,
+              name: f.name || `Submitted File (.${ext})`,
+              size: f.size || 0,
+              ext: ext
+            });
+          });
+        }
+
+        if (submission.link_url) {
+          const restoredLinks = parseMaterials(submission.link_url, 'link');
+          restoredLinks.forEach(l => {
+            if (!l.url) return;
+            let itemType = l.type || 'link';
+            if (l.url.includes("drive.google.com")) itemType = 'drive';
+            else if (l.url.includes("docs.google.com/document")) itemType = 'docs';
+            else if (l.url.includes("docs.google.com/presentation")) itemType = 'slides';
+            else if (l.url.includes("docs.google.com/spreadsheets")) itemType = 'sheets';
+
+            attachedItems.push({
+              type: itemType,
+              url: l.url,
+              name: l.name || l.url
+            });
+          });
+        }
+
+        renderAttachments();
+
         if (st !== 'draft' && st !== 'unsubmitted') {
           isCurrentlySubmitted = true;
-
           const commentsInput = document.getElementById("studentComments");
-          const linkInput = document.getElementById("studentLink");
           if (commentsInput && submission.comments) commentsInput.value = submission.comments;
-          if (linkInput && submission.link_url) linkInput.value = submission.link_url;
-
-          if (submission.file_url) {
-            const fileNote = document.getElementById("existingFileNote");
-            if (fileNote) {
-              fileNote.style.display = "block";
-              fileNote.innerHTML = `📎 <a href="${submission.file_url}" target="_blank" download onclick="event.preventDefault(); downloadFileDirectly('${escapeJsString(submission.file_url)}', 'My_Submitted_Work');" style="color:#2563eb; text-decoration:none; font-weight:600;"><i class="fa-solid fa-download"></i> Download Your Submitted File</a>`;
-            }
-          }
 
           updateFormState(true, submission);
         } else {
@@ -1378,26 +2126,26 @@ body, button, input, select, textarea {
         }
       } else {
         isCurrentlySubmitted = false;
+        attachedItems = [];
+        renderAttachments();
         updateFormState(false);
       }
     }
   }
 
   /* =====================================================
-      4. HARD DEADLINE LOCKOUT & EVALUATION DISPLAY
+      5. HARD DEADLINE LOCKOUT & EVALUATION DISPLAY
   ===================================================== */
   function updateFormState(submitted, submissionObj = null) {
     const statusBadge = document.getElementById("statusBadge");
     const submitBtn = document.getElementById("submitBtn");
     const commentsInput = document.getElementById("studentComments");
-    const linkInput = document.getElementById("studentLink");
-    const fileInput = document.getElementById("studentFiles");
+    const addCreateBtn = document.getElementById("addCreateBtn");
     const feedbackCard = document.getElementById("gradingFeedbackCard");
 
     if (isClassArchived) {
       if (commentsInput) commentsInput.disabled = true;
-      if (linkInput) linkInput.disabled = true;
-      if (fileInput) fileInput.disabled = true;
+      if (addCreateBtn) addCreateBtn.disabled = true;
       if (submitBtn) submitBtn.style.display = "none";
       if (statusBadge) {
         statusBadge.textContent = "Archived / Closed";
@@ -1405,6 +2153,7 @@ body, button, input, select, textarea {
         statusBadge.style.background = "#e2e8f0";
         statusBadge.style.color = "#475569";
       }
+      renderAttachments();
       return;
     }
 
@@ -1419,8 +2168,7 @@ body, button, input, select, textarea {
 
     if (submitted && submissionObj) {
       if (commentsInput) commentsInput.disabled = true;
-      if (linkInput) linkInput.disabled = true;
-      if (fileInput) fileInput.disabled = true;
+      if (addCreateBtn) addCreateBtn.disabled = true;
 
       const st = String(submissionObj.status || '').toLowerCase();
       const isGraded = st === 'graded' || submissionObj.grade !== null || submissionObj.score !== null;
@@ -1505,8 +2253,7 @@ body, button, input, select, textarea {
     } else {
       if (isDeadlinePassed) {
         if (commentsInput) commentsInput.disabled = true;
-        if (linkInput) linkInput.disabled = true;
-        if (fileInput) fileInput.disabled = true;
+        if (addCreateBtn) addCreateBtn.disabled = true;
 
         if (submitBtn) {
           submitBtn.className = "btn-submit-now";
@@ -1525,8 +2272,7 @@ body, button, input, select, textarea {
         }
       } else {
         if (commentsInput) commentsInput.disabled = false;
-        if (linkInput) linkInput.disabled = false;
-        if (fileInput) fileInput.disabled = false;
+        if (addCreateBtn) addCreateBtn.disabled = false;
 
         if (submitBtn) {
           submitBtn.className = "btn-submit-now";
@@ -1547,10 +2293,12 @@ body, button, input, select, textarea {
 
       if (feedbackCard) feedbackCard.style.display = "none";
     }
+
+    renderAttachments();
   }
 
- /* =====================================================
-      5. COMPLETE SUBMISSION HANDLER & NOTIFICATION DISPATCH
+  /* =====================================================
+      6. COMPLETE SUBMISSION HANDLER (MULTI-ITEM PROCESSOR)
   ===================================================== */
   async function handleSubmissionButtonClick() {
     if (isClassArchived) {
@@ -1595,7 +2343,7 @@ body, button, input, select, textarea {
         return;
       }
 
-      const confirmUnsubmit = confirm("Are you sure you want to unsubmit your work? This will unlock your assignment so you can edit and replace files.");
+      const confirmUnsubmit = confirm("Are you sure you want to unsubmit your work? This will unlock your assignment so you can edit and replace attachments.");
       if (!confirmUnsubmit) return;
 
       if (submitBtn) {
@@ -1628,13 +2376,18 @@ body, button, input, select, textarea {
 
     // CASE B: TURN IN WORK
     const commentsEl = document.getElementById("studentComments");
-    const linkEl = document.getElementById("studentLink");
-    const fileInput = document.getElementById("studentFiles");
-
     const comments = commentsEl ? commentsEl.value.trim() : "";
-    const linkInput = linkEl ? linkEl.value.trim() : "";
 
-    // 1. Text Conduct Check
+    // Group all queued files and external links/Drive docs
+    const fileAttachments = attachedItems.filter(i => i.type === 'file');
+    const linkAttachments = attachedItems.filter(i => i.type !== 'file' && i.url);
+
+    if (fileAttachments.length === 0 && linkAttachments.length === 0 && !comments) {
+      alert("Please attach at least one file, resource link, or note before turning in.");
+      return;
+    }
+
+    // 1. Text Conduct Safety Check
     if (comments) {
       try {
         const aiResp = await fetch('/api/ai-moderate', {
@@ -1658,69 +2411,66 @@ body, button, input, select, textarea {
       }
     }
 
-    // 2. Validate & Inspect File
-    let pickedFile = null;
-    let base64Payload = null;
+    // 2. Validate Every Queued File (Extensions, Size, Safety Check)
+    for (const item of fileAttachments) {
+      if (item.file) {
+        const pickedFile = item.file;
+        const ext = pickedFile.name.split('.').pop().toLowerCase();
 
-    if (fileInput && fileInput.files && fileInput.files.length > 0) {
-      pickedFile = fileInput.files[0];
-      const ext = pickedFile.name.split('.').pop().toLowerCase();
-
-      if (BLOCKED_EXTENSIONS.has(ext)) {
-        alert(`🛑 Security Alert: The file type (.${ext}) is strictly prohibited to prevent malware.`);
-        fileInput.value = "";
-        return;
-      }
-
-      if (!ALLOWED_EXTENSIONS.has(ext)) {
-        alert(`🛑 Prohibited Format: Only academic documents (PDF, Word, PPT, Excel, Text) and valid images are permitted.`);
-        fileInput.value = "";
-        return;
-      }
-
-      if (pickedFile.size > MAX_FILE_SIZE) {
-        alert("🛑 File Too Large: Maximum allowed upload size is 25MB.");
-        return;
-      }
-
-      const isImg = ['png', 'jpg', 'jpeg', 'webp'].includes(ext);
-
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying Safety...';
-      }
-
-      try {
-        if (isImg) {
-          base64Payload = await readFileAsDataURL(pickedFile);
+        if (typeof BLOCKED_EXTENSIONS !== 'undefined' && BLOCKED_EXTENSIONS.has(ext)) {
+          alert(`🛑 Security Alert: The file type (.${ext}) is strictly prohibited to prevent malware.`);
+          return;
         }
 
-        const fileCheckResp = await fetch('/api/ai-moderate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            file_name: pickedFile.name,
-            message: comments || `Submission: ${pickedFile.name}`,
-            image_base64: base64Payload,
-            mime_type: pickedFile.type || 'image/jpeg',
-            is_teacher_dm: false
-          })
-        });
+        if (typeof ALLOWED_EXTENSIONS !== 'undefined' && !ALLOWED_EXTENSIONS.has(ext)) {
+          alert(`🛑 Prohibited Format: Only academic documents (PDF, Word, PPT, Excel, Text) and valid images are permitted.`);
+          return;
+        }
 
-        if (fileCheckResp.ok) {
-          const checkData = await fileCheckResp.json();
-          if (!checkData.allowed) {
-            alert(`🛑 File Check Failed: ${checkData.reason}`);
-            fileInput.value = "";
-            if (submitBtn) {
-              submitBtn.disabled = false;
-              submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
-            }
-            return;
+        if (typeof MAX_FILE_SIZE !== 'undefined' && pickedFile.size > MAX_FILE_SIZE) {
+          alert(`🛑 File Too Large: "${pickedFile.name}" exceeds the 25MB limit.`);
+          return;
+        }
+
+        const isImg = ['png', 'jpg', 'jpeg', 'webp'].includes(ext);
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying Safety...';
+        }
+
+        try {
+          let base64Payload = null;
+          if (isImg) {
+            base64Payload = await readFileAsDataURL(pickedFile);
           }
+
+          const fileCheckResp = await fetch('/api/ai-moderate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              file_name: pickedFile.name,
+              message: comments || `Submission: ${pickedFile.name}`,
+              image_base64: base64Payload,
+              mime_type: pickedFile.type || 'image/jpeg',
+              is_teacher_dm: false
+            })
+          });
+
+          if (fileCheckResp.ok) {
+            const checkData = await fileCheckResp.json();
+            if (!checkData.allowed) {
+              alert(`🛑 File Check Failed for "${pickedFile.name}": ${checkData.reason}`);
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
+              }
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn("AI file check warning:", err);
         }
-      } catch (err) {
-        console.warn("AI file check warning:", err);
       }
     }
 
@@ -1729,49 +2479,80 @@ body, button, input, select, textarea {
       submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Submitting Work...';
     }
 
-    let uploadedFileUrl = currentSubmissionData ? currentSubmissionData.file_url : null;
+    // 3. Upload ALL Attached Local Files to Supabase Storage
+    const uploadedFiles = [];
+    const candidateBuckets = ['student-submissions', 'lesson-files', 'group-files'];
 
-    // 3. Upload File to Storage
-    if (pickedFile) {
-      try {
-        const fileExt = pickedFile.name.split('.').pop().toLowerCase();
-        const fileName = `turnin_${currentUserId}_${Date.now()}.${fileExt}`;
-        const filePath = `activity_${selectedActivityId}/${fileName}`;
-
-        const candidateBuckets = ['student-submissions', 'lesson-files', 'group-files'];
+    for (const item of fileAttachments) {
+      if (item.file) {
+        const pickedFile = item.file;
         let uploadSuccess = false;
         let lastUploadError = null;
 
-        for (const bucket of candidateBuckets) {
-          const { data: uploadData, error: uploadError } = await client.storage
-            .from(bucket)
-            .upload(filePath, pickedFile);
+        try {
+          const fileExt = pickedFile.name.split('.').pop().toLowerCase();
+          const fileName = `turnin_${currentUserId}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${fileExt}`;
+          const filePath = `activity_${selectedActivityId}/${fileName}`;
 
-          if (!uploadError && uploadData) {
-            const { data: urlData } = client.storage.from(bucket).getPublicUrl(filePath);
-            uploadedFileUrl = urlData.publicUrl;
-            uploadSuccess = true;
-            break;
-          } else {
-            lastUploadError = uploadError;
+          for (const bucket of candidateBuckets) {
+            const { data: uploadData, error: uploadError } = await client.storage
+              .from(bucket)
+              .upload(filePath, pickedFile);
+
+            if (!uploadError && uploadData) {
+              const { data: urlData } = client.storage.from(bucket).getPublicUrl(filePath);
+              uploadedFiles.push({
+                name: item.name,
+                url: urlData.publicUrl,
+                ext: fileExt,
+                size: pickedFile.size
+              });
+              uploadSuccess = true;
+              break;
+            } else {
+              lastUploadError = uploadError;
+            }
           }
-        }
 
-        if (!uploadSuccess) {
-          throw new Error(lastUploadError?.message || "Storage upload failure across buckets");
+          if (!uploadSuccess) {
+            throw new Error(lastUploadError?.message || "Storage upload failure across buckets");
+          }
+        } catch (err) {
+          alert(`Upload Error for "${item.name}": ` + err.message);
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
+          }
+          return;
         }
-      } catch (err) {
-        alert("Upload Error: " + err.message);
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<i class="fa-solid fa-check"></i> Turn In Work';
-        }
-        return;
+      } else if (item.url) {
+        // Retain previously uploaded file
+        uploadedFiles.push({
+          name: item.name,
+          url: item.url,
+          ext: item.ext || item.url.split('.').pop().toLowerCase(),
+          size: item.size || 0
+        });
       }
     }
 
-    // 4. Save to Database (Schema-Safe targeting user_id)
-    const formattedLink = formatUrl(linkInput);
+    // 4. Format All Resource Links and Drive Items
+    const linkItems = linkAttachments.map(i => ({
+      name: i.name || i.url,
+      url: typeof formatUrl === 'function' ? formatUrl(i.url) : i.url,
+      type: i.type
+    }));
+
+    // Serialize arrays to JSON if multiple, string if 1, null if empty
+    const finalFileUrl = uploadedFiles.length > 1
+      ? JSON.stringify(uploadedFiles)
+      : (uploadedFiles[0]?.url || null);
+
+    const finalLinkUrl = linkItems.length > 1
+      ? JSON.stringify(linkItems)
+      : (linkItems[0]?.url || null);
+
+    // 5. Save to Database (Schema-Safe targeting user_id)
     const parsedUid = parseDbId(currentUserId);
     const parsedActId = parseDbId(selectedActivityId);
     const submissionTime = new Date().toISOString();
@@ -1793,8 +2574,8 @@ body, button, input, select, textarea {
       
       let updatePayload = {
         comments: comments,
-        link_url: formattedLink,
-        file_url: uploadedFileUrl,
+        link_url: finalLinkUrl,
+        file_url: finalFileUrl,
         status: 'submitted',
         submitted_at: submissionTime,
         user_id: parsedUid
@@ -1822,8 +2603,8 @@ body, button, input, select, textarea {
         activity_id: parsedActId,
         user_id: parsedUid,
         comments: comments,
-        link_url: formattedLink,
-        file_url: uploadedFileUrl,
+        link_url: finalLinkUrl,
+        file_url: finalFileUrl,
         status: 'submitted',
         submitted_at: submissionTime
       };
@@ -1856,7 +2637,7 @@ body, button, input, select, textarea {
       return;
     }
 
-    // 5. Notify Teacher with Fault-Tolerant Columns
+    // 6. Notify Teacher with Fault-Tolerant Columns
     const targetTeacherId = currentTeacherProfile?.id || currentActivityData?.teacher_id || currentClassData?.teacher_id;
     if (targetTeacherId) {
       const teacherSearchIds = getDualTypeIds([targetTeacherId]);
@@ -1896,7 +2677,7 @@ body, button, input, select, textarea {
       }
     }
 
-    // 6. Purge Student Deadlines and In-App Reminder
+    // 7. Purge Student Deadlines and In-App Reminders
     try {
       await fetch('/api/clear-activity-reminders', {
         method: 'POST',
@@ -1918,7 +2699,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-      6. DIRECT PRIVATE CONSULTATION SHORTCUT
+      7. DIRECT PRIVATE CONSULTATION SHORTCUT
   ===================================================== */
   function askTeacherAboutActivity() {
     let teacherId = currentTeacherProfile?.id || currentActivityData?.teacher_id || currentClassData?.teacher_id;
@@ -1938,7 +2719,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-      7. TEACHER ACTION DROPDOWN & UTILITIES
+      8. TEACHER ACTION DROPDOWN & UTILITIES
   ===================================================== */
   function toggleDropdown(e) {
     e.stopPropagation();
@@ -1993,7 +2774,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-      8. LOAD SIDEBAR CLASSES & GROUPS (CLEANED)
+      9. LOAD SIDEBAR CLASSES & GROUPS
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
@@ -2140,7 +2921,6 @@ body, button, input, select, textarea {
       myGroups.forEach(g => {
         const sideLink = document.createElement("a");
         sideLink.className = "sidebar-item";
-        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
         sideLink.textContent = `👥 ${g.name}`;
         sideLink.href = groupPageUrl;
         sideLink.onclick = (e) => {

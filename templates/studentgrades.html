@@ -1063,14 +1063,19 @@ body, button, input, select, textarea {
       `;
     }
 
-    // 1. Read URL parameters first (Direct deep-linking from grades.html)
+    // 1. Read URL parameters first (Direct deep-linking from submissions.html / studentwork.html)
     const urlParams = new URLSearchParams(window.location.search);
     const paramStudentId = urlParams.get("student_id") || urlParams.get("studentId") || urlParams.get("id");
     const paramClassCode = urlParams.get("class") || urlParams.get("code") || urlParams.get("class_code");
+    const paramClassId = urlParams.get("class_id") || urlParams.get("classId");
 
     if (paramStudentId && paramStudentId !== "undefined" && paramStudentId !== "null") {
       localStorage.setItem("selectedStudentId", paramStudentId);
       localStorage.setItem("gradingStudentId", paramStudentId);
+    }
+
+    if (paramClassId && paramClassId !== "undefined" && paramClassId !== "null") {
+      localStorage.setItem("selectedClassId", String(paramClassId));
     }
 
     if (paramClassCode && paramClassCode !== "undefined" && paramClassCode !== "null") {
@@ -1188,7 +1193,6 @@ body, button, input, select, textarea {
 
         // 🔒 STRICT TEACHER PRIVACY LOCK:
         // A teacher can ONLY see classes that THEY own/teach.
-        // Any class belonging to another instructor is filtered out at the database level.
         if (userRole === "TEACHER") {
           const teacherSearchIds = getDualTypeIds([currentUserId]);
           classesQuery = classesQuery.in('teacher_id', teacherSearchIds);
@@ -1207,12 +1211,19 @@ body, button, input, select, textarea {
       enrolledClassesList = [];
     }
 
-    // Verify selectedClassCode belongs to authorized subjects
+    // Verify selectedClassCode belongs to authorized subjects, or resolve from stored class_id
+    const storedClassId = localStorage.getItem("selectedClassId");
     if (selectedClassCode) {
       const match = enrolledClassesList.find(c => String(c.code).toLowerCase() === String(selectedClassCode).toLowerCase());
       if (!match) {
         selectedClassCode = "";
         localStorage.setItem("selectedClass", "");
+      }
+    } else if (storedClassId) {
+      const match = enrolledClassesList.find(c => String(c.id) === String(storedClassId) || parseDbId(c.id) === parseDbId(storedClassId));
+      if (match) {
+        selectedClassCode = match.code;
+        localStorage.setItem("selectedClass", match.code);
       }
     }
 
@@ -1250,25 +1261,6 @@ body, button, input, select, textarea {
     updateHeaderLabels();
 
     // Re-highlight active chip
-    const chips = document.querySelectorAll(".class-chip");
-    chips.forEach(chip => {
-      if (!classCode && (chip.textContent.includes("All Active Classes") || chip.textContent.includes("All My Classes"))) {
-        chip.classList.add("active");
-      } else if (classCode && chip.textContent.includes(classCode)) {
-        chip.classList.add("active");
-      } else {
-        chip.classList.remove("active");
-      }
-    });
-
-    fetchStudentGradesFromSupabase();
-  }
-
-  function selectClassFilter(classCode) {
-    selectedClassCode = classCode;
-    localStorage.setItem("selectedClass", classCode);
-    updateHeaderLabels();
-
     const chips = document.querySelectorAll(".class-chip");
     chips.forEach(chip => {
       if (!classCode && (chip.textContent.includes("All Active Classes") || chip.textContent.includes("All My Classes"))) {
@@ -1481,7 +1473,7 @@ body, button, input, select, textarea {
     renderClassWorkTable(allClassWorkRows);
   }
 
-  /* =====================================================
+/* =====================================================
       6. RENDER WORK TABLE & UPDATE GPA SUMMARY METRICS
   ===================================================== */
   function renderClassWorkTable(rows) {
@@ -1529,7 +1521,7 @@ body, button, input, select, textarea {
       let actionBtn = "";
       if (item.submissionId) {
         if (userRole === "STUDENT") {
-          actionBtn = `<button class="btn-inspect" onclick="openReviewPage('${item.activityId}', '${item.submissionId}')"><i class="fa-solid fa-eye"></i> View Feedback</button>`;
+          actionBtn = `<button class="btn-inspect" onclick="openReviewPage('${item.activityId}', '${item.submissionId}')"><i class="fa-solid fa-eye"></i> View Work</button>`;
         } else {
           actionBtn = `<button class="btn-inspect" onclick="inspectStudentSubmission('${item.submissionId}')"><i class="fa-solid fa-eye"></i> Audit Work</button>`;
         }
@@ -1573,23 +1565,27 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-      7. ROUTING ACTIONS & SHORTCUTS
+      7. ROUTING ACTIONS & SHORTCUTS (URL PARAMETER RESILIENT)
   ===================================================== */
   function goToSubmitActivity(activityId, classCode) {
     localStorage.setItem("selectedActivityId", String(activityId));
     if (classCode) localStorage.setItem("selectedClass", classCode);
-    window.location.href = activitySubmitUrl;
+    const separator = activitySubmitUrl.includes("?") ? "&" : "?";
+    window.location.href = `${activitySubmitUrl}${separator}activity_id=${encodeURIComponent(activityId)}`;
   }
 
   function openReviewPage(activityId, submissionId) {
     localStorage.setItem("selectedActivityId", String(activityId));
     if (submissionId) localStorage.setItem("selectedSubmissionId", String(submissionId));
-    window.location.href = reviewUrl;
+    const separator = reviewUrl.includes("?") ? "&" : "?";
+    const subParam = submissionId ? `&submission_id=${encodeURIComponent(submissionId)}` : "";
+    window.location.href = `${reviewUrl}${separator}activity_id=${encodeURIComponent(activityId)}${subParam}`;
   }
 
   function inspectStudentSubmission(submissionId) {
     localStorage.setItem("selectedSubmissionId", String(submissionId));
-    window.location.href = studentWorkUrl;
+    const separator = studentWorkUrl.includes("?") ? "&" : "?";
+    window.location.href = `${studentWorkUrl}${separator}submission_id=${encodeURIComponent(submissionId)}`;
   }
 
   /* =====================================================

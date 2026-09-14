@@ -38,15 +38,15 @@
     --shadow: 0 8px 25px rgba(15, 23, 42, 0.08);
   }
 
-     *, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 
-body, button, input, select, textarea {
-  font-family: 'Poppins', Arial, Helvetica, sans-serif;
-}
+  body, button, input, select, textarea {
+    font-family: 'Poppins', Arial, Helvetica, sans-serif;
+  }
 
   html {
     scroll-behavior: smooth;
@@ -358,18 +358,37 @@ body, button, input, select, textarea {
     color: var(--danger);
   }
 
+  /* =========================================
+     MULTI-ITEM ATTACHMENT HUB STYLING
+  ========================================= */
+  .attachments-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 18px;
+    width: 100%;
+  }
+
+  .attachment-item,
   .attachment-box {
     background: #f8fafc;
     border: 1px solid var(--border);
-    padding: 16px;
+    padding: 12px 16px;
     border-radius: 10px;
-    margin-bottom: 15px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
     min-width: 0;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .attachment-item:hover,
+  .attachment-box:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
   .attachment-info {
@@ -377,27 +396,57 @@ body, button, input, select, textarea {
     align-items: center;
     gap: 12px;
     font-weight: 600;
-    font-size: 14px;
+    font-size: 13.5px;
     color: var(--text);
     min-width: 0;
     flex: 1 1 200px;
     word-break: break-word;
   }
 
-  .attachment-info i {
-    font-size: 22px;
+  .attachment-icon {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 8px;
+    background: var(--primary-light);
     color: var(--primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
     flex-shrink: 0;
+  }
+
+  .attachment-details {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .attachment-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .attachment-meta {
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 2px;
   }
 
   .btn-download {
     background: var(--primary);
     color: #ffffff;
-    min-height: 40px;
-    padding: 8px 18px;
+    min-height: 38px;
+    padding: 6px 16px;
     border-radius: 6px;
     text-decoration: none;
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 700;
     transition: background 0.2s ease;
     display: inline-flex;
@@ -411,8 +460,27 @@ body, button, input, select, textarea {
     background: var(--primary-dark);
   }
 
-  .media-preview-container {
+  .btn-download.btn-open {
+    background: #ffffff;
+    color: var(--primary);
+    border: 1px solid var(--border);
+  }
+
+  .btn-download.btn-open:hover {
+    background: #f1f5f9;
+    color: var(--primary-dark);
+  }
+
+  /* MEDIA PREVIEWS & GALLERY */
+  .media-gallery-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
     margin-bottom: 20px;
+    width: 100%;
+  }
+
+  .media-preview-container {
     background: #0f172a;
     border-radius: 10px;
     padding: 12px;
@@ -445,6 +513,7 @@ body, button, input, select, textarea {
     margin-top: 8px;
     font-weight: 500;
     text-align: center;
+    word-break: break-word;
   }
 
   .student-note-box {
@@ -458,7 +527,9 @@ body, button, input, select, textarea {
     word-break: break-word;
   }
 
-  /* GRADING CONTROLS */
+  /* =========================================
+     GRADING CONTROLS & SIDEBAR ACTIONS
+  ========================================= */
   label {
     display: block;
     font-size: 12px;
@@ -470,14 +541,10 @@ body, button, input, select, textarea {
     margin-top: 15px;
   }
 
-  input[type="number"] {
+  input[type="number"],
+  textarea {
     width: 100%;
-    min-height: 52px;
-    padding: 10px 14px;
-    font-size: 24px;
-    font-weight: 700;
-    text-align: center;
-    border: 2px solid var(--border);
+    border: 1px solid var(--border);
     border-radius: 8px;
     outline: none;
     background: #f8fafc;
@@ -485,12 +552,31 @@ body, button, input, select, textarea {
     transition: border-color 0.2s ease, background-color 0.2s ease;
   }
 
-  input[type="number"]:focus {
+  input[type="number"] {
+    min-height: 52px;
+    padding: 10px 14px;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    border: 2px solid var(--border);
+  }
+
+  textarea {
+    min-height: 90px;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+
+  input[type="number"]:focus,
+  textarea:focus {
     border-color: var(--primary);
     background: #ffffff;
   }
 
-  input[type="number"]:disabled {
+  input[type="number"]:disabled,
+  textarea:disabled {
     background: #e2e8f0 !important;
     color: #64748b;
     cursor: not-allowed;
@@ -550,7 +636,6 @@ body, button, input, select, textarea {
   /* =========================================
      RESPONSIVE BREAKPOINTS (RWD)
   ========================================= */
-  /* Tablets and Small Laptops */
   @media (max-width: 992px) {
     .workspace-grid {
       grid-template-columns: 1fr;
@@ -558,7 +643,6 @@ body, button, input, select, textarea {
     }
   }
 
-  /* Standard Mobile Screens */
   @media (max-width: 768px) {
     .sidebar {
       transform: translateX(-100%);
@@ -589,7 +673,6 @@ body, button, input, select, textarea {
     }
   }
 
-  /* Compact Smartphones (320px - 480px) */
   @media (max-width: 480px) {
     .main-content {
       padding: 12px;
@@ -597,7 +680,7 @@ body, button, input, select, textarea {
     }
 
     .page-header {
-      padding: 16px 14px;
+      padding: 18px 14px;
       border-radius: 12px;
     }
 
@@ -614,6 +697,7 @@ body, button, input, select, textarea {
       font-size: 16px;
     }
 
+    .attachment-item,
     .attachment-box {
       flex-direction: column;
       align-items: flex-start;
@@ -680,7 +764,7 @@ body, button, input, select, textarea {
   <main class="main-content">
 
     <section class="page-header">
-      <div>
+      <div class="page-header-text">
         <h1 id="swStudentHeader">👤 <span id="swStudentName" class="student-clickable-link" onclick="openStudentGradeBreakdown()">Loading Student...</span></h1>
         <p id="swActivityTitle">Viewing submitted assignment materials</p>
       </div>
@@ -697,41 +781,27 @@ body, button, input, select, textarea {
         </div>
 
         <!-- INSTANT MEDIA PREVIEW AREA -->
-        <div id="mediaPreviewSection" style="display: none; margin-bottom: 16px;">
+        <div id="mediaPreviewSection" style="display: none; margin-bottom: 18px;">
           <label style="display:block; margin-bottom: 6px; font-weight: bold; font-size: 13px; color: var(--primary-dark);">
             <i class="fa-solid fa-eye"></i> Instant Media Preview:
           </label>
-          <div class="media-preview-container" id="mediaContainer">
-            <!-- Dynamically populated -->
+          <div class="media-gallery-grid" id="mediaContainer">
+            <!-- Dynamically populated for images/videos -->
           </div>
         </div>
 
-        <!-- FILE ATTACHMENT CARD -->
-        <label style="display:block; margin-bottom: 4px; font-weight: bold; font-size: 13px;">Submitted File:</label>
-        <div class="attachment-box">
-          <div class="attachment-info">
-            <i class="fa-solid fa-paperclip" id="fileIcon"></i>
-            <span id="swFileName">Submission_File.pdf</span>
-          </div>
-          <a href="#" class="btn-download" id="swFileBtn" target="_blank" download>
-            <i class="fa-solid fa-download"></i> Download File
-          </a>
-        </div>
-
-        <!-- EXTERNAL LINK -->
-        <label style="display:block; margin-top: 14px; margin-bottom: 4px; font-weight: bold; font-size: 13px;">Submitted External Resource Link:</label>
-        <div class="attachment-box">
-          <div class="attachment-info">
-            <i class="fa-solid fa-link"></i>
-            <span id="swLinkUrl">No external link attached</span>
-          </div>
-          <a href="#" target="_blank" class="btn-download" id="swLinkBtn" style="display: none;">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Link
-          </a>
+        <!-- DYNAMIC SUBMITTED ATTACHMENTS & RESOURCES HUB -->
+        <label style="display:block; margin-bottom: 6px; font-weight: bold; font-size: 13px; color: var(--text);">
+          <i class="fa-solid fa-paperclip"></i> Submitted Files & Resources:
+        </label>
+        <div class="attachments-container" id="swAttachmentsList">
+          <!-- Dynamically populated with multi-item cards (Files, Google Docs/Sheets/Slides, Links) -->
         </div>
 
         <!-- STUDENT COMMENTS / NOTES -->
-        <label style="display:block; margin-top: 14px; margin-bottom: 4px; font-weight: bold; font-size: 13px;">Student Comments / Notes:</label>
+        <label style="display:block; margin-top: 18px; margin-bottom: 6px; font-weight: bold; font-size: 13px;">
+          <i class="fa-solid fa-comment"></i> Student Comments / Notes:
+        </label>
         <div class="student-note-box" id="swStudentNotes">
           No private comments left by student.
         </div>
@@ -744,18 +814,15 @@ body, button, input, select, textarea {
         </div>
 
         <div>
-          <label style="display:block; margin-bottom: 4px; font-weight: bold; font-size: 13px;">Evaluation Status:</label>
-          <div style="margin-bottom: 15px;" id="swStatusContainer">
+          <label style="display:block; margin-bottom: 6px; font-weight: bold; font-size: 13px;">Evaluation Status:</label>
+          <div style="margin-bottom: 16px;" id="swStatusContainer">
             <span class="badge badge-pending" id="swStatusBadge">Pending Grade</span>
           </div>
 
-          <label for="swScoreInput" id="swScoreLabel" style="display:block; margin-bottom: 4px; font-weight: bold; font-size: 13px;">Assign Score (Max 100):</label>
+          <label for="swScoreInput" id="swScoreLabel" style="display:block; margin-bottom: 6px; font-weight: bold; font-size: 13px;">Assign Score (Max 100):</label>
           <input type="number" id="swScoreInput" min="0" max="100" placeholder="0">
 
-          <label for="swTeacherRemarks" style="display:block; margin-top: 14px; margin-bottom: 4px; font-weight: bold; font-size: 13px;">Teacher Remarks / Feedback (Optional):</label>
-          <textarea id="swTeacherRemarks" rows="3" placeholder="Provide feedback or remarks for the student..."></textarea>
-
-          <button id="swSaveBtn" class="btn-save-score" onclick="toggleScoreLock()" style="margin-top: 15px;">
+          <button id="swSaveBtn" class="btn-save-score" onclick="toggleScoreLock()" style="margin-top: 18px;">
             <i class="fa-solid fa-floppy-disk"></i> Save Score & Update Status
           </button>
 
@@ -766,6 +833,10 @@ body, button, input, select, textarea {
     </div>
   </main>
 
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+</body>
+
 <script>
   /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
   window.addEventListener('pageshow', function (event) {
@@ -775,7 +846,7 @@ body, button, input, select, textarea {
   });
 
   /* =====================================================
-      0. TYPE-SAFE ID HELPERS & STRING ESCAPERS
+      0. TYPE-SAFE ID HELPERS & UTILITIES
   ===================================================== */
   function parseDbId(idVal) {
     if (!idVal) return idVal;
@@ -813,15 +884,97 @@ body, button, input, select, textarea {
     return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
   }
 
- /* =====================================================
-      1. USER SESSION & SAFE LOGOUT FUNCTION
+  function formatUrl(url) {
+    if (!url) return "#";
+    let trimmed = url.trim();
+    if (!trimmed) return "#";
+    if (!/^https?:\/\//i.test(trimmed)) {
+      return 'https://' + trimmed;
+    }
+    return trimmed;
+  }
+
+  function formatAttachmentSize(bytes) {
+    if (!bytes || isNaN(bytes) || bytes <= 0) return 'Academic File';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  }
+
+  // Deserializes both single URLs and multi-item JSON arrays
+  function parseMaterials(raw, defaultType = 'file') {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      // Plain string fallback
+    }
+    return [{
+      name: defaultType === 'file' ? 'Student Deliverable' : raw,
+      url: raw,
+      type: defaultType
+    }];
+  }
+
+  function isImageFile(fileUrl) {
+    if (!fileUrl) return false;
+    if (fileUrl.startsWith("data:image/")) return true;
+    const clean = fileUrl.split('?')[0].toLowerCase();
+    const ext = clean.split('.').pop();
+    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
+  }
+
+  function isVideoFile(fileUrl) {
+    if (!fileUrl) return false;
+    if (fileUrl.startsWith("data:video/")) return true;
+    const clean = fileUrl.split('?')[0].toLowerCase();
+    const ext = clean.split('.').pop();
+    return ['mp4', 'webm', 'ogg', 'mov', 'm4v'].includes(ext);
+  }
+
+  async function downloadFileDirectly(url, filename) {
+    if (!url) return;
+    try {
+      if (url.startsWith('data:')) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename || 'student_submission';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename || 'student_submission';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'student_submission';
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  }
+
+  /* =====================================================
+      1. USER SESSION & NAVIGATION
   ===================================================== */
   const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
   const userRole = rawRole.toUpperCase();
   const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
   const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
 
-  // 🔒 HARD REDIRECT: Students cannot access the grading evaluation desk
   if (userRole === "STUDENT") {
     window.location.replace("{{ url_for('landpage') }}");
   }
@@ -831,7 +984,6 @@ body, button, input, select, textarea {
   if (roleBadge) roleBadge.textContent = userRole;
   if (nameDisplay) nameDisplay.textContent = userName;
 
-  // Flask Route URLs
   const homeUrl = "{{ url_for('landpage') }}";
   const createUrl = "{{ url_for('create_page') }}";
   const calendarUrl = "{{ url_for('calendar_page') }}";
@@ -879,55 +1031,64 @@ body, button, input, select, textarea {
     }
   }
 
-  /* MOBILE SIDEBAR TOGGLE */
   const mobileMenuBtn = document.getElementById("mobileMenuBtn");
   const sidebar = document.getElementById("sidebar");
+  const sidebarOverlay = document.getElementById("sidebarOverlay");
 
   if (mobileMenuBtn && sidebar) {
     mobileMenuBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       sidebar.classList.toggle("active");
+      if (sidebarOverlay) sidebarOverlay.classList.toggle("active");
     });
 
     document.addEventListener("click", (e) => {
       if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
         sidebar.classList.remove("active");
+        if (sidebarOverlay) sidebarOverlay.classList.remove("active");
       }
     });
   }
 
-  /* SAFE LOGOUT: Selectively clear credentials while preserving deadline history */
   function logoutUser() {
     const authKeys = [
-      "user_id",
-      "userRole",
-      "role",
-      "full_name",
-      "email",
-      "selectedClass",
-      "selectedClassId",
-      "selectedGroup",
-      "selectedGroupId",
-      "selectedSubmissionId",
-      "selectedActivityId",
-      "selectedStudentId",
-      "gradingStudentId",
-      "updateType",
-      "updateClassId",
-      "updateGroupId",
-      "joinedClasses",
-      "joinedGroups",
-      "isArchivedView"
+      "user_id", "userRole", "role", "full_name", "email",
+      "selectedClass", "selectedClassId", "selectedGroup", "selectedGroupId",
+      "selectedSubmissionId", "selectedActivityId", "selectedStudentId",
+      "gradingStudentId", "updateType", "updateClassId", "updateGroupId",
+      "joinedClasses", "joinedGroups", "isArchivedView"
     ];
 
     authKeys.forEach(key => localStorage.removeItem(key));
     sessionStorage.clear();
-
     window.location.replace("{{ url_for('logout') }}");
   }
 
+  function openStudentGradeBreakdown() {
+    if (!targetStudentUserId) {
+      alert("Student ID could not be resolved.");
+      return;
+    }
+
+    const classParamId = currentActivityData?.class_id || localStorage.getItem("selectedClassId") || "";
+    const classCode = localStorage.getItem("selectedClass") || "";
+
+    // Sync student context to localStorage for studentgrades.html
+    localStorage.setItem("selectedStudentId", String(targetStudentUserId));
+    localStorage.setItem("gradingStudentId", String(targetStudentUserId));
+    if (targetStudentName) {
+      localStorage.setItem("selectedStudentName", targetStudentName);
+    }
+    if (classParamId) {
+      localStorage.setItem("selectedClassId", String(classParamId));
+    }
+
+    // Redirect directly to the student grade breakdown view
+    window.location.href = `${studentGradesUrl}?student_id=${encodeURIComponent(targetStudentUserId)}&class_id=${encodeURIComponent(classParamId)}&class_code=${encodeURIComponent(classCode)}`;
+  }
+
   /* =====================================================
-      2. SUPABASE INITIALIZATION & PARAMETER EXTRACTION
+      2. SUPABASE INITIALIZATION & PARAMETERS
   ===================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
@@ -942,7 +1103,6 @@ body, button, input, select, textarea {
     return null;
   }
 
-  // 🎯 Extract URL Query Parameters (Deep linking from notify.html & submissions.html)
   const urlParams = new URLSearchParams(window.location.search);
   const paramSubId = urlParams.get("submission_id") || urlParams.get("sub_id") || urlParams.get("id");
   const paramActId = urlParams.get("activity_id");
@@ -981,58 +1141,8 @@ body, button, input, select, textarea {
     }, 100);
   });
 
-  /* AUTOMATED DIRECT FILE DOWNLOAD HELPER */
-  async function downloadFileDirectly(url, filename) {
-    if (!url) return;
-    try {
-      if (url.startsWith('data:')) {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename || 'student_submission';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        return;
-      }
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename || 'student_submission';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename || 'student_submission';
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-  }
-
-  function isImageFile(fileUrl) {
-    if (!fileUrl) return false;
-    if (fileUrl.startsWith("data:image/")) return true;
-    const clean = fileUrl.split('?')[0].toLowerCase();
-    const ext = clean.split('.').pop();
-    return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
-  }
-
-  function isVideoFile(fileUrl) {
-    if (!fileUrl) return false;
-    if (fileUrl.startsWith("data:video/")) return true;
-    const clean = fileUrl.split('?')[0].toLowerCase();
-    const ext = clean.split('.').pop();
-    return ['mp4', 'webm', 'ogg', 'mov', 'm4v'].includes(ext);
-  }
-
   /* =====================================================
-      3. FETCH STUDENT SUBMISSION FROM SUPABASE (CLEANED)
+      3. FETCH SUBMISSION & MULTI-ATTACHMENT PROCESSOR
   ===================================================== */
   async function fetchSubmissionDetailsFromSupabase() {
     const client = getSupabaseClient();
@@ -1054,7 +1164,7 @@ body, button, input, select, textarea {
       }
     }
 
-    // 2. Fallback Strategy: Lookup by activity_id and user_id
+    // 2. Fallback Strategy: Lookup by activity_id and user_id / student_id
     if (!sub && resolvedActId && resolvedStudentId) {
       const actSearchIds = getDualTypeIds([resolvedActId]);
       const studentSearchIds = getDualTypeIds([resolvedStudentId]);
@@ -1070,7 +1180,6 @@ body, button, input, select, textarea {
 
       sub = userSub || null;
 
-      // Secondary check if table uses student_id instead of user_id
       if (!sub) {
         const { data: altSub } = await client
           .from('submissions')
@@ -1116,7 +1225,7 @@ body, button, input, select, textarea {
       }
     }
 
-    // 4. Fetch Activity and Class Details
+    // 4. Fetch Activity & Class Details
     let subjectName = localStorage.getItem("selectedClass") || "Course";
     const actToFetch = sub.activity_id || resolvedActId;
 
@@ -1158,26 +1267,28 @@ body, button, input, select, textarea {
     if (studentNameEl) studentNameEl.textContent = targetStudentName;
     if (activityTitleEl) activityTitleEl.textContent = `Class: ${subjectName} | ${targetActivityTitle}`;
 
-    // Render Status Banners for Admin or Archived
-    const container = document.querySelector(".container") || document.querySelector(".main-content");
+    // Status Banners for Admin / Archived
+    const container = document.querySelector(".workspace-grid") || document.querySelector(".main-content");
     if (userRole === "ADMIN" && !document.getElementById("adminWorkBanner")) {
       const banner = document.createElement("div");
       banner.id = "adminWorkBanner";
-      banner.style.cssText = "background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 20px;";
+      banner.style.cssText = "grid-column: 1 / -1; background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 15px;";
       banner.innerHTML = "🛡️ <strong>Institutional Audit Mode:</strong> You are viewing student deliverables, evaluation records, and submitted files in read-only observation mode.";
-      if (container) container.insertBefore(banner, container.firstChild);
+      if (container) container.parentNode.insertBefore(banner, container);
     } else if (isClassArchived && !document.getElementById("archivedWorkBanner")) {
       const banner = document.createElement("div");
       banner.id = "archivedWorkBanner";
-      banner.style.cssText = "background: #f1f5f9; color: #334155; border-left: 4px solid #64748b; padding: 12px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 20px;";
-      banner.innerHTML = "📦 <strong>Archived Submission Record:</strong> This work belongs to an archived subject. Evaluation scoring and feedback editing are locked.";
-      if (container) container.insertBefore(banner, container.firstChild);
+      banner.style.cssText = "grid-column: 1 / -1; background: #f1f5f9; color: #334155; border-left: 4px solid #64748b; padding: 12px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 15px;";
+      banner.innerHTML = "📦 <strong>Archived Submission Record:</strong> This work belongs to an archived subject. Evaluation scoring is locked.";
+      if (container) container.parentNode.insertBefore(banner, container);
     }
 
+    // Evaluation Field Setup (Score Only)
     const scoreInput = document.getElementById("swScoreInput");
     const scoreLabel = document.getElementById("swScoreLabel");
+
     if (scoreInput) {
-      if (scoreLabel) scoreLabel.textContent = `Score (Max ${maxPointsLimit}):`;
+      if (scoreLabel) scoreLabel.textContent = `Assign Score (Max ${maxPointsLimit}):`;
       scoreInput.max = maxPointsLimit;
       scoreInput.placeholder = `0-${maxPointsLimit}`;
     }
@@ -1185,7 +1296,6 @@ body, button, input, select, textarea {
     const currentGrade = sub.grade !== null && sub.grade !== undefined ? sub.grade : (sub.score !== null && sub.score !== undefined ? sub.score : "");
     const statusBadge = document.getElementById("swStatusBadge");
     const saveBtn = document.getElementById("swSaveBtn");
-    const feedbackInput = document.getElementById("swTeacherRemarks");
 
     const st = String(sub.status || '').toLowerCase();
     const isGraded = st === 'graded' || currentGrade !== "";
@@ -1195,45 +1305,23 @@ body, button, input, select, textarea {
         statusBadge.textContent = "Graded";
         statusBadge.className = "badge badge-graded";
       } else {
-        statusBadge.textContent = "Pending Evaluation";
+        statusBadge.textContent = "Pending Grade";
         statusBadge.className = "badge badge-pending";
       }
-    }
-
-    if (feedbackInput) {
-      feedbackInput.value = sub.feedback || sub.remarks || sub.teacher_comments || "";
-    }
-
-    // Evaluation Interface Controls
-    if (saveBtn) {
-      saveBtn.onclick = toggleScoreLock;
     }
 
     if (userRole === "ADMIN" || isClassArchived) {
       if (scoreInput) {
         scoreInput.value = currentGrade;
         scoreInput.disabled = true;
-        scoreInput.style.backgroundColor = "#f8fafc";
-        scoreInput.style.cursor = "not-allowed";
       }
-      if (feedbackInput) {
-        feedbackInput.disabled = true;
-        feedbackInput.style.backgroundColor = "#f8fafc";
-        feedbackInput.style.cursor = "not-allowed";
-        if (!feedbackInput.value) {
-          feedbackInput.placeholder = "No faculty remarks recorded.";
-        }
-      }
-      if (saveBtn) {
-        saveBtn.style.display = "none";
-      }
+      if (saveBtn) saveBtn.style.display = "none";
     } else {
       if (isGraded) {
         if (scoreInput) {
           scoreInput.value = currentGrade;
           scoreInput.disabled = true;
         }
-        if (feedbackInput) feedbackInput.disabled = true;
         if (saveBtn) {
           saveBtn.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Update Score`;
           saveBtn.className = "btn-update-score";
@@ -1244,7 +1332,6 @@ body, button, input, select, textarea {
           scoreInput.value = currentGrade;
           scoreInput.disabled = false;
         }
-        if (feedbackInput) feedbackInput.disabled = false;
         if (saveBtn) {
           saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save Score & Update Status`;
           saveBtn.className = "btn-save-score";
@@ -1253,7 +1340,7 @@ body, button, input, select, textarea {
       }
     }
 
-    // Timeliness calculation
+    // Timeliness Calculation
     let isLate = false;
     const deadlineDate = currentActivityData?.deadline || currentActivityData?.due_date || sub.activities?.deadline || sub.activities?.due_date;
     const submittedDate = sub.submitted_at || sub.created_at;
@@ -1277,103 +1364,166 @@ body, button, input, select, textarea {
       timelinessBadge.innerHTML = `<i class="fa-solid ${isLate ? 'fa-clock' : 'fa-bolt'}"></i> ${dateFormatted} - ${timeFormatted} - ${label}`;
     }
 
-    // File Preview and Direct Download
-    const fileBtn = document.getElementById("swFileBtn");
+    // 5. UNPACK & RENDER ALL STUDENT ATTACHMENTS (FILES + LINKS + DRIVE)
+    const attachmentsContainer = document.getElementById("swAttachmentsList");
     const mediaSection = document.getElementById("mediaPreviewSection");
     const mediaContainer = document.getElementById("mediaContainer");
 
-    if (sub.file_url) {
-      const urlParts = sub.file_url.split('/');
-      let fileName = "Student_Submission_File";
-      try {
-        fileName = decodeURIComponent(urlParts[urlParts.length - 1].split('?')[0]);
-      } catch (e) {
-        fileName = "Student_Submission_File";
-      }
+    const submittedFiles = parseMaterials(sub.file_url, 'file');
+    const submittedLinks = parseMaterials(sub.link_url, 'link');
 
-      const fileNameEl = document.getElementById("swFileName");
-      if (fileNameEl) fileNameEl.textContent = escapeHtml(fileName);
-
-      if (fileBtn) {
-        fileBtn.href = sub.file_url;
-        fileBtn.style.display = "inline-flex";
-        fileBtn.onclick = (e) => {
-          e.preventDefault();
-          downloadFileDirectly(sub.file_url, fileName);
-        };
-      }
-
-      const fileIcon = document.getElementById("fileIcon");
-
-      if (isImageFile(sub.file_url)) {
-        if (fileIcon) fileIcon.className = "fa-solid fa-file-image";
-        if (mediaSection && mediaContainer) {
-          mediaSection.style.display = "block";
-          mediaContainer.innerHTML = `
-            <img src="${sub.file_url}" alt="Student Submission Image" style="max-width:100%; border-radius:8px;">
-            <span class="media-caption" style="display:block; margin-top:6px; font-size:12px; color:var(--muted);"><i class="fa-solid fa-circle-info"></i> Direct Image Preview: ${escapeHtml(fileName)}</span>
-          `;
-        }
-      } else if (isVideoFile(sub.file_url)) {
-        if (fileIcon) fileIcon.className = "fa-solid fa-file-video";
-        if (mediaSection && mediaContainer) {
-          mediaSection.style.display = "block";
-          mediaContainer.innerHTML = `
-            <video controls src="${sub.file_url}" style="max-width:100%; border-radius:8px;">
-              Your browser does not support HTML5 video preview.
-            </video>
-            <span class="media-caption" style="display:block; margin-top:6px; font-size:12px; color:var(--muted);"><i class="fa-solid fa-circle-info"></i> Direct Video Preview: ${escapeHtml(fileName)}</span>
-          `;
-        }
-      } else {
-        if (fileIcon) fileIcon.className = "fa-solid fa-file-pdf";
-        if (mediaSection) mediaSection.style.display = "none";
-      }
-    } else {
-      const fileNameEl = document.getElementById("swFileName");
-      if (fileNameEl) fileNameEl.textContent = "No file attached";
-      if (fileBtn) fileBtn.style.display = "none";
-      if (mediaSection) mediaSection.style.display = "none";
+    if (attachmentsContainer) {
+      attachmentsContainer.innerHTML = "";
+    }
+    if (mediaContainer) {
+      mediaContainer.innerHTML = "";
     }
 
-    const linkUrlEl = document.getElementById("swLinkUrl");
-    const linkBtn = document.getElementById("swLinkBtn");
+    let mediaCount = 0;
+    let totalAttachments = 0;
 
-    if (sub.link_url) {
-      if (linkUrlEl) linkUrlEl.textContent = escapeHtml(sub.link_url);
-      if (linkBtn) {
-        linkBtn.href = formatUrl(sub.link_url);
-        linkBtn.style.display = "inline-flex";
+    // A. Render Files & Populate Media Preview
+    submittedFiles.forEach((file) => {
+      if (!file.url) return;
+      totalAttachments++;
+
+      const ext = file.ext || file.url.split('.').pop().split('?')[0].toLowerCase();
+      let displayName = file.name || "Submitted Document";
+
+      if (displayName === "Student Deliverable" || displayName.includes("http")) {
+        try {
+          const urlParts = file.url.split('/');
+          displayName = decodeURIComponent(urlParts[urlParts.length - 1].split('?')[0]);
+        } catch (e) {
+          displayName = `Submitted_File.${ext}`;
+        }
       }
-    } else {
-      if (linkUrlEl) linkUrlEl.textContent = "No external link attached";
-      if (linkBtn) linkBtn.style.display = "none";
+
+      let iconClass = "fa-solid fa-file-lines";
+      let iconColor = "var(--primary)";
+
+      if (ext === 'pdf') { iconClass = "fa-solid fa-file-pdf"; iconColor = "#dc2626"; }
+      else if (['doc', 'docx'].includes(ext)) { iconClass = "fa-solid fa-file-word"; iconColor = "#2563eb"; }
+      else if (['ppt', 'pptx'].includes(ext)) { iconClass = "fa-solid fa-file-powerpoint"; iconColor = "#ea580c"; }
+      else if (['xls', 'xlsx', 'csv'].includes(ext)) { iconClass = "fa-solid fa-file-excel"; iconColor = "#16a34a"; }
+      else if (['png', 'jpg', 'jpeg', 'webp', 'gif'].includes(ext)) { iconClass = "fa-solid fa-file-image"; iconColor = "#0284c7"; }
+      else if (['mp4', 'webm', 'mov'].includes(ext)) { iconClass = "fa-solid fa-file-video"; iconColor = "#7c3aed"; }
+
+      // Check Media Preview
+      if (isImageFile(file.url)) {
+        mediaCount++;
+        if (mediaContainer) {
+          mediaContainer.innerHTML += `
+            <div class="media-preview-container">
+              <img src="${file.url}" alt="Student Submission Image">
+              <span class="media-caption"><i class="fa-solid fa-circle-info"></i> Direct Image Preview: ${escapeHtml(displayName)}</span>
+            </div>
+          `;
+        }
+      } else if (isVideoFile(file.url)) {
+        mediaCount++;
+        if (mediaContainer) {
+          mediaContainer.innerHTML += `
+            <div class="media-preview-container">
+              <video controls src="${file.url}">Your browser does not support HTML5 video preview.</video>
+              <span class="media-caption"><i class="fa-solid fa-circle-info"></i> Direct Video Preview: ${escapeHtml(displayName)}</span>
+            </div>
+          `;
+        }
+      }
+
+      // Add to attachment cards list
+      if (attachmentsContainer) {
+        attachmentsContainer.innerHTML += `
+          <div class="attachment-item">
+            <div class="attachment-info">
+              <div class="attachment-icon" style="color: ${iconColor};">
+                <i class="${iconClass}"></i>
+              </div>
+              <div class="attachment-details">
+                <div class="attachment-title" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</div>
+                <div class="attachment-meta">${formatAttachmentSize(file.size)} • .${ext.toUpperCase()}</div>
+              </div>
+            </div>
+            <a href="${file.url}" target="_blank" download onclick="event.preventDefault(); downloadFileDirectly('${escapeJsString(file.url)}', '${escapeJsString(displayName)}');" class="btn-download">
+              <i class="fa-solid fa-download"></i> Download
+            </a>
+          </div>
+        `;
+      }
+    });
+
+    if (mediaSection) {
+      mediaSection.style.display = mediaCount > 0 ? "block" : "none";
     }
 
+    // B. Render Google Drive & Resource Links
+    submittedLinks.forEach((link) => {
+      if (!link.url) return;
+      totalAttachments++;
+
+      const isDrive = link.url.includes("drive.google.com");
+      const isDoc = link.url.includes("docs.google.com/document");
+      const isSlide = link.url.includes("docs.google.com/presentation");
+      const isSheet = link.url.includes("docs.google.com/spreadsheets");
+
+      let iconClass = "fa-solid fa-link";
+      let iconColor = "var(--primary)";
+      let typeLabel = "Resource Link";
+
+      if (isDoc) { iconClass = "fa-solid fa-file-word"; iconColor = "#4285f4"; typeLabel = "Google Docs"; }
+      else if (isSlide) { iconClass = "fa-solid fa-file-powerpoint"; iconColor = "#f4b400"; typeLabel = "Google Slides"; }
+      else if (isSheet) { iconClass = "fa-solid fa-file-excel"; iconColor = "#0f9d58"; typeLabel = "Google Sheets"; }
+      else if (isDrive) { iconClass = "fa-brands fa-google-drive"; iconColor = "#0f9d58"; typeLabel = "Google Drive File"; }
+
+      const displayName = link.name && link.name !== link.url ? link.name : typeLabel;
+
+      if (attachmentsContainer) {
+        attachmentsContainer.innerHTML += `
+          <div class="attachment-item">
+            <div class="attachment-info">
+              <div class="attachment-icon" style="color: ${iconColor};">
+                <i class="${iconClass}"></i>
+              </div>
+              <div class="attachment-details">
+                <div class="attachment-title" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</div>
+                <div class="attachment-meta">${typeLabel} • ${escapeHtml(link.url)}</div>
+              </div>
+            </div>
+            <a href="${formatUrl(link.url)}" target="_blank" rel="noopener noreferrer" class="btn-download btn-open">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open
+            </a>
+          </div>
+        `;
+      }
+    });
+
+    if (totalAttachments === 0 && attachmentsContainer) {
+      attachmentsContainer.innerHTML = `<div style="color:var(--muted); font-size:13px; font-style:italic; padding: 8px 0;">No files or links attached by student.</div>`;
+    }
+
+    // Student Comments
     const studentNotesEl = document.getElementById("swStudentNotes");
     if (studentNotesEl) {
-      const notes = sub.comments || sub.note || "No private comments left by student.";
-      studentNotesEl.textContent = notes;
+      studentNotesEl.textContent = sub.comments || sub.note || "No private comments left by student.";
     }
   }
 
   /* =====================================================
-      4. SAVE SCORE & FEEDBACK (MULTI-CHANNEL DISPATCH)
+      4. EVALUATION & MULTI-CHANNEL DISPATCH (SCORE ONLY)
   ===================================================== */
   function toggleScoreLock() {
     if (userRole !== "TEACHER" || isClassArchived) {
-      alert("Permission denied: Only active faculty instructors can score student work.");
+      alert("Permission denied: Only active instructors can score student work.");
       return;
     }
 
     const scoreInput = document.getElementById("swScoreInput");
-    const feedbackInput = document.getElementById("swTeacherRemarks");
+    const saveBtn = document.getElementById("swSaveBtn");
 
     if (scoreInput && scoreInput.disabled) {
       scoreInput.disabled = false;
-      if (feedbackInput) feedbackInput.disabled = false;
       scoreInput.focus();
-      const saveBtn = document.getElementById("swSaveBtn");
       if (saveBtn) {
         saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Save Score & Update Status`;
         saveBtn.className = "btn-save-score";
@@ -1385,16 +1535,15 @@ body, button, input, select, textarea {
 
   async function saveScoreToSupabase() {
     if (userRole !== "TEACHER" || isClassArchived) {
-      alert("Permission denied: Only active faculty instructors can score student work.");
+      alert("Permission denied: Only active instructors can score student work.");
       return;
     }
 
     const client = getSupabaseClient();
-    const scoreInput = document.getElementById("swScoreInput");
-    const feedbackInput = document.getElementById("swTeacherRemarks");
-    const saveBtn = document.getElementById("swSaveBtn");
-
     if (!client) return;
+
+    const scoreInput = document.getElementById("swScoreInput");
+    const saveBtn = document.getElementById("swSaveBtn");
 
     const scoreVal = scoreInput ? scoreInput.value.trim() : "";
 
@@ -1409,7 +1558,6 @@ body, button, input, select, textarea {
     }
 
     const numericScore = Number(scoreVal);
-    const feedbackText = feedbackInput ? feedbackInput.value.trim() : "";
 
     let updatePayload = {
       grade: numericScore,
@@ -1417,14 +1565,10 @@ body, button, input, select, textarea {
       status: 'graded'
     };
 
-    if (feedbackText !== "") {
-      updatePayload.feedback = feedbackText;
-    }
-
     const targetSubId = subId || currentSubmission?.id;
     const subSearchIds = getDualTypeIds([targetSubId]);
 
-    // 1. Update Submissions Table with Column Fallback Tolerance
+    // Update Submissions Table with Column Fallback Tolerance
     let { error } = await client
       .from('submissions')
       .update(updatePayload)
@@ -1440,13 +1584,6 @@ body, button, input, select, textarea {
       error = retry.error;
     }
 
-    if (error && (error.code === '42703' || error.message.includes('feedback'))) {
-      delete updatePayload.feedback;
-      updatePayload.remarks = feedbackText;
-      const retry = await client.from('submissions').update(updatePayload).in('id', subSearchIds);
-      error = retry.error;
-    }
-
     if (error) {
       alert("Error saving score: " + error.message);
       if (saveBtn) {
@@ -1456,7 +1593,7 @@ body, button, input, select, textarea {
       return;
     }
 
-    // 2. Dispatch In-App Notification with Direct Link Back to Student
+    // Dispatch In-App Notification directly to Student
     if (targetStudentUserId) {
       const parsedStudentId = parseDbId(targetStudentUserId);
       const activityId = currentSubmission?.activity_id ? parseDbId(currentSubmission.activity_id) : parseDbId(resolvedActId);
@@ -1466,7 +1603,7 @@ body, button, input, select, textarea {
         const studentNotificationPayload = {
           user_id: parsedStudentId,
           title: `💯 Work Graded: ${targetActivityTitle}`,
-          message: `Your score for "${targetActivityTitle}" was recorded: ${numericScore}/${maxPointsLimit}. ${feedbackText ? `Remarks: "${feedbackText}"` : ''}`,
+          message: `Your score for "${targetActivityTitle}" was recorded: ${numericScore}/${maxPointsLimit}.`,
           type: 'grade',
           link: `${activitySubmitUrl}?activity_id=${encodeURIComponent(activityId)}`,
           is_read: false,
@@ -1487,7 +1624,7 @@ body, button, input, select, textarea {
           await client.from('notifications').insert([studentNotificationPayload]);
         }
       } catch (e) {
-        console.warn("In-app notification non-blocking warning:", e);
+        console.warn("In-app notification notice:", e);
       }
 
       // Multi-Channel Dispatch: Email & Push Alert via Flask API
@@ -1504,16 +1641,15 @@ body, button, input, select, textarea {
             type: 'grade_posted',
             student_emails: emails,
             student_ids: studentIds,
-            details: `Score: ${numericScore}/${maxPointsLimit}. ${feedbackText ? `Remarks: ${feedbackText}` : 'View complete evaluation in your portal.'}`
+            details: `Score: ${numericScore}/${maxPointsLimit}. View complete evaluation in your portal.`
           })
         });
       } catch (alertErr) {
-        console.warn("Could not dispatch automated push/email grade alerts:", alertErr);
+        console.warn("Could not dispatch push/email grade alerts:", alertErr);
       }
     }
 
     if (scoreInput) scoreInput.disabled = true;
-    if (feedbackInput) feedbackInput.disabled = true;
 
     if (saveBtn) {
       saveBtn.disabled = false;
@@ -1527,11 +1663,11 @@ body, button, input, select, textarea {
       statusBadge.className = "badge badge-graded";
     }
 
-    alert(`🎉 Score ${numericScore}/${maxPointsLimit} saved successfully! Student has been notified via portal, email, and push.`);
+    alert(`🎉 Score ${numericScore}/${maxPointsLimit} saved successfully! Student has been notified.`);
   }
 
   /* =====================================================
-      5. LOAD SIDEBAR CLASSES & GROUPS
+      5. SIDEBAR NAVIGATION DATA LOADERS
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
