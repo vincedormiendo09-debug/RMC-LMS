@@ -1585,28 +1585,49 @@
     }
   }
 
-  function createPicker(token) {
-    if (!pickerInited || !token) return;
+ /* --- 3. BUILD & DISPLAY GOOGLE PICKER DIALOG --- */
+function createPicker(token) {
+  if (!token || typeof google === 'undefined' || !google.picker) return;
 
-    const viewRecent = new google.picker.DocsView(google.picker.ViewId.RECENTLY_PICKED);
-    const viewDocs = new google.picker.DocsView(google.picker.ViewId.DOCS);
-    const viewDrive = new google.picker.DocsView(google.picker.ViewId.DOCS).setIncludeFolders(true);
+  // Calculate responsive dialog sizing based on teacher's viewport
+  const dialogWidth = Math.min(window.innerWidth * 0.9, 1050);
+  const dialogHeight = Math.min(window.innerHeight * 0.85, 680);
 
-    const pickerBuilder = new google.picker.PickerBuilder()
-      .enableFeature(google.picker.Feature.NAV_HIDDEN, false)
-      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
-      .setAppId(GOOGLE_APP_ID)
-      .setOAuthToken(token)
-      .addView(viewRecent)
-      .addView(viewDocs)
-      .addView(viewDrive)
-      .setDeveloperKey(GOOGLE_API_KEY)
-      .setTitle("Insert files using Google Drive")
-      .setCallback(pickerCallback);
+  // 1. Recent Tab
+  const viewRecent = new google.picker.DocsView(google.picker.ViewId.RECENTLY_PICKED)
+    .setLabel("Recent");
 
-    const picker = pickerBuilder.build();
-    picker.setVisible(true);
-  }
+  // 2. Upload Tab
+  const viewUpload = new google.picker.DocsUploadView();
+
+  // 3. My Drive Tab
+  const viewDrive = new google.picker.DocsView(google.picker.ViewId.DOCS)
+    .setLabel("My Drive")
+    .setIncludeFolders(true)
+    .setSelectFolderEnabled(true);
+
+  // 4. Starred Tab
+  const viewStarred = new google.picker.DocsView(google.picker.ViewId.STARRED)
+    .setLabel("Starred");
+
+  const pickerBuilder = new google.picker.PickerBuilder()
+    .enableFeature(google.picker.Feature.NAV_HIDDEN, false)
+    .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+    .enableFeature(google.picker.Feature.SUPPORT_TEAM_DRIVES)
+    .setAppId(GOOGLE_APP_ID)
+    .setOAuthToken(token)
+    .addView(viewRecent)
+    .addView(viewUpload)
+    .addView(viewDrive)
+    .addView(viewStarred)
+    .setSize(dialogWidth, dialogHeight) // Matches Classroom's wide card aspect ratio
+    .setDeveloperKey(GOOGLE_API_KEY)
+    .setTitle("Insert files using Google Drive")
+    .setCallback(pickerCallback);
+
+  const picker = pickerBuilder.build();
+  picker.setVisible(true);
+}
 
   // Handles multiple files selected from Google Drive
   function pickerCallback(data) {

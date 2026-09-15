@@ -8,6 +8,10 @@
 
   <!-- SUPABASE JS CLIENT -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- CHART.JS LIBRARY -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
   <!-- FONT AWESOME -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
@@ -15,7 +19,6 @@
   <meta name="theme-color" content="#1e3a8a">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-
  <style>
   /* =========================================
      GLOBAL RESET & BRAND DESIGN SYSTEM
@@ -571,17 +574,20 @@
     min-width: 0;
   }
 
-  .chart-wrapper {
-    position: relative;
-    width: 100% !important;
-    height: 300px;
-    min-width: 0;
-  }
+.chart-wrapper {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  min-height: 300px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
 
-  .chart-wrapper canvas {
-    width: 100% !important;
-    height: 100% !important;
-  }
+.chart-wrapper canvas {
+  display: block;
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
 
   /* LEADERBOARD LIST CONTAINER */
   .leaderboard-container {
@@ -1519,7 +1525,7 @@
       </div>
     </div>
   </div>
-
+</body>
 <script>
   /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
   window.addEventListener('pageshow', function (event) {
@@ -1714,7 +1720,7 @@
     return "5.00 (Failed)";
   }
 
-  /* =====================================================
+ /* =====================================================
       2. SUPABASE INITIALIZATION & CACHED APP STATE
   ===================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
@@ -1752,14 +1758,22 @@
     const timer = setInterval(() => {
       attempts++;
       const client = getSupabaseClient();
-      if (client) {
+      const chartReady = typeof Chart !== 'undefined';
+
+      // 🔒 Ensure both Supabase AND Chart.js are loaded before executing
+      if (client && chartReady) {
         clearInterval(timer);
         initGradesPage();
         loadSidebarClasses();
         loadSidebarGroups();
-      } else if (attempts >= 20) {
+      } else if (attempts >= 30) {
         clearInterval(timer);
-        console.error("Supabase CDN initialization timed out.");
+        if (client) {
+          initGradesPage();
+          loadSidebarClasses();
+          loadSidebarGroups();
+        }
+        console.warn("Chart.js CDN load delayed or timed out.");
       }
     }, 100);
   });
@@ -1871,7 +1885,7 @@
     renderRosterAndGrades();
   }
 
-  /* =====================================================
+/* =====================================================
       4. CORE ROSTER, BENCHMARK & PERFORMANCE RENDERER
   ===================================================== */
   async function renderRosterAndGrades() {
@@ -1930,10 +1944,10 @@
       enrolledStudents = usersData || [];
     }
 
-    // 4. Fetch Activities for Target Classes
+    // 4. Fetch Activities (Using wildcard select to prevent column-not-found errors)
     const { data: actsData } = await client
       .from('activities')
-      .select('id, class_id, title, total_points, deadline, due_date')
+      .select('*')
       .in('class_id', targetClassIds)
       .order('created_at', { ascending: true });
 
@@ -1966,7 +1980,7 @@
       `;
       resetMetricsToZero();
       renderPodium([]);
-      renderActivityComparisonChart([], []);
+      renderActivityComparisonChart(cachedActivities, cachedSubmissions);
       renderLeaderboard([]);
       return;
     }
@@ -1975,11 +1989,9 @@
     const studentPerformanceList = [];
     const now = new Date().getTime();
 
-    // Group memberships by student and class
     enrolledStudents.forEach(stu => {
       const studentSearchIds = new Set(getDualTypeIds([stu.id]).map(String));
 
-      // Classes this student is enrolled in within our active target scope
       const studentClassMems = rawMems.filter(m => {
         const uid = String(m.user_id || m.student_id || '');
         return studentSearchIds.has(uid);
@@ -1989,14 +2001,12 @@
 
       targetClasses.forEach(cls => {
         if (!studentClassIds.has(String(cls.id)) && !studentClassIds.has(String(parseDbId(cls.id)))) {
-          return; // Student is not enrolled in this particular class
+          return;
         }
 
-        // Activities belonging to this class
         const clsActs = cachedActivities.filter(a => String(a.class_id) === String(cls.id) || parseDbId(a.class_id) === parseDbId(cls.id));
         const clsActIds = new Set(clsActs.map(a => String(a.id)));
 
-        // Submissions belonging to this student for this class
         const studentSubs = cachedSubmissions.filter(s => {
           const uid = String(s.user_id || s.student_id || '');
           return studentSearchIds.has(uid) && clsActIds.has(String(s.activity_id));
@@ -2031,12 +2041,10 @@
               completedCount++;
               countableCount++;
             } else {
-              // Turned in but pending
               completedCount++;
               if (isOverdue) countableCount++;
             }
           } else if (isOverdue) {
-            // Unsubmitted and past deadline (0% Failed)
             totalWeightedPct += 0;
             countableCount++;
           }
@@ -2061,17 +2069,22 @@
 
     cachedRosterRows = studentPerformanceList;
 
-    // 7. Render KPIs
+    // 7. Render KPIs Safely (With Null-Guards)
     const overallSum = studentPerformanceList.reduce((acc, curr) => acc + curr.averagePct, 0);
     const overallAvg = studentPerformanceList.length > 0 ? (overallSum / studentPerformanceList.length).toFixed(1) : 0;
     const uniqueStudents = new Set(studentPerformanceList.map(s => String(s.studentId))).size;
 
-    document.getElementById("statGrade").textContent = `${overallAvg}%`;
-    document.getElementById("statStudents").textContent = uniqueStudents;
-    document.getElementById("statActivities").textContent = cachedActivities.length;
-    document.getElementById("statActiveClasses").textContent = targetClasses.length;
+    const elGrade = document.getElementById("statGrade");
+    const elStudents = document.getElementById("statStudents");
+    const elActs = document.getElementById("statActivities");
+    const elClasses = document.getElementById("statActiveClasses");
 
-    // 8. Render Podium, Chart, Leaderboard, and Table
+    if (elGrade) elGrade.textContent = `${overallAvg}%`;
+    if (elStudents) elStudents.textContent = uniqueStudents;
+    if (elActs) elActs.textContent = cachedActivities.length;
+    if (elClasses) elClasses.textContent = targetClasses.length;
+
+    // 8. Render All Dashboard Modules
     renderPodium(studentPerformanceList);
     renderActivityComparisonChart(cachedActivities, cachedSubmissions);
     renderLeaderboard(studentPerformanceList);
@@ -2079,10 +2092,16 @@
   }
 
   function resetMetricsToZero() {
-    document.getElementById("statGrade").textContent = "0%";
-    document.getElementById("statStudents").textContent = "0";
-    document.getElementById("statActivities").textContent = "0";
-    document.getElementById("statActiveClasses").textContent = "0";
+    const elGrade = document.getElementById("statGrade");
+    const elStudents = document.getElementById("statStudents");
+    const elActs = document.getElementById("statActivities");
+    const elClasses = document.getElementById("statActiveClasses");
+
+    if (elGrade) elGrade.textContent = "0%";
+    if (elStudents) elStudents.textContent = "0";
+    if (elActs) elActs.textContent = "0";
+    if (elClasses) elClasses.textContent = "0";
+
     renderPodium([]);
     renderActivityComparisonChart([], []);
     renderLeaderboard([]);
@@ -2144,12 +2163,18 @@
     });
   }
 
-  /* =====================================================
+/* =====================================================
       6. CLASS GRADE & ACTIVITY COMPARISON CHART
   ===================================================== */
   function renderActivityComparisonChart(activities, submissions) {
     const canvas = document.getElementById("activityComparisonChart");
-    if (!canvas || typeof Chart === 'undefined') return;
+    if (!canvas) return;
+
+    // 🔁 Auto-retry if Chart.js CDN is still executing
+    if (typeof Chart === 'undefined') {
+      setTimeout(() => renderActivityComparisonChart(activities, submissions), 200);
+      return;
+    }
 
     const ctx = canvas.getContext("2d");
 
@@ -2158,36 +2183,50 @@
       comparisonChartInstance = null;
     }
 
-    if (!activities || activities.length === 0) {
+    const safeActs = activities || [];
+    const safeSubs = submissions || [];
+
+    if (safeActs.length === 0) {
       comparisonChartInstance = new Chart(ctx, {
         type: "bar",
         data: {
-          labels: ["No Activities"],
-          datasets: [{ label: "Average", data: [0], backgroundColor: "#cbd5e1" }]
+          labels: ["No Class Activities"],
+          datasets: [{
+            label: "Class Average (%)",
+            data: [0],
+            backgroundColor: "#cbd5e1",
+            borderRadius: 6
+          }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true, max: 100 } }
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false }
+          },
+          scales: {
+            y: { beginAtZero: true, max: 100, grid: { color: "#f1f5f9" } },
+            x: { grid: { display: false } }
+          }
         }
       });
       return;
     }
 
-    // Limit to the latest 10 activities for optimal scannability
-    const displayActs = activities.slice(-10);
+    // Limit to the latest 10 activities for clean horizontal spacing
+    const displayActs = safeActs.slice(-10);
     const labels = displayActs.map(a => a.title || "Task");
     const avgScores = [];
     const highestScores = [];
 
     displayActs.forEach(act => {
       const maxPts = Number(act.total_points) > 0 ? Number(act.total_points) : 100;
-      const actSubs = submissions.filter(s => String(s.activity_id) === String(act.id) || parseDbId(s.activity_id) === parseDbId(act.id));
+      const actSubs = safeSubs.filter(s => String(s.activity_id) === String(act.id) || parseDbId(s.activity_id) === parseDbId(act.id));
       
       const graded = actSubs.filter(s => {
         const st = String(s.status || '').toLowerCase();
-        return st === 'graded' || s.grade !== null || s.score !== null;
+        return st === 'graded' || (s.grade !== null && s.grade !== undefined) || (s.score !== null && s.score !== undefined);
       });
 
       if (graded.length === 0) {
@@ -2230,7 +2269,10 @@
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: "top", labels: { font: { size: 11, weight: "bold" } } },
+          legend: {
+            position: "top",
+            labels: { font: { size: 11, weight: "bold" }, color: "#334155" }
+          },
           tooltip: {
             callbacks: {
               label: (c) => ` ${c.dataset.label}: ${c.parsed.y}%`
@@ -2242,11 +2284,11 @@
             beginAtZero: true,
             max: 100,
             grid: { color: "#f1f5f9" },
-            ticks: { callback: (v) => `${v}%`, font: { size: 11 } }
+            ticks: { callback: (v) => `${v}%`, font: { size: 11 }, color: "#64748b" }
           },
           x: {
             grid: { display: false },
-            ticks: { font: { size: 11 } }
+            ticks: { font: { size: 11, weight: "600" }, color: "#64748b", maxRotation: 25 }
           }
         }
       }
@@ -2827,4 +2869,3 @@
     }
   }
 </script>
-</body>
