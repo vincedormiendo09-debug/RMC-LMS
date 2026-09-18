@@ -2422,11 +2422,58 @@ if (groupInputEl) {
     });
   }
 
- /* =====================================================
-     11. DISPATCH, PERSIST & BROADCAST
+/* =====================================================
+      11. DISPATCH, PERSIST & BROADCAST
   ===================================================== */
+  // 📢 @ALL AUTOCOMPLETE POPUP COMPONENT SETUP
+  const mentionDropdown = document.createElement('div');
+  mentionDropdown.id = 'mentionDropdown';
+  mentionDropdown.style.cssText = 'display:none; position:absolute; bottom:65px; left:16px; background:#ffffff; border:1px solid #cbd5e1; border-radius:8px; box-shadow:0 8px 20px rgba(0,0,0,0.12); padding:8px 14px; cursor:pointer; z-index:1000; font-size:13px; font-weight:600; color:#1d4ed8; user-select:none; transition:all 0.15s ease;';
+  mentionDropdown.innerHTML = '📢 @all <span style="font-size:11px; color:#64748b; font-weight:normal; margin-left:6px;">Notify everyone in group</span>';
+
+  const chatInputContainer = document.querySelector('.chat-input-area') || 
+                             document.querySelector('.chat-input-wrapper') || 
+                             (document.getElementById('messageInput') ? document.getElementById('messageInput').parentElement : null);
+
+  if (chatInputContainer) {
+    if (getComputedStyle(chatInputContainer).position === 'static') {
+      chatInputContainer.style.position = 'relative';
+    }
+    chatInputContainer.appendChild(mentionDropdown);
+  }
+
+  const activeMsgInput = document.getElementById('messageInput');
+  if (activeMsgInput) {
+    // Show suggestion badge when typing @, @a, or @al
+    activeMsgInput.addEventListener('input', function () {
+      const val = this.value;
+      if (/(?:^|\s)@a?l?$/i.test(val)) {
+        mentionDropdown.style.display = 'block';
+      } else {
+        mentionDropdown.style.display = 'none';
+      }
+    });
+
+    // Selecting suggestion injects '@all ' without losing input cursor focus
+    mentionDropdown.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+      activeMsgInput.value = activeMsgInput.value.replace(/(?:^|\s)@a?l?$/i, ' @all ').trimStart();
+      mentionDropdown.style.display = 'none';
+      activeMsgInput.focus();
+    });
+
+    // Dismiss when clicking anywhere outside
+    document.addEventListener('click', function (e) {
+      if (e.target !== mentionDropdown && e.target !== activeMsgInput) {
+        mentionDropdown.style.display = 'none';
+      }
+    });
+  }
+
+  /* SEND & DISPATCH MESSAGE */
   async function dispatchMessage(text, mediaUrl = null, mediaType = null, fileName = null) {
     if (isGroupArchived) return;
+    if (mentionDropdown) mentionDropdown.style.display = 'none';
 
     const client = getSupabaseClient();
     const createdAt = new Date().toISOString();
@@ -2464,7 +2511,7 @@ if (groupInputEl) {
         const tempMedia = document.querySelectorAll(`[data-msg-id="${tempId}"]`);
         tempMedia.forEach(m => m.dataset.msgId = String(insertedRow.id));
 
-        // 📢 Dispatch @all notifications to group members
+        // 📢 Dispatch @all notifications to group members via Section 14
         if (typeof handleAtAllMentionNotification === 'function') {
           handleAtAllMentionNotification(text);
         }
@@ -2485,7 +2532,9 @@ if (groupInputEl) {
     if (!messagesContainer) return;
 
     const id = String(msgId || Date.now());
-    const timeFormatted = timeStr ? new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeFormatted = timeStr 
+      ? new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+      : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     const row = document.createElement('div');
     row.classList.add('message-row', type);
@@ -2879,7 +2928,7 @@ if (groupInputEl) {
   }
 
   /* =====================================================
-     14. 📢 @ALL MENTION NOTIFICATION DISPATCHER
+      14. 📢 @ALL MENTION NOTIFICATION DISPATCHER
   ===================================================== */
   async function handleAtAllMentionNotification(text) {
     if (!/\b@all\b/i.test(text)) return;
@@ -2889,6 +2938,7 @@ if (groupInputEl) {
     if (!client) return;
 
     try {
+      // 1. Fetch all students enrolled in this group
       const groupSearchIds = getDualTypeIds([currentGroupId]);
       const { data: memberships } = await client
         .from('group_memberships')
@@ -2898,41 +2948,39 @@ if (groupInputEl) {
       const recipientIds = new Set();
 
       (memberships || []).forEach(m => {
-        if (m.user_id && String(m.user_id) !== String(currentUserId)) {
-          recipientIds.add(m.user_id);
+        const uid = m.user_id || m.student_id;
+        if (uid && String(uid) !== String(currentUserId)) {
+          recipientIds.add(String(uid));
         }
       });
 
+      // 2. If a student sends @all, include the teacher/creator
       if (currentGroupData.teacher_id && String(currentGroupData.teacher_id) !== String(currentUserId)) {
-        recipientIds.add(currentGroupData.teacher_id);
+        recipientIds.add(String(currentGroupData.teacher_id));
       }
 
       if (recipientIds.size === 0) return;
 
-      const groupName = currentGroupData.name || "Group Chat";
+      const groupName = currentGroupData.name || "Group Workspace";
       const groupCode = currentGroupData.code || selectedGroupCode;
       const snippet = text.length > 70 ? text.substring(0, 67) + '...' : text;
       const targetLink = `${groupPageUrl}?code=${encodeURIComponent(groupCode)}`;
 
-      const notificationsPayload = Array.from(recipientIds).map(uid => ({
-        user_id: parseDbId(uid),
-        title: `📢 @all in ${groupName}`,
-        message: `${userName}: "${snippet}"`,
-        type: 'group_mention',
-        link: targetLink,
-        is_read: false,
-        created_at: new Date().toISOString()
-      }));
+      // 3. Dispatch to /api/notify-users (saves into notify.html + sends push banner)
+      fetch('/api/notify-users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `📢 @all in ${groupName}`,
+          type: 'chat', // Suppresses emails while creating the in-app card & push banner
+          student_ids: Array.from(recipientIds),
+          details: `${userName}: "${snippet}"`,
+          url: targetLink
+        })
+      }).catch(err => console.warn("@all notification dispatch error:", err));
 
-      const { error: notifErr } = await client
-        .from('notifications')
-        .insert(notificationsPayload);
-
-      if (notifErr) {
-        console.warn("Failed to create @all notifications:", notifErr.message);
-      }
     } catch (err) {
-      console.warn("@all notification dispatch error:", err);
+      console.warn("@all notification lookup error:", err);
     }
   }
   </script>

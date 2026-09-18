@@ -1398,7 +1398,7 @@ function createPicker(token) {
   });
 
   /* =====================================================
-     4. SUBMIT LESSON FORM (AI MODERATION & SERIALIZATION)
+      4. SUBMIT LESSON FORM (AI MODERATION & SERIALIZATION)
   ===================================================== */
   const lessonForm = document.getElementById('lessonForm');
   const submitBtn = document.getElementById('submitBtn');
@@ -1519,56 +1519,51 @@ function createPicker(token) {
       }
 
       // 4. Multi-Channel Notifications (In-App, Email, and Push)
-      const classSearchIds = getDualTypeIds([currentClassId]);
+      try {
+        let studentEmails = [];
+        let studentIdStrings = [];
 
-      const { data: enrolledStudents } = await client
-        .from('class_memberships')
-        .select('user_id')
-        .in('class_id', classSearchIds);
+        // Attempt client-side roster fetch as a quick fallback
+        try {
+          const classSearchIds = getDualTypeIds([currentClassId]);
+          const { data: enrolledStudents } = await client
+            .from('class_memberships')
+            .select('user_id')
+            .in('class_id', classSearchIds);
 
-      if (enrolledStudents && enrolledStudents.length > 0) {
-        const studentUserIds = getDualTypeIds(enrolledStudents.map(s => s.user_id));
+          if (enrolledStudents && enrolledStudents.length > 0) {
+            const studentUserIds = getDualTypeIds(enrolledStudents.map(s => s.user_id));
+            const { data: studentUsers } = await client
+              .from('users')
+              .select('id, email')
+              .in('id', studentUserIds);
 
-        const notificationRecords = enrolledStudents.map(student => ({
-          user_id: parseDbId(student.user_id),
-          title: `📚 New Lesson: ${title}`,
-          message: `A new lesson material "${title}" has been published in ${currentClassName || 'your class'}.`,
-          is_read: false,
-          created_at: new Date().toISOString()
-        }));
-
-        await client.from('notifications').insert(notificationRecords);
-
-        if (studentUserIds.length > 0) {
-          const { data: studentUsers } = await client
-            .from('users')
-            .select('id, email')
-            .in('id', studentUserIds);
-
-          const studentEmails = (studentUsers || [])
-            .map(s => s.email)
-            .filter(Boolean);
-
-          const studentIdStrings = (studentUsers || [])
-            .map(s => String(s.id));
-
-          try {
-            await fetch('/api/notify-users', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                class_title: currentClassName || 'Regis Marie College Class',
-                title: title,
-                type: 'new_lesson',
-                student_emails: studentEmails,
-                student_ids: studentIdStrings,
-                details: description ? (description.substring(0, 100) + '...') : 'New lesson materials are now available for study.'
-              })
-            });
-          } catch (notifErr) {
-            console.warn("Could not dispatch automated lesson notifications:", notifErr);
+            studentEmails = (studentUsers || []).map(s => s.email).filter(Boolean);
+            studentIdStrings = (studentUsers || []).map(s => String(s.id));
           }
+        } catch (clientFetchErr) {
+          console.warn("Client-side roster fetch bypassed; backend will auto-resolve:", clientFetchErr);
         }
+
+        // Dispatch to backend API (handles Brevo Email, In-App Supabase rows, and PyWebPush)
+        await fetch('/api/notify-users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            class_id: parsedClassId,
+            class_title: currentClassName || 'Regis Marie College Class',
+            title: title,
+            type: 'new_lesson',
+            student_emails: studentEmails,
+            student_ids: studentIdStrings,
+            details: description ? (description.substring(0, 100) + '...') : 'New lesson materials are now available in the curriculum vault.',
+            url: '/lessons.html'
+          })
+        });
+
+        console.log("✅ Multi-channel notifications dispatched successfully.");
+      } catch (notifErr) {
+        console.warn("Could not dispatch automated lesson notifications:", notifErr);
       }
 
       alert("🎉 Lesson published successfully! Students have been notified via email, push alerts, and their portal.");

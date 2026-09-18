@@ -3,8 +3,8 @@
    PWA Installation, Cache Busting, Web Push & Smart Routing
 ===================================================== */
 
-// Bumped cache version to force-clear any stale HTML cached on user devices
-const CACHE_NAME = 'rmc-lms-cache-v3';
+// Bumped cache version to force-clear any stale service workers on mobile devices
+const CACHE_NAME = 'rmc-lms-cache-v4';
 
 // Only precache static, immutable assets — NEVER precache dynamic HTML/Flask templates
 const PRECACHE_ASSETS = [
@@ -24,7 +24,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// 2. Activate: Wipe out all older caches (v1, v2) and claim open tabs immediately
+// 2. Activate: Wipe out all older caches (v1, v2, v3) and claim open tabs immediately
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
@@ -76,7 +76,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// 4. Web Push Notification Handler
+// 4. Web Push Notification Handler (Robust Text & Fallback Extraction)
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
@@ -84,27 +84,33 @@ self.addEventListener('push', (event) => {
   try {
     payload = event.data.json();
   } catch (err) {
-    payload = {
-      title: "Regis Marie College Alert",
-      body: event.data.text() || "New academic notification received.",
-      url: "/notify.html",
-      unreadCount: 1
-    };
+    const rawText = event.data.text() || "";
+    try {
+      payload = JSON.parse(rawText);
+    } catch (e) {
+      payload = {
+        title: "Regis Marie College LMS",
+        body: rawText || "New coursework or announcement posted.",
+        url: "/landpage.html"
+      };
+    }
   }
 
-  const title = payload.title || "Regis Marie College Alert";
-  const targetUrl = payload.url || "/notify.html";
+  // Multi-key extraction ensures message text is never blank on Android
+  const title = payload.title || "Regis Marie College LMS";
+  const bodyText = payload.body || payload.message || payload.details || "New academic update in your portal. Tap to view.";
+  const targetUrl = payload.url || "/landpage.html";
 
   const options = {
-    body: payload.body || "New coursework or message in your portal.",
+    body: bodyText,
     icon: "/static/rmc.png",
     badge: "/static/rmc.png",
-    vibrate: [150, 75, 150, 75, 200],
+    vibrate: [200, 100, 200, 100, 250],
     data: {
       url: targetUrl,
       activityId: payload.activityId || null
     },
-    tag: payload.tag || `notif-${Date.now()}`,
+    tag: payload.tag || `rmc-notif-${Date.now()}`,
     renotify: true,
     requireInteraction: false
   };
@@ -119,7 +125,7 @@ self.addEventListener('push', (event) => {
   );
 });
 
-// 5. Notification Click & Smart Window Re-use
+// 5. Notification Click & Direct Routing to landpage.html
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
@@ -131,7 +137,8 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
 
-  const relativeUrl = event.notification.data?.url || "/notify.html";
+  // Defaults directly to landpage.html if no custom URL was passed
+  const relativeUrl = event.notification.data?.url || "/landpage.html";
   const absoluteTarget = new URL(relativeUrl, self.location.origin).href;
 
   event.waitUntil(
@@ -150,7 +157,7 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
 
-      // 3. Otherwise open a new window
+      // 3. Otherwise open a fresh window directly to landpage
       if (self.clients.openWindow) {
         return self.clients.openWindow(absoluteTarget);
       }

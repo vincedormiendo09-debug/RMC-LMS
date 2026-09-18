@@ -1817,7 +1817,7 @@ function createPicker(token) {
 
       // Upload newly added files to Supabase Storage Bucket ('lesson-files')
       const uploadedFiles = [];
-      const classId = currentRecord?.class_id || localStorage.getItem("selectedClassId") || "general";
+      const classId = currentRecord?.class_id || currentRecord?.classId || localStorage.getItem("selectedClassId");
 
       for (const item of fileAttachments) {
         if (item.file) {
@@ -1960,64 +1960,76 @@ function createPicker(token) {
     });
   }
 
-  /* =====================================================
+/* =====================================================
       6. NOTIFICATION DISPATCH HELPER (PUSH + EMAIL + IN-APP)
   ===================================================== */
   async function dispatchUpdateNotifications({ client, classId, title, notifType, detailsText, activityId }) {
-    if (!classId) return;
+    // Resolve classId if missing from currentRecord
+    const resolvedClassId = classId && classId !== "general" 
+      ? classId 
+      : (currentRecord?.class_id || localStorage.getItem("selectedClassId"));
+
+    if (!resolvedClassId) {
+      console.warn("Cannot dispatch notification: Missing classId.");
+      return;
+    }
 
     try {
+      // 1. Fetch Class Subject Name
       let className = "Regis Marie College Class";
       const { data: clsData } = await client
         .from('classes')
         .select('subject')
-        .in('id', getDualTypeIds([classId]))
+        .in('id', getDualTypeIds([resolvedClassId]))
         .maybeSingle();
       if (clsData?.subject) className = clsData.subject;
 
-      const { data: enrolledMembers } = await client
-        .from('class_memberships')
-        .select('user_id')
-        .in('class_id', getDualTypeIds([classId]));
+      // 2. Fetch Enrolled Students as backup
+      let studentEmails = [];
+      let studentIdStrings = [];
 
-      if (!enrolledMembers || enrolledMembers.length === 0) return;
+      try {
+        const { data: enrolledMembers } = await client
+          .from('class_memberships')
+          .select('user_id')
+          .in('class_id', getDualTypeIds([resolvedClassId]));
 
-      const studentUserIds = getDualTypeIds(enrolledMembers.map(m => m.user_id));
-      const notifHeader = notifType === 'updated_activity' ? `✏️ Activity Updated: ${title}` : `📖 Lesson Updated: ${title}`;
+        if (enrolledMembers && enrolledMembers.length > 0) {
+          const studentUserIds = getDualTypeIds(enrolledMembers.map(m => m.user_id));
+          const { data: studentUsers } = await client
+            .from('users')
+            .select('id, email')
+            .in('id', studentUserIds);
 
-      const inAppRecords = enrolledMembers.map(m => ({
-        user_id: parseDbId(m.user_id),
-        title: notifHeader,
-        message: `${title} in ${className} was modified. ${detailsText}`,
-        is_read: false,
-        activity_id: activityId ? parseDbId(activityId) : null,
-        created_at: new Date().toISOString()
-      }));
-
-      await client.from('notifications').insert(inAppRecords);
-
-      const { data: studentUsers } = await client
-        .from('users')
-        .select('id, email')
-        .in('id', studentUserIds);
-
-      const studentEmails = (studentUsers || []).map(u => u.email).filter(Boolean);
-      const studentIdStrings = (studentUsers || []).map(u => String(u.id));
-
-      if (studentEmails.length > 0 || studentIdStrings.length > 0) {
-        await fetch('/api/notify-users', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            class_title: className,
-            title: title,
-            type: notifType,
-            student_emails: studentEmails,
-            student_ids: studentIdStrings,
-            details: detailsText
-          })
-        });
+          studentEmails = (studentUsers || []).map(u => u.email).filter(Boolean);
+          studentIdStrings = (studentUsers || []).map(u => String(u.id));
+        }
+      } catch (rosterErr) {
+        console.warn("Client roster fetch warning, backend will auto-resolve:", rosterErr);
       }
+
+      // 3. Set Target Redirect URL
+      const targetUrl = notifType === 'updated_activity' ? '/dashboard.html' : '/lessons.html';
+
+      // 4. Dispatch Multi-Channel Notification to Flask Backend
+      // (Backend handles Brevo Email, Supabase In-App DB records, and PyWebPush)
+      await fetch('/api/notify-users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          class_id: resolvedClassId,
+          activity_id: activityId ? parseDbId(activityId) : null,
+          class_title: className,
+          title: title,
+          type: notifType,
+          student_emails: studentEmails,
+          student_ids: studentIdStrings,
+          details: detailsText,
+          url: targetUrl
+        })
+      });
+
+      console.log("✅ Update notification dispatched successfully.");
     } catch (err) {
       console.warn("Update notification dispatch error:", err);
     }

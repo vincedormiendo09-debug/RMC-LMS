@@ -1252,24 +1252,81 @@ def studentwork_page():
 @app.route('/api/notify-users', methods=['POST'])
 def notify_users():
     data = request.json or {}
+    class_id = data.get('class_id')
+    activity_id = data.get('activity_id')
     class_title = data.get('class_title', 'Your Class')
     item_title = data.get('title', 'Course Material')
     notif_type = data.get('type', 'new_activity')
-    student_emails = data.get('student_emails', [])
-    student_ids = data.get('student_ids', [])
     details = data.get('details', 'Check portal for updates.')
-    target_url = data.get('url', '/notify.html')
+    # 🎯 Directs users straight to landpage.html when banner is tapped
+    target_url = data.get('url', '/landpage.html')
+
+    student_emails = list(data.get('student_emails', []))
+    student_ids = list(data.get('student_ids', []))
+
+    # 🚫 SUPPRESS EMAIL FOR CHAT / MESSAGES
+    is_chat = any(k in notif_type.lower() for k in ['chat', 'message', 'dm'])
+
+    # 🔍 AUTO-RESOLVE class_id FROM activity_id IF MISSING
+    if not class_id and activity_id:
+        try:
+            act_id = int(activity_id) if str(activity_id).isdigit() else str(activity_id)
+            act_resp = supabase.table('activities').select('class_id, title').eq('id', act_id).execute()
+            if act_resp.data:
+                class_id = act_resp.data[0].get('class_id')
+                if not item_title or item_title == 'Course Material':
+                    item_title = act_resp.data[0].get('title', item_title)
+        except Exception as act_err:
+            print(f"⚠️ Error finding class_id from activity: {act_err}")
+
+    # 🔍 AUTO-RESOLVE CLASS ROSTER VIA class_id (For Lessons & Activities)
+    if class_id and not is_chat and (not student_emails or not student_ids):
+        try:
+            c_ids = [int(class_id)] if str(class_id).isdigit() else [str(class_id)]
+            if str(class_id).isdigit():
+                c_ids.append(str(class_id))
+
+            members_resp = supabase.table('class_memberships').select('*').in_('class_id', c_ids).execute()
+            members = members_resp.data or []
+
+            raw_uids = set()
+            for m in members:
+                for key in ['user_id', 'student_id', 'userId', 'studentId']:
+                    val = m.get(key)
+                    if val is not None and str(val).strip():
+                        raw_uids.add(str(val).strip())
+
+            if raw_uids:
+                search_uids = []
+                for uid in raw_uids:
+                    if uid.isdigit():
+                        search_uids.append(int(uid))
+                    search_uids.append(uid)
+
+                users_resp = supabase.table('users').select('id, email').in_('id', search_uids).execute()
+                for u in (users_resp.data or []):
+                    if u.get('email') and u['email'] not in student_emails:
+                        student_emails.append(u['email'])
+                    if u.get('id') and str(u['id']) not in student_ids:
+                        student_ids.append(str(u['id']))
+
+            print(f"📋 Roster resolved for class {class_id}: {len(student_ids)} student(s) found.")
+        except Exception as roster_err:
+            print(f"⚠️ Error resolving class roster: {roster_err}")
 
     type_messages = {
         'new_activity': ('New Activity Posted', 'A new activity has been posted'),
         'updated_activity': ('Activity Updated', 'An activity has been updated'),
         'new_lesson': ('New Lesson Uploaded', 'New lesson materials have been uploaded'),
-        'updated_lesson': ('Lesson Updated', 'Lesson materials have been updated')
+        'updated_lesson': ('Lesson Updated', 'Lesson materials have been updated'),
+        'new_message': ('New Message', 'You have a new message'),
+        'chat': ('New Chat Message', 'New message received in chat')
     }
     
     subject_prefix, body_action = type_messages.get(notif_type, ('Academic Update', 'An update has been made'))
 
-    if student_emails:
+    # 1. DISPATCH VIA BREVO API (PORT 443) — Strictly skipped for chat
+    if student_emails and not is_chat:
         email_body = f"""Hello Regis Marie College Student,
 
 {body_action} in your class: {class_title}.
@@ -1277,7 +1334,8 @@ def notify_users():
 Title: {item_title}
 Details: {details}
 
-Please log into your portal to view full requirements and updates.
+Please log into your portal to view full requirements and updates:
+https://rmc-lms.onrender.com{target_url}
 
 Best regards,
 Academic Portal
@@ -1289,7 +1347,42 @@ Regis Marie College
             body_text=email_body
         )
 
+    # 2. CREATE IN-APP NOTIFICATION & DISPATCH MOBILE WEB PUSH
     if student_ids:
+        # Format push title & body cleanly depending on whether it's chat or academic coursework
+        if is_chat:
+            push_title = item_title if "💬" in item_title else f"💬 {item_title}"
+            push_body = details
+            notif_db_title = push_title
+            notif_db_msg = details
+        else:
+            push_title = f"🔔 {subject_prefix}: {item_title}"
+            push_body = f"{class_title} • {details}"
+            notif_db_title = push_title
+            notif_db_msg = push_body
+
+        # A. Save in-app notification record in Supabase
+        try:
+            now_iso = datetime.now(timezone.utc).isoformat()
+            notif_records = []
+            for uid in student_ids:
+                parsed_uid = int(uid) if str(uid).isdigit() else str(uid)
+                notif_records.append({
+                    "user_id": parsed_uid,
+                    "title": notif_db_title,
+                    "message": notif_db_msg,
+                    "type": "chat" if is_chat else ("lesson" if "lesson" in notif_type else "activity"),
+                    "target_id": str(activity_id) if activity_id else (str(class_id) if class_id else None),
+                    "activity_id": int(activity_id) if str(activity_id).isdigit() else (str(activity_id) if activity_id else None),
+                    "is_read": False,
+                    "created_at": now_iso
+                })
+            if notif_records:
+                supabase.table('notifications').insert(notif_records).execute()
+        except Exception as notif_err:
+            print(f"⚠️ In-app notification insert notice: {notif_err}")
+
+        # B. Mobile Web Push (PyWebPush)
         try:
             clean_ids = []
             for sid in student_ids:
@@ -1301,8 +1394,8 @@ Regis Marie College
             subscriptions = response.data or []
 
             push_payload = json.dumps({
-                "title": f"🔔 {subject_prefix}: {item_title}",
-                "body": f"{class_title} • {details}",
+                "title": push_title,
+                "body": push_body,
                 "url": target_url,
                 "unreadCount": 1
             })
@@ -1364,7 +1457,7 @@ def clear_activity_reminders():
     except Exception as e:
         print(f"⚠️ Clear activity reminders notice: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
-
+    
 # =========================================
 # ⏰ AUTOMATED DEADLINE & REMINDER ENGINE (APScheduler)
 # =========================================
