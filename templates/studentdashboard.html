@@ -1509,7 +1509,7 @@ body, button, input, select, textarea {
     if (container) container.insertBefore(banner, container.firstChild);
   }
 
-  /* =====================================================
+/* =====================================================
       3. BATCH DATA FETCHING & METRICS ENGINE
   ===================================================== */
   async function initAnalyticsDashboard() {
@@ -1718,48 +1718,71 @@ body, button, input, select, textarea {
     studentMetrics.sort((a, b) => b.avgGrade - a.avgGrade);
   }
 
-  /* 🎯 ACTIVITY DIAGNOSTIC SCANNER: FAILING / DIFFICULT ACTIVITY DETECTOR */
+  /* 🎯 ACTIVITY DIAGNOSTIC SCANNER: EXACT STUDENT HEADCOUNT FAILURE DETECTOR */
   function calculateActivityDiagnostics() {
     flaggedActivitiesList = [];
+    const totalEnrolled = enrolledStudentsList.length;
+    if (totalEnrolled === 0) return;
+
+    const now = new Date().getTime();
 
     classActivitiesList.forEach(act => {
       const maxPts = Number(act.total_points) > 0 ? Number(act.total_points) : 100;
+      const deadline = act.deadline || act.due_date;
+      const isOverdue = deadline ? (now > new Date(deadline).getTime()) : false;
+
       const actSubs = classSubmissionsList.filter(s => 
         String(s.activity_id) === String(act.id) || parseDbId(s.activity_id) === parseDbId(act.id)
       );
 
-      const gradedSubs = actSubs.filter(s => {
-        const raw = s.grade !== null && s.grade !== undefined && s.grade !== '' 
-          ? s.grade 
-          : (s.score !== null && s.score !== undefined && s.score !== '' ? s.score : null);
-        return raw !== null;
+      let failedStudentsCount = 0;
+      let totalTransmutedSum = 0;
+      let evaluatedCount = 0;
+
+      enrolledStudentsList.forEach(student => {
+        const sub = actSubs.find(s => 
+          String(s.user_id || s.student_id) === String(student.id) || parseDbId(s.user_id || s.student_id) === parseDbId(student.id)
+        );
+
+        if (sub) {
+          const raw = sub.grade !== null && sub.grade !== undefined && sub.grade !== '' 
+            ? sub.grade 
+            : (sub.score !== null && sub.score !== undefined && sub.score !== '' ? sub.score : null);
+
+          if (raw !== null) {
+            const transmuted = Math.round(((Number(raw) / maxPts) * 50) + 50);
+            totalTransmutedSum += transmuted;
+            evaluatedCount++;
+            if (transmuted < 75) failedStudentsCount++;
+          } else if (isOverdue) {
+            // Unscored & past deadline -> counts as 0% failure
+            evaluatedCount++;
+            failedStudentsCount++;
+          }
+        } else if (isOverdue) {
+          // Missing submission past deadline -> 0% failure
+          evaluatedCount++;
+          failedStudentsCount++;
+        }
       });
 
-      if (gradedSubs.length > 0) {
-        let totalBase50 = 0;
-        gradedSubs.forEach(s => {
-          const raw = Number(s.grade !== null && s.grade !== undefined ? s.grade : s.score) || 0;
-          const transmuted = Math.round(((raw / maxPts) * 50) + 50);
-          totalBase50 += transmuted;
+      const cohortAvg = evaluatedCount > 0 ? Math.round(totalTransmutedSum / evaluatedCount) : 0;
+
+      // ⚠️ Flag if more than half of the students failed OR cohort average is below 75%
+      if (failedStudentsCount > (totalEnrolled / 2) || cohortAvg < 75) {
+        flaggedActivitiesList.push({
+          id: act.id,
+          title: act.title || "Class Activity",
+          cohortAvg: cohortAvg,
+          failedCount: failedStudentsCount,
+          totalEnrolled: totalEnrolled,
+          week: act.computedWeek
         });
-
-        const cohortAvg = Math.round(totalBase50 / gradedSubs.length);
-
-        // Flag any activity where cohort average is below 75%
-        if (cohortAvg < 75) {
-          flaggedActivitiesList.push({
-            id: act.id,
-            title: act.title || "Class Activity",
-            cohortAvg: cohortAvg,
-            gradedCount: gradedSubs.length,
-            week: act.computedWeek
-          });
-        }
       }
     });
   }
 
-  /* =====================================================
+/* =====================================================
       4. UI RENDERING, DIAGNOSTICS & CHARTS
   ==================================================== */
   function renderDashboard() {
@@ -1803,7 +1826,7 @@ body, button, input, select, textarea {
     if (completedEl) completedEl.textContent = `${totalGraded}`;
   }
 
-  /* 🎯 RENDER ACTIVITY DIAGNOSTIC ALERT HUB */
+  /* 🎯 RENDER ACTIVITY DIAGNOSTIC ALERT HUB (EXACT STUDENT HEADCOUNT) */
   function renderActivityDiagnostics() {
     const badge = document.getElementById("activityDiagnosticStatusBadge");
     const tagsContainer = document.getElementById("activityDiagnosticTags");
@@ -1821,11 +1844,15 @@ body, button, input, select, textarea {
       flaggedActivitiesList.forEach(act => {
         const tag = document.createElement("span");
         tag.className = "attention-tag";
-        tag.style.cssText = "background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;";
+        tag.style.cssText = "background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 8px 14px; border-radius: 6px; font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;";
+        
         tag.innerHTML = `
-          <i class="fa-solid fa-triangle-exclamation"></i>
-          <strong>${escapeHtml(act.title)}</strong> (W${act.week}):
-          Cohort Avg: <strong>${act.cohortAvg}%</strong> (Needs Remedial Review)
+          <i class="fa-solid fa-triangle-exclamation" style="font-size: 15px; color: #dc2626;"></i>
+          <span><strong>${escapeHtml(act.title)}</strong> (Week ${act.week}):</span>
+          <span style="background: #ffffff; padding: 3px 10px; border-radius: 4px; border: 1px solid #fca5a5; color: #dc2626; font-weight: 700;">
+            ⚠️ ${act.failedCount} students failed in this activity (out of ${act.totalEnrolled} enrolled)
+          </span>
+          <span style="font-size: 11.5px; color: #7f1d1d;">Cohort Avg: ${act.cohortAvg}%</span>
         `;
         tagsContainer.appendChild(tag);
       });
@@ -1838,7 +1865,7 @@ body, button, input, select, textarea {
       tagsContainer.innerHTML = `
         <span style="background: #dcfce7; border: 1px solid #86efac; color: #166534; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
           <i class="fa-solid fa-circle-check"></i>
-          Cohort Performance Strong: No activities have a class average falling below the 75% threshold.
+          Cohort Performance Strong: No activities have a majority of students failing.
         </span>
       `;
     }
