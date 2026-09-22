@@ -1674,6 +1674,16 @@
                 <!-- Populated dynamically -->
               </select>
 
+<!-- =========================================================
+             LINKED CURRICULUM LESSON (REMEDIAL INTERVENTION)
+        ========================================================= -->
+        <label for="linkedLesson">
+          <i class="fa-solid fa-book-bookmark"></i> Linked Lesson / Reviewer <span style="font-size: 12px; font-weight: normal; color: #64748b;">(Optional)</span>:
+        </label>
+        <select id="linkedLesson" style="width: 100%; padding: 11px 14px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 6px; margin-bottom: 6px; font-size: 14px; background: #ffffff; color: #1e293b; font-family: inherit; outline: none; cursor: pointer;">
+          <option value="">Select a lesson connected to activity</option>
+        </select>
+
               <label for="title" class="required">Activity Title:</label>
               <input type="text" id="title" required placeholder="e.g. Assignment 1: Web Architecture Analysis">
 
@@ -2069,7 +2079,7 @@
     });
   }
 
-  /* =====================================================
+/* =====================================================
       3. INITIALIZE CALENDAR & LOAD CLASSES
   ===================================================== */
   async function initCalendarModule() {
@@ -2187,7 +2197,94 @@
       }
     });
 
+    // 🎯 REACTIVE LISTENER: When target class changes, load only its lessons
+    if (actSelect) {
+      actSelect.addEventListener("change", function () {
+        updateClassSubtitles();
+        loadLinkedLessonsForActivity(this.value);
+      });
+
+      // Load initial state
+      if (actSelect.value) {
+        loadLinkedLessonsForActivity(actSelect.value);
+      } else {
+        const lessonDropdown = document.getElementById("linkedLesson");
+        if (lessonDropdown) {
+          lessonDropdown.innerHTML = '<option value="">-- Select a class first --</option>';
+        }
+      }
+    }
+
+    if (lessonSelect) {
+      lessonSelect.addEventListener("change", updateClassSubtitles);
+    }
+
     updateClassSubtitles();
+  }
+
+  /* 📚 DYNAMIC LOADER: Fetch lessons strictly for the selected class */
+  async function loadLinkedLessonsForActivity(classId) {
+    const client = getSupabaseClient();
+    const lessonDropdown = document.getElementById("linkedLesson");
+    if (!lessonDropdown) return;
+
+    if (!classId) {
+      lessonDropdown.innerHTML = '<option value="">-- Select a class first --</option>';
+      return;
+    }
+
+    lessonDropdown.innerHTML = '<option value="">⏳ Loading class lessons...</option>';
+
+    try {
+      const searchIds = getDualTypeIds([classId]);
+      
+      // Query lessons for this specific class only
+      const { data: lessons, error } = await client
+        .from('lessons')
+        .select('*')
+        .in('class_id', searchIds);
+
+      lessonDropdown.innerHTML = '<option value="">-- Select a lesson to link (or none) --</option>';
+
+      if (error) {
+        console.error("Error loading lessons for calendar activity:", error.message);
+        const errOpt = document.createElement("option");
+        errOpt.value = "";
+        errOpt.textContent = `⚠️ Error: ${error.message}`;
+        errOpt.disabled = true;
+        lessonDropdown.appendChild(errOpt);
+        return;
+      }
+
+      if (lessons && lessons.length > 0) {
+        // Sort lessons chronologically / by week
+        lessons.sort((a, b) => {
+          const weekA = Number(a.week_number || a.week || 0);
+          const weekB = Number(b.week_number || b.week || 0);
+          if (weekA !== weekB) return weekA - weekB;
+          return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+        });
+
+        lessons.forEach(les => {
+          const opt = document.createElement("option");
+          opt.value = les.id;
+          const title = les.title || les.lesson_title || les.name || `Lesson #${les.id}`;
+          const weekNum = les.week_number || les.week;
+          const weekTag = weekNum ? `[Week ${weekNum}] ` : '';
+          opt.textContent = `${weekTag}${title}`;
+          lessonDropdown.appendChild(opt);
+        });
+      } else {
+        const emptyOpt = document.createElement("option");
+        emptyOpt.value = "";
+        emptyOpt.textContent = "No lessons found for this selected class";
+        emptyOpt.disabled = true;
+        lessonDropdown.appendChild(emptyOpt);
+      }
+    } catch (err) {
+      console.error("Failed to query lessons:", err);
+      lessonDropdown.innerHTML = '<option value="">-- Select a lesson to link (or none) --</option>';
+    }
   }
 
   /* =====================================================
@@ -2761,24 +2858,10 @@ function createPicker(token) {
     renderAttachments();
   }
 
-  function updateClassSubtitles() {
-    const actSelect = document.getElementById("activityClassSelect");
-    const lesSelect = document.getElementById("lessonClassSelect");
+ function updateClassSubtitles() {
     const subtitleEl = document.getElementById("teacherSectionSubtitle");
-    if (!subtitleEl) return;
-
-    if (currentTeacherAction === 'activity') {
-      const opt = actSelect?.options[actSelect.selectedIndex];
-      const name = opt?.dataset?.subject || opt?.text || "";
-      subtitleEl.textContent = name && actSelect.value 
-        ? `Publish assignments or quizzes for ${name}.`
-        : "";
-    } else {
-      const opt = lesSelect?.options[lesSelect.selectedIndex];
-      const name = opt?.dataset?.subject || opt?.text || "";
-      subtitleEl.textContent = name && lesSelect.value 
-        ? `Publish lecture materials and study resources for ${name}.`
-        : "";
+    if (subtitleEl) {
+      subtitleEl.textContent = "";
     }
   }
 
@@ -3024,7 +3107,7 @@ function createPicker(token) {
     }
   });
 
-  /* --- 10. SUBMIT ACTIVITY FORM --- */
+/* --- 10. SUBMIT ACTIVITY FORM --- */
   const activityForm = document.getElementById("activityForm");
   if (activityForm) {
     activityForm.addEventListener("submit", async function (e) {
@@ -3045,6 +3128,10 @@ function createPicker(token) {
       const time = document.getElementById("time").value;
       const scoreVal = parseInt(document.getElementById("score").value, 10) || 100;
       const submitBtn = document.getElementById("submitActivityBtn");
+
+      // 📚 Capture linked lesson for remedial intervention
+      const linkedLessonEl = document.getElementById("linkedLesson");
+      const lessonIdVal = (linkedLessonEl && linkedLessonEl.value) ? parseDbId(linkedLessonEl.value) : null;
 
       if (!targetClassId) {
         alert("Please select a target class for this activity.");
@@ -3096,11 +3183,13 @@ function createPicker(token) {
       const serializedMaterials = finalizedMaterials.length > 0 ? JSON.stringify(finalizedMaterials) : null;
       const combinedDeadline = new Date(`${date}T${time}:00`).toISOString();
 
+      // 📝 Insert Activity into Supabase with lesson_id
       const { data: newAct, error: createErr } = await client
         .from('activities')
         .insert([
           {
             class_id: parseDbId(targetClassId),
+            lesson_id: lessonIdVal,
             title: title,
             description: description,
             file_url: serializedMaterials,
@@ -3150,6 +3239,11 @@ function createPicker(token) {
       activityForm.reset();
       activityAttachedItems = [];
       renderAttachments();
+
+      // Reset linked lesson dropdown back to default placeholder
+      if (linkedLessonEl) {
+        linkedLessonEl.innerHTML = '<option value="">-- Select a class first --</option>';
+      }
 
       if (submitBtn) {
         submitBtn.disabled = false;

@@ -1548,8 +1548,8 @@ body, button, input, select, textarea {
     });
   }
 
-  /* =====================================================
-      5. MULTI-FIELD SEARCH & TABLE RENDERING
+/* =====================================================
+      5. MULTI-FIELD SEARCH & TABLE RENDERING (BASE-50)
   ===================================================== */
   function filterSubmissions() {
     const activitySelect = document.getElementById("activityFilter");
@@ -1578,9 +1578,9 @@ body, button, input, select, textarea {
       if (selectedStatus === "Graded") matchesStatus = isGraded;
 
       const matchesSearch = searchQuery === "" || 
-                            studentName.includes(searchQuery) ||
-                            studentEmail.includes(searchQuery) ||
-                            activityTitle.includes(searchQuery) ||
+                            studentName.includes(searchQuery) || 
+                            studentEmail.includes(searchQuery) || 
+                            activityTitle.includes(searchQuery) || 
                             classCode.includes(searchQuery);
 
       return matchesActivity && matchesStatus && matchesSearch;
@@ -1605,11 +1605,13 @@ body, button, input, select, textarea {
       return st === "graded" || s.grade !== null || s.score !== null;
     });
 
+    // 🎯 Base-50 Transmuted Class Average: ((raw / max) * 50) + 50
     let totalPercentageSum = 0;
     gradedList.forEach(s => {
       const achieved = Number(s.grade !== null && s.grade !== undefined ? s.grade : s.score) || 0;
-      const maxPts = Number(s.activities?.total_points) || 100;
-      totalPercentageSum += (achieved / maxPts) * 100;
+      const maxPts = Number(s.activities?.total_points) > 0 ? Number(s.activities.total_points) : 100;
+      const transmuted = ((achieved / maxPts) * 50) + 50;
+      totalPercentageSum += transmuted;
     });
 
     const avgScore = gradedList.length > 0 ? (totalPercentageSum / gradedList.length).toFixed(1) : 0;
@@ -1673,7 +1675,7 @@ body, button, input, select, textarea {
 
       const timelinessTag = `<span class="${tagClass}"><i class="fa-solid ${iconClass}"></i> ${dateFormatted} ${timeFormatted ? '- ' + timeFormatted : ''} (${statusLabel})</span>`;
 
-      // Safe multi-attachment unpacker
+      // Multi-attachment unpacker
       const attachedFiles = parseMaterials(sub.file_url, 'file');
       const attachedLinks = parseMaterials(sub.link_url, 'link');
       const totalAttached = attachedFiles.length + attachedLinks.length;
@@ -1703,14 +1705,22 @@ body, button, input, select, textarea {
         ? `<span class="class-code-tag" style="font-size: 10px; margin-left: 5px; background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-weight: 700;">${escapeHtml(classCode)}</span>` 
         : '';
 
+      // 🎯 Calculate Base-50 Transmuted Grade for visual feedback
+      const rawScoreNum = currentScore !== "" ? Number(currentScore) : null;
+      const transmutedGrade = rawScoreNum !== null ? Math.round(((rawScoreNum / maxPoints) * 50) + 50) : null;
+      const gradeBadge = transmutedGrade !== null
+        ? `<span style="font-size: 11px; font-weight: 700; color: ${transmutedGrade >= 75 ? '#16a34a' : '#dc2626'}; margin-left: 4px;">(${transmutedGrade}% ${transmutedGrade >= 75 ? 'Pass' : 'Fail'})</span>`
+        : '';
+
       let scoreCellHtml = "";
       let actionCellHtml = "";
 
       if (userRole === "ADMIN") {
         scoreCellHtml = `
-          <div style="display: flex; align-items: center; gap: 4px;">
+          <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
             <span style="font-size: 14px; font-weight: 700; color: #1e293b;">${currentScore !== "" ? currentScore : "-"}</span>
             <span style="font-size: 12px; color: var(--muted); font-weight: bold;">/ ${maxPoints}</span>
+            ${gradeBadge}
           </div>
         `;
         actionCellHtml = `
@@ -1727,9 +1737,10 @@ body, button, input, select, textarea {
           : `<button class="btn-save-grade" id="save_btn_${sub.id}" onclick="saveGrade('${escapeJsString(String(sub.id))}', ${maxPoints}, '${escapeJsString(String(studentUid))}', '${escapeJsString(activityTitle)}')"><i class="fa-solid fa-floppy-disk"></i> Save</button>`;
 
         scoreCellHtml = `
-          <div style="display: flex; align-items: center; gap: 4px;">
-            <input type="number" min="0" max="${maxPoints}" class="score-input" id="score_${sub.id}" value="${currentScore}" placeholder="0" ${inputDisabled}>
+          <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
+            <input type="number" min="0" max="${maxPoints}" class="score-input" id="score_${sub.id}" value="${currentScore}" placeholder="0" ${inputDisabled} style="width: 65px;">
             <span style="font-size: 12px; color: var(--muted); font-weight: bold;">/ ${maxPoints}</span>
+            ${gradeBadge}
           </div>
         `;
         actionCellHtml = `
@@ -1761,7 +1772,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-      6. SAVE & UPDATE STUDENT GRADE
+      6. SAVE & UPDATE STUDENT GRADE (BASE-50 & REMEDIAL LOOP)
   ===================================================== */
   async function saveGrade(submissionId, maxPoints, studentUserId, activityTitle) {
     if (userRole !== "TEACHER") {
@@ -1787,6 +1798,10 @@ body, button, input, select, textarea {
     }
 
     const numericScore = Number(scoreVal);
+    // 🎯 Base-50 transmutation: (raw / max * 50) + 50
+    const transmutedGrade = Math.round(((numericScore / maxPoints) * 50) + 50);
+    const isPassing = transmutedGrade >= 75;
+
     const subSearchIds = getDualTypeIds([submissionId]);
 
     let updatePayload = {
@@ -1819,26 +1834,44 @@ body, button, input, select, textarea {
       return;
     }
 
-    // Dispatch In-App Notification
+    // Resolve activity details & linked remedial lesson
     const sub = rawSubmissionsList.find(s => String(s.id) === String(submissionId) || parseDbId(s.id) === parseDbId(submissionId));
     const resolvedTitle = sub?.activities?.title || activityTitle || "Activity";
+    const linkedLessonId = sub?.activities?.lesson_id || null;
+    const targetClassId = sub?.activities?.class_id || currentClassId;
 
     if (studentUserId) {
       const parsedStudentId = parseDbId(studentUserId);
+
+      // Automated remedial instruction when student fails (< 75%)
+      const notifTitle = isPassing 
+        ? `💯 Grade Posted: ${resolvedTitle}` 
+        : `⚠️ Remedial Review Required: ${resolvedTitle}`;
+
+      const notifMessage = isPassing
+        ? `Your work for "${resolvedTitle}" has been evaluated: ${numericScore}/${maxPoints} (Transmuted: ${transmutedGrade}% - Passed).`
+        : `Please read this lesson because you failed in this activity. Your score: ${numericScore}/${maxPoints} (Transmuted: ${transmutedGrade}% - Needs Improvement).`;
+
       try {
         const notifPayload = {
           user_id: parsedStudentId,
-          title: `💯 Grade Posted: ${resolvedTitle}`,
-          message: `Your work for "${resolvedTitle}" has been evaluated: ${numericScore}/${maxPoints}.`,
+          title: notifTitle,
+          message: notifMessage,
           is_read: false,
+          activity_id: sub?.activity_id ? parseDbId(sub.activity_id) : null,
+          submission_id: parseDbId(submissionId),
+          lesson_id: linkedLessonId ? parseDbId(linkedLessonId) : null,
+          class_id: targetClassId ? parseDbId(targetClassId) : null,
+          type: isPassing ? 'grade_posted' : 'remedial_lesson',
           created_at: new Date().toISOString()
         };
 
-        if (sub?.activity_id) notifPayload.activity_id = parseDbId(sub.activity_id);
-        if (submissionId) notifPayload.submission_id = parseDbId(submissionId);
-
         const { error: notifErr } = await client.from('notifications').insert([notifPayload]);
         if (notifErr) {
+          // Schema fallback if notifications table lacks specific columns
+          delete notifPayload.lesson_id;
+          delete notifPayload.class_id;
+          delete notifPayload.type;
           delete notifPayload.activity_id;
           delete notifPayload.submission_id;
           await client.from('notifications').insert([notifPayload]);
@@ -1847,7 +1880,7 @@ body, button, input, select, textarea {
         console.warn("In-app notification dispatch warning:", notifErr);
       }
 
-      // Automated Push/Email API Trigger
+      // Automated Push / Email Dispatch
       const studentEmail = sub?.users?.email;
       const emails = studentEmail ? [studentEmail] : [];
       const studentIds = [String(studentUserId)];
@@ -1857,12 +1890,17 @@ body, button, input, select, textarea {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            class_id: targetClassId,
+            lesson_id: linkedLessonId,
+            activity_id: sub?.activity_id,
             class_title: selectedClassCode !== "all" ? `Class ${selectedClassCode}` : 'Your Course',
-            title: `Grade Posted: ${resolvedTitle}`,
-            type: 'grade_posted',
+            title: notifTitle,
+            type: isPassing ? 'grade_posted' : 'remedial_lesson',
             student_emails: emails,
             student_ids: studentIds,
-            details: `Score: ${numericScore}/${maxPoints}. Log into your student portal to review feedback.`
+            details: isPassing
+              ? `Score: ${numericScore}/${maxPoints} (${transmutedGrade}% - Passed). Check your portal to view remarks.`
+              : `Score: ${numericScore}/${maxPoints} (${transmutedGrade}% - Failed). Please read this lesson because you failed in this activity.`
           })
         });
       } catch (alertErr) {
@@ -1870,7 +1908,12 @@ body, button, input, select, textarea {
       }
     }
 
-    alert("🎉 Score saved successfully! The student has been notified.");
+    if (!isPassing) {
+      alert(`⚠️ Score saved! The student received ${transmutedGrade}% (Below 75%). An automated remedial study alert pointing to the lesson has been sent.`);
+    } else {
+      alert(`🎉 Score saved successfully! The student received ${transmutedGrade}% (Passed).`);
+    }
+
     await loadClassSubmissionsData();
   }
 
@@ -1899,7 +1942,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-      7. EXPORT TO CSV (UTF-8 BOM ENCODED)
+      7. EXPORT TO CSV (BASE-50 TRANSMUTED & BOM ENCODED)
   ===================================================== */
   function exportSubmissionsCSV() {
     if (!currentFilteredSubmissions || currentFilteredSubmissions.length === 0) {
@@ -1910,7 +1953,7 @@ body, button, input, select, textarea {
     let csvContent = "\uFEFF"; // UTF-8 BOM
     csvContent += "REGIS MARIE COLLEGE - STUDENT SUBMISSION & GRADING LEDGER\r\n";
     csvContent += `Filter Selection: ${escapeCsvCell(selectedClassCode === "all" ? "All Active Classes" : selectedClassCode)},Export Date: ${new Date().toLocaleDateString()}\r\n\r\n`;
-    csvContent += "Student Name,Email,Class Code,Activity Title,Max Points,Score Achieved,Percentage,Status,Timeliness,Submission Date\r\n";
+    csvContent += "Student Name,Email,Class Code,Activity Title,Max Points,Raw Score,Base-50 Grade,Remarks,Timeliness,Submission Date\r\n";
 
     currentFilteredSubmissions.forEach(sub => {
       const studentName = sub.users?.full_name || sub.user_name || "Student";
@@ -1919,8 +1962,14 @@ body, button, input, select, textarea {
       const activityTitle = sub.activities?.title || "Activity";
       const maxPoints = Number(sub.activities?.total_points) > 0 ? Number(sub.activities.total_points) : 100;
       const scoreAchieved = sub.grade !== null && sub.grade !== undefined ? sub.grade : (sub.score !== null && sub.score !== undefined ? sub.score : "Pending");
-      const percentage = typeof scoreAchieved === "number" ? ((scoreAchieved / maxPoints) * 100).toFixed(1) + "%" : "N/A";
-      const status = sub.status || "Submitted";
+
+      let base50Percentage = "N/A";
+      let remarks = "Pending";
+      if (typeof scoreAchieved === "number") {
+        const transmuted = Math.round(((scoreAchieved / maxPoints) * 50) + 50);
+        base50Percentage = `${transmuted}%`;
+        remarks = transmuted >= 75 ? "Passed" : "Failed (Remedial)";
+      }
 
       let timeliness = "On Time";
       const deadlineDate = sub.activities?.deadline || sub.activities?.due_date;
@@ -1943,8 +1992,8 @@ body, button, input, select, textarea {
         escapeCsvCell(activityTitle),
         escapeCsvCell(maxPoints),
         escapeCsvCell(scoreAchieved),
-        escapeCsvCell(percentage),
-        escapeCsvCell(status),
+        escapeCsvCell(base50Percentage),
+        escapeCsvCell(remarks),
         escapeCsvCell(timeliness),
         escapeCsvCell(dateStr)
       ].join(",") + "\r\n";

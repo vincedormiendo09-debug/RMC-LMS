@@ -930,7 +930,7 @@ body, button, input, select, textarea {
     <header class="page-header">
       <div class="header-title-group">
         <h1 id="dashTitle"><i class="fa-solid fa-chart-pie"></i> Classroom Analytics & Progress Tracking</h1>
-        <p id="dashSub">Monitor activity progress, track active content, and inspect daily student turn-ins.</p>
+        <p id="dashSub">Monitor activity progress, track active content, and audit weekly student turn-in logs.</p>
       </div>
 
       <div class="controls-group">
@@ -940,49 +940,43 @@ body, button, input, select, textarea {
         </select>
 
         <!-- 2. ROLLING WEEK TIMEFRAME SELECTOR -->
-<select id="weekSelector" class="select-class-dropdown" onchange="switchWeekFilter(this.value)">
-  <option value="ALL" selected>📅 Full Overview (Weeks 1 - 15)</option>
-  <option value="W1">Week 1 (Current Week)</option>
-  <option value="W2">Week 2 (Last Week)</option>
-  <option value="W3">Week 3 (2 Weeks Ago)</option>
-  <option value="W4">Week 4 (3 Weeks Ago)</option>
-  <option value="W5">Week 5 (4 Weeks Ago)</option>
-  <option value="W6">Week 6 (5 Weeks Ago)</option>
-  <option value="W7">Week 7 (6 Weeks Ago)</option>
-  <option value="W8">Week 8 (7 Weeks Ago)</option>
-  <option value="W9">Week 9 (8 Weeks Ago)</option>
-  <option value="W10">Week 10 (9 Weeks Ago)</option>
-  <option value="W11">Week 11 (10 Weeks Ago)</option>
-  <option value="W12">Week 12 (11 Weeks Ago)</option>
-  <option value="W13">Week 13 (12 Weeks Ago)</option>
-  <option value="W14">Week 14 (13 Weeks Ago)</option>
-  <option value="W15">Week 15 (14 Weeks Ago)</option>
-</select>
+        <select id="weekSelector" class="select-class-dropdown" onchange="switchWeekFilter(this.value)">
+          <option value="ALL" selected>📅 Full Overview (Weeks 1 - 15)</option>
+          <option value="W1">Week 1 (Current Week)</option>
+          <option value="W2">Week 2 (Last Week)</option>
+          <option value="W3">Week 3 (2 Weeks Ago)</option>
+          <option value="W4">Week 4 (3 Weeks Ago)</option>
+          <option value="W5">Week 5 (4 Weeks Ago)</option>
+          <option value="W6">Week 6 (5 Weeks Ago)</option>
+          <option value="W7">Week 7 (6 Weeks Ago)</option>
+          <option value="W8">Week 8 (7 Weeks Ago)</option>
+          <option value="W9">Week 9 (8 Weeks Ago)</option>
+          <option value="W10">Week 10 (9 Weeks Ago)</option>
+          <option value="W11">Week 11 (10 Weeks Ago)</option>
+          <option value="W12">Week 12 (11 Weeks Ago)</option>
+          <option value="W13">Week 13 (12 Weeks Ago)</option>
+          <option value="W14">Week 14 (13 Weeks Ago)</option>
+          <option value="W15">Week 15 (14 Weeks Ago)</option>
+        </select>
       </div>
     </header>
 
     <div class="container">
 
-      <!-- KPI SUMMARY CARDS -->
-      <div class="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-header">
-            <span class="kpi-title">Highest Class Grade</span>
-            <div class="kpi-icon-box" style="background:var(--success-light); color:var(--success);"><i class="fa-solid fa-trophy"></i></div>
-          </div>
-          <div class="kpi-value" id="kpiHighestGrade">0%</div>
-          <div class="kpi-subtext positive" id="kpiHighestName"><i class="fa-solid fa-star"></i> Loading...</div>
-        </div>
-
+      <!-- KPI SUMMARY CARDS (CLEAN 3-CARD LAYOUT) -->
+      <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+        
+        <!-- Overall Average Grade -->
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Overall Average Grade</span>
             <div class="kpi-icon-box" style="background:var(--primary-light); color:var(--primary);"><i class="fa-solid fa-chart-line"></i></div>
           </div>
           <div class="kpi-value" id="kpiOverallAvg">0%</div>
-          <div class="kpi-subtext positive"><i class="fa-solid fa-circle-check"></i> Live System Average</div>
+          <div class="kpi-subtext positive"><i class="fa-solid fa-circle-check"></i> Base-50 Transmuted Average</div>
         </div>
 
+        <!-- Active Posted Content -->
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Active Posted Content</span>
@@ -992,6 +986,7 @@ body, button, input, select, textarea {
           <div class="kpi-subtext positive" id="kpiActiveClassesName"><i class="fa-solid fa-book-open"></i> Total Class Activities</div>
         </div>
 
+        <!-- Inactive / Low Activity Classes -->
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Inactive / Low Activity</span>
@@ -1023,69 +1018,52 @@ body, button, input, select, textarea {
         </div>
       </div>
 
-      <!-- 🌟 MONDAY–SUNDAY DAILY SUBMISSION MONITOR CARD -->
-      <div class="card" id="dailySubmissionMonitorCard">
-        <div class="card-header">
-          <h2 id="dailyMonitorTitle"><i class="fa-solid fa-calendar-check"></i> Daily Turn-In Inspection Monitor</h2>
-          <span style="font-size:12px; color:var(--muted); font-weight:bold;" id="dailyMonitorSublabel">Click a day tab or chart point to inspect student submissions</span>
+      <!-- 🌟 WEEKLY SUBMISSION TURN-IN LOG -->
+      <div class="card" id="weeklySubmissionMonitorCard">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h2 id="weeklyMonitorTitle"><i class="fa-solid fa-clock-rotate-left"></i> Weekly Turn-In Log</h2>
+            <span style="font-size:12px; color:var(--muted); font-weight:600;" id="weeklyMonitorSublabel">All student submissions for the selected week with recorded timestamps</span>
+          </div>
+
+          <!-- 🎯 TIER FILTER BUTTONS: ALL, PASSED, FAILED -->
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div class="weekly-filter-buttons" style="display: flex; gap: 6px; background: #f1f5f9; padding: 4px; border-radius: 8px; border: 1px solid #e2e8f0;">
+              <button type="button" id="btnFilterAll" onclick="setWeeklyFilter('all')" style="border: none; padding: 5px 12px; font-size: 12px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.2s; background: #2563eb; color: #ffffff;">
+                <i class="fa-solid fa-list"></i> All
+              </button>
+              <button type="button" id="btnFilterPassed" onclick="setWeeklyFilter('passed')" style="border: 1px solid #bbf7d0; padding: 5px 12px; font-size: 12px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.2s; background: #ffffff; color: #166534;">
+                <i class="fa-solid fa-check"></i> Passed (≥ 75%)
+              </button>
+              <button type="button" id="btnFilterFailed" onclick="setWeeklyFilter('failed')" style="border: 1px solid #fecdd3; padding: 5px 12px; font-size: 12px; font-weight: 700; border-radius: 6px; cursor: pointer; transition: all 0.2s; background: #ffffff; color: #991b1b;">
+                <i class="fa-solid fa-triangle-exclamation"></i> Failed (&lt; 75%)
+              </button>
+            </div>
+
+            <span class="daily-monitor-count" id="activeWeekCountLabel" style="background: var(--primary-light, #eff6ff); color: var(--primary, #2563eb); padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 12px;">
+              0 Turn-Ins Recorded
+            </span>
+          </div>
         </div>
 
-        <!-- DAY TABS (MON - SUN) -->
-        <div class="day-tabs-container" id="dayTabsContainer">
-          <button type="button" class="day-tab-btn active" id="tab-Mon" onclick="switchDayTab('Mon')">
-            <span>Monday</span>
-            <span class="day-tab-badge" id="badge-Mon">0</span>
-          </button>
-          <button type="button" class="day-tab-btn" id="tab-Tue" onclick="switchDayTab('Tue')">
-            <span>Tuesday</span>
-            <span class="day-tab-badge" id="badge-Tue">0</span>
-          </button>
-          <button type="button" class="day-tab-btn" id="tab-Wed" onclick="switchDayTab('Wed')">
-            <span>Wednesday</span>
-            <span class="day-tab-badge" id="badge-Wed">0</span>
-          </button>
-          <button type="button" class="day-tab-btn" id="tab-Thu" onclick="switchDayTab('Thu')">
-            <span>Thursday</span>
-            <span class="day-tab-badge" id="badge-Thu">0</span>
-          </button>
-          <button type="button" class="day-tab-btn" id="tab-Fri" onclick="switchDayTab('Fri')">
-            <span>Friday</span>
-            <span class="day-tab-badge" id="badge-Fri">0</span>
-          </button>
-          <button type="button" class="day-tab-btn" id="tab-Sat" onclick="switchDayTab('Sat')">
-            <span>Saturday</span>
-            <span class="day-tab-badge" id="badge-Sat">0</span>
-          </button>
-          <button type="button" class="day-tab-btn" id="tab-Sun" onclick="switchDayTab('Sun')">
-            <span>Sunday</span>
-            <span class="day-tab-badge" id="badge-Sun">0</span>
-          </button>
-        </div>
-
-        <!-- DAILY MONITOR HEADER -->
-        <div class="daily-monitor-header">
-          <h3 id="activeDayHeaderLabel"><i class="fa-solid fa-clock"></i> Monday Submissions</h3>
-          <span class="daily-monitor-count" id="activeDayCountLabel">0 Turn-Ins Recorded</span>
-        </div>
-
-        <!-- DAILY MONITOR DATA TABLE -->
-        <div class="table-wrapper" style="margin-top: 0; border-top: none; border-radius: 0 0 8px 8px;">
+        <!-- WEEKLY MONITOR DATA TABLE -->
+        <div class="table-wrapper" style="margin-top: 0; border-radius: 0 0 8px 8px;">
           <table>
             <thead>
               <tr>
                 <th>Student Name</th>
                 <th>Class & Code</th>
                 <th>Activity Submitted</th>
-                <th>Submission Time</th>
+                <th>Submission Timestamp</th>
                 <th>Status / Grade</th>
                 <th>Action</th>
               </tr>
             </thead>
-            <tbody id="dailySubmissionsTableBody">
+            <tbody id="weeklySubmissionsTableBody">
               <tr>
-                <td colspan="6" class="empty-submissions-state">
-                  <i class="fa-solid fa-inbox"></i><br>
-                  No submissions turned in on Monday for this timeframe.
+                <td colspan="6" class="empty-submissions-state" style="text-align: center; padding: 30px; color: var(--muted);">
+                  <i class="fa-solid fa-inbox" style="font-size: 24px; margin-bottom: 8px; color: #94a3b8;"></i><br>
+                  No submissions recorded for this week timeframe.
                 </td>
               </tr>
             </tbody>
@@ -1150,91 +1128,146 @@ body, button, input, select, textarea {
         <a href="{{ url_for('landpage') }}" class="back-btn">← Back to Home</a>
       </div>
 
+<!-- 🌟 ALL ACTIVITIES STUDENT BREAKDOWN MODAL -->
+<div id="studentActivitiesModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); z-index: 9999; justify-content: center; align-items: center; padding: 16px; backdrop-filter: blur(2px);">
+  <div style="background: #ffffff; border-radius: 12px; max-width: 800px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden;">
+    
+    <!-- Modal Header -->
+    <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+      <div>
+        <h3 id="modalStudentTitle" style="margin: 0; font-size: 16px; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-user-graduate" style="color: #2563eb;"></i> Student Activity Portfolio
+        </h3>
+        <span id="modalStudentClassSub" style="font-size: 12px; color: var(--muted, #64748b);">Class: Loading...</span>
+      </div>
+      <button type="button" onclick="closeStudentActivitiesModal()" style="background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; padding: 4px 8px;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Summary KPI Pills -->
+    <div id="modalStudentSummaryBar" style="padding: 12px 20px; background: #f1f5f9; display: flex; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid #e2e8f0; font-size: 12px; font-weight: 700;">
+      <!-- Populated dynamically -->
+    </div>
+
+    <!-- Table of All Activities -->
+    <div style="padding: 0; overflow-y: auto; flex: 1;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+        <thead>
+          <tr style="background: #ffffff; border-bottom: 2px solid #e2e8f0; text-align: left; position: sticky; top: 0; z-index: 1;">
+            <th style="padding: 10px 14px;">Activity Title</th>
+            <th style="padding: 10px 14px;">Due Date</th>
+            <th style="padding: 10px 14px;">Raw Score</th>
+            <th style="padding: 10px 14px;">50% Base Score</th>
+            <th style="padding: 10px 14px;">Evaluation Status</th>
+          </tr>
+        </thead>
+        <tbody id="modalStudentActivitiesBody">
+          <!-- Rows injected dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modal Footer -->
+    <div style="padding: 12px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+      <button type="button" id="modalViewStudentGradesBtn" style="background: #2563eb; color: #ffffff; border: none; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+        Open Full Grade Sheet <i class="fa-solid fa-arrow-right"></i>
+      </button>
+      <button type="button" onclick="closeStudentActivitiesModal()" style="background: #e2e8f0; color: #475569; border: none; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">
+        Close
+      </button>
+    </div>
+
+  </div>
+</div>
+
     </div>
   </main>
+</body>
 
-  <script>
-    /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
-    window.addEventListener('pageshow', function (event) {
-      if (event.persisted) {
-        window.location.reload();
+<script>
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+      window.location.reload();
+    }
+  });
+
+  /* =====================================================
+      0. TYPE-SAFE ID HELPERS & STRING SANITIZERS
+  ===================================================== */
+  function parseDbId(idVal) {
+    if (!idVal) return idVal;
+    if (typeof idVal === 'number') return idVal;
+    const str = String(idVal).trim();
+    return /^\d+$/.test(str) ? parseInt(str, 10) : str;
+  }
+
+  function getDualTypeIds(idArray) {
+    const result = new Set();
+    (idArray || []).forEach(id => {
+      if (id !== null && id !== undefined && id !== '') {
+        result.add(String(id));
+        const num = parseDbId(id);
+        if (typeof num === 'number' && !isNaN(num)) {
+          result.add(num);
+        }
       }
     });
+    return Array.from(result);
+  }
 
-    /* =====================================================
-        0. TYPE-SAFE ID HELPERS & STRING SANITIZERS
-    ===================================================== */
-    function parseDbId(idVal) {
-      if (!idVal) return idVal;
-      if (typeof idVal === 'number') return idVal;
-      const str = String(idVal).trim();
-      return /^\d+$/.test(str) ? parseInt(str, 10) : str;
-    }
+  function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
 
-    function getDualTypeIds(idArray) {
-      const result = new Set();
-      (idArray || []).forEach(id => {
-        if (id !== null && id !== undefined && id !== '') {
-          result.add(String(id));
-          const num = parseDbId(id);
-          if (typeof num === 'number' && !isNaN(num)) {
-            result.add(num);
-          }
-        }
-      });
-      return Array.from(result);
-    }
+  function escapeJsString(str) {
+    if (!str) return "";
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+  }
 
-    function escapeHtml(text) {
-      if (!text) return "";
-      return String(text)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
+  /* =====================================================
+      1. USER SESSION, ROLE & CACHE-SAFE LOGOUT
+  ===================================================== */
+  const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
+  const userRole = rawRole.toUpperCase();
+  const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
 
-    function escapeJsString(str) {
-      if (!str) return "";
-      return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
-    }
+  // 🔒 HARD REDIRECT: Students cannot access faculty analytics
+  if (userRole === "STUDENT") {
+    window.location.replace("{{ url_for('dashboard_page') }}");
+  }
 
-    /* =====================================================
-        1. USER SESSION, ROLE & CACHE-SAFE LOGOUT
-    ===================================================== */
-    const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "TEACHER";
-    const userRole = rawRole.toUpperCase();
-    const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
-    const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+  const roleBadge = document.getElementById("userRoleBadge");
+  const nameDisplay = document.getElementById("sidebarUserName");
+  if (roleBadge) roleBadge.textContent = userRole;
+  if (nameDisplay) nameDisplay.textContent = userName;
 
-    // 🔒 HARD REDIRECT: Students cannot access faculty/institutional analytics
-    if (userRole === "STUDENT") {
-      window.location.replace("{{ url_for('dashboard_page') }}");
-    }
+  const homeUrl = "{{ url_for('landpage') }}";
+  const createUrl = "{{ url_for('create_page') }}";
+  const calendarUrl = "{{ url_for('calendar_page') }}";
+  const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
+  const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
+  const gradesUrl = "{{ url_for('grades_page') }}";
+  const submissionsUrl = "{{ url_for('submissions_page') }}";
+  const studentWorkUrl = "{{ url_for('studentwork_page') }}";
+  const archiveUrl = "{{ url_for('archive_page') }}";
+  const notifyUrl = "{{ url_for('notify_page') }}";
+  const accountUrl = "{{ url_for('account_page') }}";
+  const classPageUrl = "{{ url_for('class_page') }}";
+  const groupPageUrl = "{{ url_for('group_page') }}";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
 
-    const roleBadge = document.getElementById("userRoleBadge");
-    const nameDisplay = document.getElementById("sidebarUserName");
-    if (roleBadge) roleBadge.textContent = userRole;
-    if (nameDisplay) nameDisplay.textContent = userName;
+  const sidebarMenu = document.getElementById("sidebarMenu");
 
-    const homeUrl = "{{ url_for('landpage') }}";
-    const createUrl = "{{ url_for('create_page') }}";
-    const calendarUrl = "{{ url_for('calendar_page') }}";
-    const classDashboardUrl = "{{ url_for('classdashboard_page') }}";
-    const studentDashboardUrl = "{{ url_for('studentdashboard_page') }}";
-    const gradesUrl = "{{ url_for('grades_page') }}";
-    const submissionsUrl = "{{ url_for('submissions_page') }}";
-    const studentWorkUrl = "{{ url_for('studentwork_page') }}";
-    const archiveUrl = "{{ url_for('archive_page') }}";
-    const notifyUrl = "{{ url_for('notify_page') }}";
-    const accountUrl = "{{ url_for('account_page') }}";
-    const classPageUrl = "{{ url_for('class_page') }}";
-    const groupPageUrl = "{{ url_for('group_page') }}";
-    const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
-
-    const sidebarMenu = document.getElementById("sidebarMenu");
-
+  if (sidebarMenu) {
     if (userRole === "ADMIN") {
       sidebarMenu.innerHTML = `
         <a href="${homeUrl}">🏠 Institutional Hub</a>
@@ -1261,1073 +1294,1198 @@ body, button, input, select, textarea {
         <a href="${accountUrl}">👤 Account</a>
       `;
     }
+  }
 
-    /* MOBILE SIDEBAR TOGGLE & BACKDROP */
-    const mobileMenuBtn = document.getElementById("mobileMenuBtn");
-    const sidebar = document.getElementById("sidebar");
-    const sidebarOverlay = document.getElementById("sidebarOverlay");
+  /* MOBILE SIDEBAR TOGGLE & BACKDROP */
+  const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+  const sidebar = document.getElementById("sidebar");
+  const sidebarOverlay = document.getElementById("sidebarOverlay");
 
-    function toggleMobileDrawer(open) {
-      const shouldOpen = open !== undefined ? open : !sidebar.classList.contains("active");
-      if (shouldOpen) {
-        sidebar.classList.add("active");
-        if (sidebarOverlay) sidebarOverlay.classList.add("active");
+  function toggleMobileDrawer(open) {
+    const shouldOpen = open !== undefined ? open : !sidebar.classList.contains("active");
+    if (shouldOpen) {
+      sidebar.classList.add("active");
+      if (sidebarOverlay) sidebarOverlay.classList.add("active");
+    } else {
+      sidebar.classList.remove("active");
+      if (sidebarOverlay) sidebarOverlay.classList.remove("active");
+    }
+  }
+
+  if (mobileMenuBtn && sidebar) {
+    mobileMenuBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleMobileDrawer();
+    });
+  }
+
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener("click", () => toggleMobileDrawer(false));
+  }
+
+  document.addEventListener("click", (e) => {
+    if (sidebar && !sidebar.contains(e.target) && mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
+      toggleMobileDrawer(false);
+    }
+  });
+
+  /* SAFE LOGOUT */
+  function logoutUser() {
+    const authKeys = [
+      "user_id", "userRole", "role", "full_name", "email",
+      "selectedClass", "selectedClassId", "selectedGroup", "selectedGroupId",
+      "selectedSubmissionId", "selectedActivityId", "selectedStudentId",
+      "gradingStudentId", "updateType", "updateClassId", "updateGroupId",
+      "joinedClasses", "joinedGroups", "isArchivedView"
+    ];
+
+    authKeys.forEach(key => localStorage.removeItem(key));
+    sessionStorage.clear();
+    window.location.replace("{{ url_for('logout') }}");
+  }
+
+  /* =====================================================
+      2. SUPABASE INITIALIZATION
+  ===================================================== */
+  const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
+  const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+
+  function getSupabaseClient() {
+    if (window._supabase) return window._supabase;
+    const supabaseLib = window.supabase || window.Supabase;
+    if (supabaseLib && typeof supabaseLib.createClient === 'function') {
+      window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        global: {
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`
+          }
+        }
+      });
+      return window._supabase;
+    }
+    return null;
+  }
+
+  let selectedClassCode = "ALL";
+  let selectedWeek = "ALL";
+
+  let activeClassesList = [];
+  let allActivitiesList = [];
+  let rawSubmissionsList = [];
+  let classMetrics = [];
+
+  let chartTimelineInstance = null;
+  let chartComparisonInstance = null;
+  let chartTimelinessInstance = null;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    setTimeout(() => {
+      initAnalyticsDashboard();
+      loadSidebarClasses();
+      loadSidebarGroups();
+      injectAuditBanner();
+    }, 100);
+  });
+
+  window.addEventListener('resize', () => {
+    if (chartTimelineInstance) chartTimelineInstance.resize();
+    if (chartComparisonInstance) chartComparisonInstance.resize();
+    if (chartTimelinessInstance) chartTimelinessInstance.resize();
+  });
+
+  function injectAuditBanner() {
+    if (userRole !== "ADMIN" || document.getElementById("adminDashBanner")) return;
+    const banner = document.createElement("div");
+    banner.id = "adminDashBanner";
+    banner.style.cssText = "background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 20px;";
+    banner.innerHTML = "🛡️ <strong>Institutional Audit Mode:</strong> You are monitoring curriculum pacing, syllabus activity levels, and class inactivity flags (>14 days) across all institutional subjects.";
+    
+    const container = document.querySelector(".container") || document.querySelector(".main-content");
+    if (container) container.insertBefore(banner, container.firstChild);
+  }
+
+  /* =====================================================
+      3. FETCH CLASSES & INITIALIZE
+  ===================================================== */
+  async function initAnalyticsDashboard() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    if (userRole === "ADMIN") {
+      document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie"></i> Institutional Class Inactivity & Progress Analytics`;
+      document.getElementById("dashSub").textContent = "Auditing subject engagement, syllabus activity recency, and grading health across all institutional courses.";
+    } else {
+      document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie"></i> Classroom Analytics & Progress Tracking`;
+      document.getElementById("dashSub").textContent = "Course Management Engine: Comparative progress tracking for active classes created by you.";
+    }
+
+    const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+
+    let query = client.from('classes').select('*').neq('status', 'archived').order('created_at', { ascending: false });
+
+    if (userRole === "TEACHER" && userSearchIds.length > 0) {
+      query = query.in('teacher_id', userSearchIds);
+    }
+
+    const { data: classes } = await query;
+    activeClassesList = (classes || []).filter(c => c && String(c.status || '').toLowerCase() !== 'archived');
+
+    populateClassSelector();
+    await computeClassActivityMetrics();
+  }
+
+  function populateClassSelector() {
+    const dropdown = document.getElementById("classSelector");
+    if (!dropdown) return;
+    dropdown.innerHTML = `<option value="ALL">🌐 All Active Classes Overview</option>`;
+
+    activeClassesList.forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.code;
+      opt.textContent = `📘 ${c.subject} (${c.code})`;
+      dropdown.appendChild(opt);
+    });
+  }
+
+  function switchClassFilter(classCode) {
+    selectedClassCode = classCode;
+    renderDashboard();
+  }
+
+  function switchWeekFilter(weekVal) {
+    selectedWeek = weekVal;
+    const subLabel = document.getElementById("timelineSublabel");
+    
+    if (subLabel) {
+      if (weekVal === "ALL") {
+        subLabel.textContent = "Showing Full Semester (Weeks 1 - 15)";
       } else {
-        sidebar.classList.remove("active");
-        if (sidebarOverlay) sidebarOverlay.classList.remove("active");
+        const weekNum = weekVal.replace("W", "");
+        subLabel.textContent = `Showing Week ${weekNum} Turn-In Distribution`;
       }
     }
 
-    if (mobileMenuBtn && sidebar) {
-      mobileMenuBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleMobileDrawer();
+    renderTimelineGraph();
+    renderWeeklyMonitorSection();
+  }
+
+  /* =====================================================
+      4. ROLLING WEEK & BASE-50 METRICS ENGINE
+  ===================================================== */
+  function getCurrentMonday() {
+    const d = new Date();
+    const day = d.getDay();
+    const diffToMon = d.getDate() - day + (day === 0 ? -6 : 1);
+    const mon = new Date(d.setDate(diffToMon));
+    mon.setHours(0, 0, 0, 0);
+    return mon;
+  }
+
+  function getMondayOfWeek(dateInput) {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) {
+      const fallback = new Date();
+      fallback.setHours(0, 0, 0, 0);
+      return fallback;
+    }
+    const day = d.getDay();
+    const diffToMon = d.getDate() - day + (day === 0 ? -6 : 1);
+    const mon = new Date(d.setDate(diffToMon));
+    mon.setHours(0, 0, 0, 0);
+    return mon;
+  }
+
+  async function computeClassActivityMetrics() {
+    const client = getSupabaseClient();
+    if (!client || activeClassesList.length === 0) {
+      classMetrics = [];
+      rawSubmissionsList = [];
+      renderDashboard();
+      return;
+    }
+
+    const classIds = [...new Set(getDualTypeIds(activeClassesList.map(c => c.id)))];
+
+    // 1. Fetch Enrollments
+    const { data: memberships } = await client
+      .from('class_memberships')
+      .select('class_id')
+      .in('class_id', classIds);
+
+    const enrollmentCountMap = {};
+    (memberships || []).forEach(m => {
+      const cid = String(m.class_id);
+      enrollmentCountMap[cid] = (enrollmentCountMap[cid] || 0) + 1;
+      enrollmentCountMap[parseDbId(m.class_id)] = enrollmentCountMap[cid];
+    });
+
+    // 2. Fetch Activities
+    const { data: activities, error: actError } = await client
+      .from('activities')
+      .select('*')
+      .in('class_id', classIds);
+
+    if (actError) console.warn("Activities query warning:", actError.message);
+
+    allActivitiesList = activities || [];
+    const actIds = [...new Set(getDualTypeIds(allActivitiesList.map(a => a.id)))];
+
+    const actsByClassMap = {};
+    const actMap = {};
+    allActivitiesList.forEach(a => {
+      const cid = String(a.class_id);
+      if (!actsByClassMap[cid]) actsByClassMap[cid] = [];
+      actsByClassMap[cid].push(a);
+
+      actMap[String(a.id)] = a;
+      actMap[parseDbId(a.id)] = a;
+    });
+
+    // 3. Fetch Submissions
+    let subs = [];
+    if (actIds.length > 0) {
+      const { data: subsData, error: subsError } = await client
+        .from('submissions')
+        .select('*')
+        .in('activity_id', actIds)
+        .order('submitted_at', { ascending: false });
+
+      if (subsError) console.error("Submissions query error:", subsError.message);
+      subs = subsData || [];
+    }
+
+    const activeSubs = subs.filter(s => {
+      const st = String(s.status || '').toLowerCase();
+      return st !== 'draft' && st !== 'unsubmitted';
+    });
+
+    // 4. Batch Fetch User Profiles
+    const userSearchIds = [...new Set(getDualTypeIds(activeSubs.map(s => s.user_id || s.student_id)))];
+    let userMap = {};
+
+    if (userSearchIds.length > 0) {
+      const { data: userList } = await client
+        .from('users')
+        .select('id, full_name, email')
+        .in('id', userSearchIds);
+
+      (userList || []).forEach(u => {
+        userMap[String(u.id)] = u;
+        const pUid = parseDbId(u.id);
+        if (pUid) userMap[pUid] = u;
       });
     }
 
-    if (sidebarOverlay) {
-      sidebarOverlay.addEventListener("click", () => toggleMobileDrawer(false));
-    }
+    const classMap = {};
+    activeClassesList.forEach(c => {
+      classMap[String(c.id)] = c;
+      classMap[parseDbId(c.id)] = c;
+    });
 
-    document.addEventListener("click", (e) => {
-      if (sidebar && !sidebar.contains(e.target) && mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
-        toggleMobileDrawer(false);
+    // 5. Rolling Week Calculations
+    const currentMonday = getCurrentMonday();
+
+    rawSubmissionsList = activeSubs.map(s => {
+      const matchedAct = actMap[String(s.activity_id)] || actMap[parseDbId(s.activity_id)] || {};
+      const matchedCls = classMap[String(matchedAct.class_id)] || classMap[parseDbId(matchedAct.class_id)] || {};
+      const studentKey = s.user_id || s.student_id;
+      const matchedUser = userMap[String(studentKey)] || userMap[parseDbId(studentKey)] || { full_name: s.user_name || "Student User" };
+
+      const subDate = new Date(s.submitted_at || s.created_at || Date.now());
+      const subMon = getMondayOfWeek(subDate);
+
+      const diffWeeks = Math.round((currentMonday.getTime() - subMon.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      let weekNum = diffWeeks <= 0 ? 1 : diffWeeks + 1;
+      if (weekNum > 15) weekNum = 15;
+
+      return {
+        ...s,
+        subDateObj: subDate,
+        weekNumber: weekNum,
+        users: matchedUser,
+        activities: matchedAct,
+        classes: matchedCls
+      };
+    });
+
+    // 6. Group Submissions by Class
+    const subsByClassMap = {};
+    rawSubmissionsList.forEach(s => {
+      const cid = String(s.activities?.class_id);
+      if (cid) {
+        if (!subsByClassMap[cid]) subsByClassMap[cid] = [];
+        subsByClassMap[cid].push(s);
       }
     });
 
-    /* SAFE LOGOUT: Selectively clear credentials while preserving deadline history */
-    function logoutUser() {
-      const authKeys = [
-        "user_id",
-        "userRole",
-        "role",
-        "full_name",
-        "email",
-        "selectedClass",
-        "selectedClassId",
-        "selectedGroup",
-        "selectedGroupId",
-        "selectedSubmissionId",
-        "selectedActivityId",
-        "selectedStudentId",
-        "gradingStudentId",
-        "updateType",
-        "updateClassId",
-        "updateGroupId",
-        "joinedClasses",
-        "joinedGroups",
-        "isArchivedView"
-      ];
+    const now = new Date();
 
-      authKeys.forEach(key => localStorage.removeItem(key));
-      sessionStorage.clear();
+    // 7. Base-50 Computation & Inactivity Detection
+    classMetrics = activeClassesList.map(c => {
+      const cidStr = String(c.id);
+      const enrolledCount = enrollmentCountMap[cidStr] || 0;
+      const cActs = actsByClassMap[cidStr] || [];
+      const cSubs = subsByClassMap[cidStr] || [];
 
-      window.location.replace("{{ url_for('logout') }}");
+      let latestActivityDate = null;
+      cActs.forEach(a => {
+        if (a.created_at) {
+          const actDate = new Date(a.created_at);
+          if (!latestActivityDate || actDate > latestActivityDate) {
+            latestActivityDate = actDate;
+          }
+        }
+      });
+
+      let daysInactive = 0;
+      let isInactive = false;
+      let inactivityReason = "";
+
+      if (cActs.length === 0) {
+        isInactive = true;
+        inactivityReason = "Zero learning activities posted";
+        const classDate = c.created_at ? new Date(c.created_at) : now;
+        daysInactive = Math.max(1, Math.floor((now - classDate) / (1000 * 60 * 60 * 24)));
+      } else if (latestActivityDate) {
+        daysInactive = Math.floor((now - latestActivityDate) / (1000 * 60 * 60 * 24));
+        if (daysInactive >= 14) {
+          isInactive = true;
+          inactivityReason = `Stale curriculum: No new tasks for ${daysInactive} days (>14d)`;
+        }
+      }
+
+      const gradedSubs = cSubs.filter(s => {
+        const st = String(s.status || '').toLowerCase();
+        return st === 'graded' || (s.grade !== null && s.grade !== undefined && s.grade !== '') || (s.score !== null && s.score !== undefined && s.score !== '');
+      });
+
+      let totalBase50Pct = 0;
+      gradedSubs.forEach(s => {
+        const matchedAct = actMap[String(s.activity_id)] || actMap[parseDbId(s.activity_id)];
+        const maxPts = Number(matchedAct?.total_points) || 100;
+        const scoreVal = s.grade !== null && s.grade !== undefined && s.grade !== '' ? s.grade : (s.score !== null && s.score !== undefined && s.score !== '' ? s.score : 0);
+        
+        // 🎯 Official Base-50 Calculation
+        const transmuted = Math.round(((Number(scoreVal) / maxPts) * 50) + 50);
+        totalBase50Pct += transmuted;
+      });
+
+      const avgGrade = gradedSubs.length > 0 ? Math.round(totalBase50Pct / gradedSubs.length) : 0;
+
+      return {
+        id: c.id,
+        code: c.code,
+        subject: c.subject,
+        enrolled: enrolledCount,
+        activitiesCount: cActs.length,
+        submissionsCount: cSubs.length,
+        avgGrade: avgGrade,
+        isInactive: isInactive,
+        daysInactive: daysInactive,
+        inactivityReason: inactivityReason,
+        subs: cSubs
+      };
+    });
+
+    renderDashboard();
+  }
+
+  /* =====================================================
+      5. RENDER DASHBOARD & VISUALIZATIONS
+  ===================================================== */
+  function renderDashboard() {
+    let filteredMetrics = classMetrics;
+    if (selectedClassCode !== "ALL") {
+      filteredMetrics = classMetrics.filter(m => m.code === selectedClassCode);
     }
 
-    /* =====================================================
-        2. SUPABASE INITIALIZATION
-    ===================================================== */
-    const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
+    const tbody = document.getElementById("classTableBody");
 
-    function getSupabaseClient() {
-      if (window._supabase) return window._supabase;
-      const supabaseLib = window.supabase || window.Supabase;
-      if (supabaseLib && typeof supabaseLib.createClient === 'function') {
-        window._supabase = supabaseLib.createClient(SUPABASE_URL, SUPABASE_KEY, {
-          global: {
-            headers: {
-              apikey: SUPABASE_KEY,
-              Authorization: `Bearer ${SUPABASE_KEY}`
+    if (filteredMetrics.length === 0) {
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align:center; padding:35px; color:var(--muted);">
+              No active classes found in system.
+            </td>
+          </tr>
+        `;
+      }
+      const avgEl = document.getElementById("kpiOverallAvg");
+      const actEl = document.getElementById("kpiActiveActivitiesCount");
+      const inactEl = document.getElementById("kpiInactiveClassesCount");
+
+      if (avgEl) avgEl.textContent = "0%";
+      if (actEl) actEl.textContent = "0 Acts";
+      if (inactEl) inactEl.textContent = "0 Classes";
+
+      renderAttentionBox([]);
+      renderTimelineGraph();
+      renderWeeklyMonitorSection();
+      renderComparisonChart([]);
+      renderTimelinessChart();
+      return;
+    }
+
+    const inactiveClasses = filteredMetrics.filter(m => m.isInactive);
+    const totalActivitiesCount = filteredMetrics.reduce((sum, c) => sum + c.activitiesCount, 0);
+    const totalGradeSum = filteredMetrics.reduce((sum, c) => sum + c.avgGrade, 0);
+    const overallAvg = Math.round(totalGradeSum / filteredMetrics.length);
+
+    // 🎯 Safe KPI Rendering (Highest Grade card references removed)
+    const avgEl = document.getElementById("kpiOverallAvg");
+    const actEl = document.getElementById("kpiActiveActivitiesCount");
+    const inactEl = document.getElementById("kpiInactiveClassesCount");
+
+    if (avgEl) avgEl.textContent = `${overallAvg}%`;
+    if (actEl) actEl.textContent = `${totalActivitiesCount} Acts`;
+    if (inactEl) inactEl.textContent = `${inactiveClasses.length} Class(es)`;
+
+    renderAttentionBox(inactiveClasses);
+    renderTimelineGraph();
+    renderWeeklyMonitorSection();
+    renderComparisonChart(filteredMetrics);
+    renderTimelinessChart();
+    renderTable(filteredMetrics);
+  }
+
+  function renderAttentionBox(inactiveClasses) {
+    const attentionMsg = document.getElementById("attentionMessage");
+    const attentionTags = document.getElementById("attentionTags");
+    const attentionBox = document.getElementById("attentionBox");
+
+    if (!attentionMsg || !attentionTags) return;
+    attentionTags.innerHTML = "";
+
+    if (inactiveClasses.length > 0) {
+      if (attentionBox) {
+        attentionBox.style.background = "#fff1f2";
+        attentionBox.style.borderColor = "#fecdd3";
+      }
+      attentionMsg.innerHTML = `Identified <strong>${inactiveClasses.length} class(es)</strong> with inactivity warnings (either 0 tasks posted or >14 days without curriculum updates).`;
+
+      inactiveClasses.forEach(c => {
+        const tag = document.createElement("span");
+        tag.className = "attention-tag";
+        tag.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <strong>${escapeHtml(c.subject)}</strong> (${escapeHtml(c.code)}): ${escapeHtml(c.inactivityReason)}`;
+        attentionTags.appendChild(tag);
+      });
+    } else {
+      if (attentionBox) {
+        attentionBox.style.background = "#f0fdf4";
+        attentionBox.style.borderColor = "#bbf7d0";
+      }
+      attentionMsg.innerHTML = `<strong>All classes active and compliant.</strong> Every course has posted learning content within the last 14 days and active student participation.`;
+      attentionTags.innerHTML = `<span class="attention-tag" style="background:#dcfce7; border-color:#86efac; color:#166534;"><i class="fa-solid fa-circle-check"></i> Faculty Curriculum Engagement: 100% Up to Date</span>`;
+    }
+  }
+
+  /* 1. TIMELINE GRAPH */
+  function renderTimelineGraph() {
+    const canvas = document.getElementById("timelineChart");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    let scopedSubs = rawSubmissionsList;
+    if (selectedClassCode !== "ALL") {
+      scopedSubs = rawSubmissionsList.filter(s => s.classes?.code === selectedClassCode);
+    }
+
+    const labels = [
+      "Week 1", "Week 2", "Week 3", "Week 4", "Week 5",
+      "Week 6", "Week 7", "Week 8", "Week 9", "Week 10",
+      "Week 11", "Week 12", "Week 13", "Week 14", "Week 15"
+    ];
+    const weekCounts = new Array(15).fill(0);
+
+    scopedSubs.forEach(s => {
+      if (s.weekNumber >= 1 && s.weekNumber <= 15) {
+        weekCounts[s.weekNumber - 1]++;
+      }
+    });
+
+    if (chartTimelineInstance) chartTimelineInstance.destroy();
+
+    const chartTitle = selectedClassCode === "ALL" 
+      ? 'Semester Turn-Ins (Weeks 1 - 15)' 
+      : `${selectedClassCode} Semester Turn-Ins`;
+
+    chartTimelineInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: chartTitle,
+          data: weekCounts,
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37, 99, 235, 0.12)',
+          fill: true,
+          tension: 0.35,
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#1e40af'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        onClick: (event, elements) => {
+          if (elements && elements.length > 0) {
+            const elIndex = elements[0].index;
+            const targetWeekNum = elIndex + 1;
+            const weekSelect = document.getElementById("weekSelector");
+            if (weekSelect) {
+              weekSelect.value = `W${targetWeekNum}`;
+              switchWeekFilter(`W${targetWeekNum}`);
+              const logCard = document.getElementById("weeklySubmissionMonitorCard");
+              if (logCard) logCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
           }
-        });
-        return window._supabase;
+        },
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (context) => ` Activity: ${context.parsed.y} submissions`,
+              afterBody: () => "\n💡 Click a point to inspect that week's turn-in log."
+            }
+          }
+        },
+        scales: {
+          y: { 
+            beginAtZero: true, 
+            grid: { color: '#f1f5f9' },
+            ticks: { precision: 0, font: { size: 11 } }
+          },
+          x: { 
+            grid: { display: false },
+            ticks: { font: { size: 11 }, autoSkip: true, maxTicksLimit: 15 }
+          }
+        }
       }
-      return null;
+    });
+  }
+
+/* 2. 🌟 WEEKLY SUBMISSION TURN-IN LOG ENGINE & TIER FILTERS */
+  let weeklyFilterStatus = 'all'; // Options: 'all', 'passed', 'failed'
+
+  function setWeeklyFilter(mode) {
+    weeklyFilterStatus = mode;
+
+    // Visual button states
+    const btnAll = document.getElementById("btnFilterAll");
+    const btnPassed = document.getElementById("btnFilterPassed");
+    const btnFailed = document.getElementById("btnFilterFailed");
+
+    if (btnAll) {
+      btnAll.style.background = mode === 'all' ? '#2563eb' : '#ffffff';
+      btnAll.style.color = mode === 'all' ? '#ffffff' : '#475569';
+    }
+    if (btnPassed) {
+      btnPassed.style.background = mode === 'passed' ? '#16a34a' : '#ffffff';
+      btnPassed.style.color = mode === 'passed' ? '#ffffff' : '#166534';
+    }
+    if (btnFailed) {
+      btnFailed.style.background = mode === 'failed' ? '#dc2626' : '#ffffff';
+      btnFailed.style.color = mode === 'failed' ? '#ffffff' : '#991b1b';
     }
 
-    /* CONSTANTS & APPLICATION STATE */
-    const DAY_KEYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const DAY_ORDER = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    const DAY_LABELS = {
-      Mon: "Monday",
-      Tue: "Tuesday",
-      Wed: "Wednesday",
-      Thu: "Thursday",
-      Fri: "Friday",
-      Sat: "Saturday",
-      Sun: "Sunday"
-    };
+    renderWeeklyMonitorSection();
+  }
 
-    let selectedClassCode = "ALL";
-    let selectedWeek = "ALL";
-    let selectedDayTab = "Mon";
-
-    let activeClassesList = [];
-    let allActivitiesList = [];
-    let rawSubmissionsList = [];
-    let classMetrics = [];
-    let termStartMonday = null;
-
-    let chartTimelineInstance = null;
-    let chartComparisonInstance = null;
-    let chartTimelinessInstance = null;
-
-    document.addEventListener("DOMContentLoaded", () => {
-      setTimeout(() => {
-        initAnalyticsDashboard();
-        loadSidebarClasses();
-        loadSidebarGroups();
-        injectAuditBanner();
-      }, 100);
-    });
-
-    window.addEventListener('resize', () => {
-      if (chartTimelineInstance) chartTimelineInstance.resize();
-      if (chartComparisonInstance) chartComparisonInstance.resize();
-      if (chartTimelinessInstance) chartTimelinessInstance.resize();
-    });
-
-    function injectAuditBanner() {
-      if (userRole !== "ADMIN" || document.getElementById("adminDashBanner")) return;
-      const banner = document.createElement("div");
-      banner.id = "adminDashBanner";
-      banner.style.cssText = "background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 20px;";
-      banner.innerHTML = "🛡️ <strong>Institutional Audit Mode:</strong> You are monitoring faculty curriculum pacing, syllabus activity levels, and class inactivity flags (>14 days) across all institutional subjects.";
-      
-      const container = document.querySelector(".container") || document.querySelector(".main-content");
-      if (container) container.insertBefore(banner, container.firstChild);
+  function renderWeeklyMonitorSection() {
+    let scopedSubs = rawSubmissionsList;
+    if (selectedClassCode !== "ALL") {
+      scopedSubs = rawSubmissionsList.filter(s => s.classes?.code === selectedClassCode);
     }
 
-    /* =====================================================
-        3. FETCH CLASSES & COMPUTE METRICS
-    ===================================================== */
-    async function initAnalyticsDashboard() {
-      const client = getSupabaseClient();
-      if (!client) return;
+    // 1. Filter by Week
+    let weekScopedSubs = scopedSubs;
+    if (selectedWeek !== "ALL") {
+      const targetWeekNum = parseInt(selectedWeek.replace("W", ""), 10) || 1;
+      weekScopedSubs = scopedSubs.filter(s => s.weekNumber === targetWeekNum);
+    }
 
-      if (userRole === "ADMIN") {
-        document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie"></i> Institutional Class Inactivity & Progress Analytics`;
-        document.getElementById("dashSub").textContent = "Auditing subject engagement, syllabus activity recency, and grading health across all institutional courses.";
+    // 2. Filter by Performance Tier (All / Passed ≥ 75% / Failed < 75%)
+    let displayedSubs = weekScopedSubs.filter(sub => {
+      const maxPts = Number(sub.activities?.total_points) || 100;
+      const rawScore = sub.grade !== null && sub.grade !== undefined && sub.grade !== '' ? sub.grade : (sub.score !== null && sub.score !== undefined && sub.score !== '' ? sub.score : null);
+      const isGraded = rawScore !== null;
+      const transmuted = isGraded ? Math.round(((Number(rawScore) / maxPts) * 50) + 50) : 0;
+      const isPassing = isGraded && transmuted >= 75;
+
+      if (weeklyFilterStatus === 'passed') {
+        return isGraded && isPassing;
+      }
+      if (weeklyFilterStatus === 'failed') {
+        return isGraded && !isPassing;
+      }
+      return true; // 'all'
+    });
+
+    const countLabel = document.getElementById("activeWeekCountLabel");
+    const sublabel = document.getElementById("weeklyMonitorSublabel");
+    const headerTitle = document.getElementById("weeklyMonitorTitle");
+
+    const weekText = selectedWeek === "ALL" ? "Full Semester (Weeks 1 - 15)" : `Week ${selectedWeek.replace('W', '')}`;
+
+    if (headerTitle) {
+      headerTitle.innerHTML = `<i class="fa-solid fa-clock-rotate-left"></i> Weekly Turn-In Log (${escapeHtml(weekText)})`;
+    }
+
+    if (countLabel) {
+      countLabel.textContent = `${displayedSubs.length} Turn-In(s) Shown`;
+    }
+
+    if (sublabel) {
+      let filterText = "All student deliverables";
+      if (weeklyFilterStatus === 'passed') filterText = "Passed deliverables (≥ 75%)";
+      if (weeklyFilterStatus === 'failed') filterText = "Failed / Remedial deliverables (< 75%)";
+
+      sublabel.textContent = selectedWeek === "ALL" 
+        ? `Showing ${filterText} across the full semester with timestamps.`
+        : `Showing ${filterText} turned in during ${weekText}.`;
+    }
+
+    const tbody = document.getElementById("weeklySubmissionsTableBody");
+    if (!tbody) return;
+
+    if (displayedSubs.length === 0) {
+      let emptyMsg = `No student turn-ins recorded for ${escapeHtml(weekText)}.`;
+      if (weeklyFilterStatus === 'passed') emptyMsg = `No passed deliverables (≥ 75%) found in ${escapeHtml(weekText)}.`;
+      if (weeklyFilterStatus === 'failed') emptyMsg = `No failing deliverables (< 75%) found in ${escapeHtml(weekText)}. All evaluated students passed!`;
+
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="empty-submissions-state" style="text-align: center; padding: 30px; color: var(--muted);">
+            <i class="fa-solid fa-filter-circle-xmark" style="font-size: 24px; margin-bottom: 8px; color: #94a3b8;"></i><br>
+            ${emptyMsg}
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = "";
+    displayedSubs.forEach(sub => {
+      const studentName = sub.users?.full_name || sub.user_name || "Student User";
+      const subjectName = sub.classes?.subject || "Course";
+      const classCode = sub.classes?.code || (selectedClassCode !== "ALL" ? selectedClassCode : "");
+      const classId = sub.classes?.id || "";
+      const activityTitle = sub.activities?.title || "Class Activity";
+      const maxPts = Number(sub.activities?.total_points) || 100;
+
+      const subDate = sub.subDateObj || new Date();
+      const timestampFormatted = !isNaN(subDate.getTime()) 
+        ? subDate.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+        : "Timestamp Unavailable";
+
+      const deadline = sub.activities?.deadline || sub.activities?.due_date;
+      const isLate = deadline && !isNaN(new Date(deadline).getTime()) && subDate.getTime() > new Date(deadline).getTime();
+
+      const st = String(sub.status || '').toLowerCase();
+      const rawScore = sub.grade !== null && sub.grade !== undefined && sub.grade !== '' ? sub.grade : (sub.score !== null && sub.score !== undefined && sub.score !== '' ? sub.score : null);
+      const isGraded = st === 'graded' || rawScore !== null;
+
+      let statusBadge = "";
+      if (isGraded) {
+        const transmuted = Math.round(((Number(rawScore) / maxPts) * 50) + 50);
+        const isPassing = transmuted >= 75;
+        statusBadge = isPassing
+          ? `<span class="badge" style="background:#dcfce7; color:#166534; font-weight:700; border-radius:4px; padding:3px 7px;"><i class="fa-solid fa-check"></i> Passed: ${transmuted}%</span>`
+          : `<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight:700; border-radius:4px; padding:3px 7px;"><i class="fa-solid fa-triangle-exclamation"></i> Remedial: ${transmuted}%</span>`;
       } else {
-        document.getElementById("dashTitle").innerHTML = `<i class="fa-solid fa-chart-pie"></i> Classroom Analytics & Progress Tracking`;
-        document.getElementById("dashSub").textContent = "Course Management Engine: Comparative progress tracking for active classes created by you.";
+        statusBadge = isLate
+          ? `<span class="badge badge-late" style="background:#fef3c7; color:#92400e; font-weight:700; border-radius:4px; padding:3px 7px;"><i class="fa-solid fa-clock"></i> Turned In Late</span>`
+          : `<span class="badge badge-pending" style="background:#eff6ff; color:#1d4ed8; font-weight:700; border-radius:4px; padding:3px 7px;"><i class="fa-solid fa-clock"></i> Turned In</span>`;
       }
 
-      const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>
+          <a href="javascript:void(0)" onclick="openStudentActivitiesModal('${escapeJsString(sub.user_id || sub.student_id)}', '${escapeJsString(studentName)}', '${escapeJsString(classId)}', '${escapeJsString(classCode)}', '${escapeJsString(subjectName)}')" style="color: #2563eb; font-weight: 700; text-decoration: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Click to view all activities for this student">
+            👤 <span style="text-decoration: underline;">${escapeHtml(studentName)}</span>
+          </a>
+        </td>
+        <td>📘 ${escapeHtml(subjectName)} <span style="font-size:11px; color:var(--muted);">(${escapeHtml(classCode)})</span></td>
+        <td>📝 ${escapeHtml(activityTitle)}</td>
+        <td><i class="fa-regular fa-clock" style="color:var(--muted); font-size:11px;"></i> ${escapeHtml(timestampFormatted)}</td>
+        <td>${statusBadge}</td>
+        <td>
+          <button type="button" class="btn-grade-shortcut" onclick="openStudentWork('${escapeJsString(sub.id)}', '${escapeJsString(sub.activity_id)}', '${escapeJsString(sub.user_id || sub.student_id)}')">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Grade Work
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
 
-      let query = client.from('classes').select('*').eq('status', 'active').order('created_at', { ascending: false });
+  function openStudentWork(subId, actId, studentId) {
+    if (subId) localStorage.setItem("selectedSubmissionId", String(subId));
+    if (actId) localStorage.setItem("selectedActivityId", String(actId));
+    if (studentId) {
+      localStorage.setItem("selectedStudentId", String(studentId));
+      localStorage.setItem("gradingStudentId", String(studentId));
+    }
+    window.location.href = `${studentWorkUrl}?submission_id=${encodeURIComponent(subId || '')}&activity_id=${encodeURIComponent(actId || '')}&student_id=${encodeURIComponent(studentId || '')}`;
+  }
+
+  /* =====================================================
+      ALL-ACTIVITIES DRILL-DOWN MODAL (INCLUDING 0s & MISSING)
+  ===================================================== */
+  function openStudentActivitiesModal(studentId, studentName, classId, classCode, className) {
+    const modal = document.getElementById("studentActivitiesModal");
+    if (!modal) return;
+
+    const titleEl = document.getElementById("modalStudentTitle");
+    const subEl = document.getElementById("modalStudentClassSub");
+    const summaryBar = document.getElementById("modalStudentSummaryBar");
+    const tbody = document.getElementById("modalStudentActivitiesBody");
+    const viewBtn = document.getElementById("modalViewStudentGradesBtn");
+
+    if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-user-graduate" style="color: #2563eb;"></i> ${escapeHtml(studentName)}`;
+    if (subEl) subEl.textContent = `Enrolled Subject: ${className || 'Class'} (${classCode || 'Code'})`;
+
+    if (viewBtn) {
+      viewBtn.onclick = () => {
+        localStorage.setItem("selectedStudentId", String(studentId));
+        localStorage.setItem("gradingStudentId", String(studentId));
+        if (classCode) localStorage.setItem("selectedClass", classCode);
+        window.location.href = `studentgrades.html?student_id=${encodeURIComponent(studentId)}&class=${encodeURIComponent(classCode || '')}`;
+      };
+    }
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 25px; color: var(--muted);">
+          <i class="fa-solid fa-spinner fa-spin"></i> Loading all activities...
+        </td>
+      </tr>
+    `;
+    modal.style.display = "flex";
+
+    // 1. Resolve all activities in this class
+    let targetClassId = classId;
+    if (!targetClassId && classCode) {
+      const foundCls = activeClassesList.find(c => String(c.code).toLowerCase() === String(classCode).toLowerCase());
+      if (foundCls) targetClassId = foundCls.id;
+    }
+
+    const classActs = allActivitiesList.filter(a => 
+      String(a.class_id) === String(targetClassId) || parseDbId(a.class_id) === parseDbId(targetClassId)
+    );
+
+    // 2. Gather student submissions
+    const studentSubs = rawSubmissionsList.filter(s => 
+      String(s.user_id || s.student_id) === String(studentId) || parseDbId(s.user_id || s.student_id) === parseDbId(studentId)
+    );
+
+    const subMap = {};
+    studentSubs.forEach(s => {
+      subMap[String(s.activity_id)] = s;
+      subMap[parseDbId(s.activity_id)] = s;
+    });
+
+    const now = new Date().getTime();
+    let completedCount = 0;
+    let missingCount = 0;
+    let totalBase50Sum = 0;
+    let scoredCount = 0;
+
+    if (classActs.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 30px; color: var(--muted);">
+            No activities have been published in this class yet.
+          </td>
+        </tr>
+      `;
+      if (summaryBar) summaryBar.innerHTML = `<span style="color: var(--muted);">No class tasks available.</span>`;
+      return;
+    }
+
+    tbody.innerHTML = "";
+
+    classActs.forEach(act => {
+      const sub = subMap[String(act.id)] || subMap[parseDbId(act.id)];
+      const maxPts = Number(act.total_points) > 0 ? Number(act.total_points) : 100;
+      const deadline = act.deadline || act.due_date;
+      const deadlineTime = deadline ? new Date(deadline).getTime() : null;
+      const isOverdue = deadlineTime ? (now > deadlineTime) : false;
+
+      let rawScoreDisplay = "-";
+      let base50Display = "-";
+      let statusBadge = "";
+
+      if (sub) {
+        const st = String(sub.status || '').toLowerCase();
+        const rawScore = sub.grade !== null && sub.grade !== undefined && sub.grade !== '' 
+          ? sub.grade 
+          : (sub.score !== null && sub.score !== undefined && sub.score !== '' ? sub.score : null);
+
+        if (st === 'graded' || rawScore !== null) {
+          const val = Math.round(Number(rawScore) * 100) / 100 || 0;
+          const transmuted = Math.round(((val / maxPts) * 50) + 50);
+          const isPassing = transmuted >= 75;
+
+          rawScoreDisplay = `${val} / ${maxPts}`;
+          base50Display = `<strong style="color: ${isPassing ? '#16a34a' : '#dc2626'};">${transmuted}%</strong>`;
+          statusBadge = isPassing
+            ? `<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;"><i class="fa-solid fa-check"></i> Passed</span>`
+            : `<span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;"><i class="fa-solid fa-triangle-exclamation"></i> Remedial (< 75%)</span>`;
+
+          completedCount++;
+          scoredCount++;
+          totalBase50Sum += transmuted;
+        } else {
+          rawScoreDisplay = `- / ${maxPts}`;
+          base50Display = `<span style="color: var(--muted);">-</span>`;
+          statusBadge = `<span style="background: #eff6ff; color: #1d4ed8; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;"><i class="fa-solid fa-clock"></i> Turned In</span>`;
+          completedCount++;
+        }
+      } else {
+        if (isOverdue) {
+          rawScoreDisplay = `0 / ${maxPts}`;
+          base50Display = `<strong style="color: #dc2626;">0%</strong>`;
+          statusBadge = `<span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;"><i class="fa-solid fa-ban"></i> Overdue (Missing: 0)</span>`;
+          missingCount++;
+          scoredCount++;
+          totalBase50Sum += 0;
+        } else {
+          rawScoreDisplay = `- / ${maxPts}`;
+          base50Display = `<span style="color: var(--muted);">-</span>`;
+          statusBadge = `<span style="background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;"><i class="fa-regular fa-clock"></i> Assigned</span>`;
+        }
+      }
+
+      const dueFormatted = deadline 
+        ? new Date(deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+        : 'No Deadline';
+
+      const tr = document.createElement("tr");
+      tr.style.borderBottom = "1px solid #f1f5f9";
+      tr.innerHTML = `
+        <td style="padding: 10px 14px;"><strong>📝 ${escapeHtml(act.title || "Class Activity")}</strong></td>
+        <td style="padding: 10px 14px; color: var(--muted);">${escapeHtml(dueFormatted)}</td>
+        <td style="padding: 10px 14px;">${rawScoreDisplay}</td>
+        <td style="padding: 10px 14px;">${base50Display}</td>
+        <td style="padding: 10px 14px;">${statusBadge}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // 3. Render Summary Pills
+    const avgScore = scoredCount > 0 ? Math.round(totalBase50Sum / scoredCount) : 0;
+    if (summaryBar) {
+      summaryBar.innerHTML = `
+        <span style="background: #ffffff; padding: 4px 10px; border-radius: 6px; border: 1px solid #cbd5e1;">
+          Average: <strong style="color: ${avgScore >= 75 ? '#16a34a' : '#dc2626'};">${avgScore}%</strong>
+        </span>
+        <span style="background: #ffffff; padding: 4px 10px; border-radius: 6px; border: 1px solid #cbd5e1;">
+          Completed: <strong>${completedCount} / ${classActs.length}</strong>
+        </span>
+        <span style="background: #ffffff; padding: 4px 10px; border-radius: 6px; border: 1px solid #cbd5e1; color: ${missingCount > 0 ? '#991b1b' : '#166534'};">
+          Missing/Zero: <strong>${missingCount}</strong>
+        </span>
+      `;
+    }
+  }
+
+  function closeStudentActivitiesModal() {
+    const modal = document.getElementById("studentActivitiesModal");
+    if (modal) modal.style.display = "none";
+  }
+
+  document.addEventListener("click", (e) => {
+    const modal = document.getElementById("studentActivitiesModal");
+    if (modal && e.target === modal) closeStudentActivitiesModal();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeStudentActivitiesModal();
+  });
+
+  /* 3. BAR CHART: CLASS GRADE COMPARISON (BASE-50) */
+  function renderComparisonChart(metrics) {
+    const canvas = document.getElementById("gradeComparisonChart");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    const labels = metrics.map(m => m.subject);
+    const data = metrics.map(m => m.avgGrade);
+    const colors = metrics.map(m => m.isInactive ? '#f59e0b' : (m.avgGrade < 75 ? '#ef4444' : '#2563eb'));
+
+    if (chartComparisonInstance) chartComparisonInstance.destroy();
+
+    chartComparisonInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Base-50 Average Score (%)',
+          data: data,
+          backgroundColor: colors,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { 
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) => metrics[items[0].dataIndex]?.subject || items[0].label,
+              label: (context) => ` Base-50 Average: ${context.parsed.y}%`
+            }
+          }
+        },
+        scales: {
+          y: { 
+            beginAtZero: true, 
+            max: 100, 
+            grid: { color: '#f1f5f9' },
+            ticks: { font: { size: 11 } }
+          },
+          x: { 
+            grid: { display: false },
+            ticks: {
+              font: { size: 11 },
+              maxRotation: 40,
+              minRotation: 0,
+              autoSkip: true,
+              callback: function(val) {
+                const label = this.getLabelForValue(val) || '';
+                return label.length > 14 ? label.substring(0, 12) + '...' : label;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /* 4. DOUGHNUT CHART: TIMELINESS BREAKDOWN */
+  function renderTimelinessChart() {
+    const canvas = document.getElementById("timelinessChart");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+
+    let targetSubs = rawSubmissionsList;
+    if (selectedClassCode !== "ALL") {
+      targetSubs = rawSubmissionsList.filter(s => s.classes?.code === selectedClassCode);
+    }
+
+    let onTimeCount = 0;
+    let lateCount = 0;
+    let pendingCount = 0;
+
+    targetSubs.forEach(s => {
+      const st = String(s.status || '').toLowerCase();
+      const hasScore = (s.grade !== null && s.grade !== undefined && s.grade !== '') || (s.score !== null && s.score !== undefined && s.score !== '');
+      const isGraded = st === 'graded' || hasScore;
+
+      if (!isGraded) {
+        pendingCount++;
+      } else {
+        const deadlineDate = s.activities?.deadline || s.activities?.due_date;
+        const submittedDate = s.submitted_at || s.created_at;
+
+        if (deadlineDate && submittedDate) {
+          const dTime = new Date(deadlineDate).getTime();
+          const sTime = new Date(submittedDate).getTime();
+          if (!isNaN(dTime) && !isNaN(sTime) && sTime > dTime) {
+            lateCount++;
+          } else {
+            onTimeCount++;
+          }
+        } else {
+          onTimeCount++;
+        }
+      }
+    });
+
+    const totalAssessed = onTimeCount + lateCount + pendingCount;
+    const chartData = totalAssessed === 0 ? [0, 0, 1] : [onTimeCount, lateCount, pendingCount];
+    const chartColors = totalAssessed === 0 ? ['#e2e8f0', '#e2e8f0', '#cbd5e1'] : ['#16a34a', '#ef4444', '#f59e0b'];
+
+    if (chartTimelinessInstance) chartTimelinessInstance.destroy();
+
+    chartTimelinessInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['On Time', 'Late Submission', 'Pending Evaluation'],
+        datasets: [{
+          data: chartData,
+          backgroundColor: chartColors,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { 
+          legend: { 
+            position: 'bottom',
+            labels: { boxWidth: 12, padding: 12, font: { size: 11.5 } }
+          } 
+        }
+      }
+    });
+  }
+
+  /* 5. RENDER ROSTER STATUS TABLE */
+  function renderTable(metrics) {
+    const tbody = document.getElementById("classTableBody");
+    if (!tbody) return;
+
+    tbody.innerHTML = "";
+
+    metrics.forEach(m => {
+      let statusBadge = `<span class="badge badge-average">Active</span>`;
+
+      if (m.isInactive) {
+        statusBadge = `<span class="badge badge-inactive" title="${escapeHtml(m.inactivityReason)}"><i class="fa-solid fa-triangle-exclamation"></i> Inactive (${m.daysInactive}d)</span>`;
+      } else if (m.avgGrade >= 90) {
+        statusBadge = `<span class="badge badge-top"><i class="fa-solid fa-star"></i> High Performing</span>`;
+      } else if (m.avgGrade < 75) {
+        statusBadge = `<span class="badge badge-lagging"><i class="fa-solid fa-triangle-exclamation"></i> Lagging (< 75%)</span>`;
+      }
+
+      const actionBtnLabel = userRole === "ADMIN" ? "Audit Ledger →" : "View Grades →";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><strong>📘 ${escapeHtml(m.subject)}</strong><br><span style="font-size:11px; color:var(--muted);">${escapeHtml(m.code)}</span></td>
+        <td>${m.enrolled} Students</td>
+        <td>${m.activitiesCount} Posted (${m.submissionsCount} Turn-Ins)</td>
+        <td><strong>${m.avgGrade}%</strong></td>
+        <td>${statusBadge}</td>
+        <td>
+          <button class="btn-action-class" onclick="openClassGrades('${escapeJsString(m.code)}', '${m.id}')">
+            ${actionBtnLabel}
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function openClassGrades(classCode, classId) {
+    localStorage.removeItem("isArchivedView");
+    localStorage.setItem("selectedClass", classCode);
+    localStorage.setItem("selectedClassId", String(classId));
+    window.location.href = gradesUrl;
+  }
+
+  /* =====================================================
+      6. LOAD SIDEBAR CLASSES & GROUPS
+  ===================================================== */
+  async function loadSidebarClasses() {
+    const client = getSupabaseClient();
+    if (!client) return;
+
+    const sidebarClassList = document.getElementById("sidebarClassList");
+    if (!sidebarClassList) return;
+    sidebarClassList.innerHTML = "";
+
+    const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+    let myClasses = [];
+
+    try {
+      let query = client
+        .from('classes')
+        .select('id, subject, code, status')
+        .neq('status', 'archived')
+        .order('created_at', { ascending: false });
 
       if (userRole === "TEACHER" && userSearchIds.length > 0) {
         query = query.in('teacher_id', userSearchIds);
       }
 
-      const { data: classes } = await query;
-      activeClassesList = classes || [];
-
-      populateClassSelector();
-      await computeClassActivityMetrics();
+      const { data } = await query;
+      myClasses = (data || []).filter(c => c && String(c.status || '').toLowerCase() !== 'archived');
+    } catch (err) {
+      console.error("Sidebar classes error:", err);
     }
 
-    function populateClassSelector() {
-      const dropdown = document.getElementById("classSelector");
-      if (!dropdown) return;
-      dropdown.innerHTML = `<option value="ALL">🌐 All Active Classes Overview</option>`;
-
-      activeClassesList.forEach(c => {
-        const opt = document.createElement("option");
-        opt.value = c.code;
-        opt.textContent = `📘 ${c.subject} (${c.code})`;
-        dropdown.appendChild(opt);
-      });
-    }
-
-    function switchClassFilter(classCode) {
-      selectedClassCode = classCode;
-      renderDashboard();
-    }
-
-    function switchWeekFilter(weekVal) {
-      selectedWeek = weekVal;
-      const subLabel = document.getElementById("timelineSublabel");
-      
-      if (subLabel) {
-        if (weekVal === "ALL") {
-          subLabel.textContent = "Showing Full Semester (Weeks 1 - 15)";
-        } else {
-          const weekNum = weekVal.replace("W", "");
-          subLabel.textContent = `Showing Week ${weekNum} Daily Breakdown`;
-        }
-      }
-
-      renderTimelineGraph();
-      renderDailyMonitorSection();
-    }
-
-   /* =====================================================
-        4. ROLLING WEEK CALCULATION & INACTIVITY ENGINE
-    ===================================================== */
-    // Helper: Finds Monday at 00:00:00 for the active calendar week
-    function getCurrentMonday() {
-      const d = new Date();
-      const day = d.getDay(); // 0: Sun, 1: Mon, ..., 6: Sat
-      const diffToMon = d.getDate() - day + (day === 0 ? -6 : 1);
-      const mon = new Date(d.setDate(diffToMon));
-      mon.setHours(0, 0, 0, 0);
-      return mon;
-    }
-
-    // Helper: Finds Monday at 00:00:00 for any given timestamp
-    function getMondayOfWeek(dateInput) {
-      const d = new Date(dateInput);
-      if (isNaN(d.getTime())) {
-        const fallback = new Date();
-        fallback.setHours(0, 0, 0, 0);
-        return fallback;
-      }
-      const day = d.getDay();
-      const diffToMon = d.getDate() - day + (day === 0 ? -6 : 1);
-      const mon = new Date(d.setDate(diffToMon));
-      mon.setHours(0, 0, 0, 0);
-      return mon;
-    }
-
-    async function computeClassActivityMetrics() {
-      const client = getSupabaseClient();
-      if (!client || activeClassesList.length === 0) {
-        classMetrics = [];
-        rawSubmissionsList = [];
-        renderDashboard();
-        return;
-      }
-
-      const classIds = [...new Set(getDualTypeIds(activeClassesList.map(c => c.id)))];
-
-      // 1. Fetch Student Enrollment Counts
-      const { data: memberships } = await client
-        .from('class_memberships')
-        .select('class_id')
-        .in('class_id', classIds);
-
-      const enrollmentCountMap = {};
-      (memberships || []).forEach(m => {
-        const cid = String(m.class_id);
-        enrollmentCountMap[cid] = (enrollmentCountMap[cid] || 0) + 1;
-        enrollmentCountMap[parseDbId(m.class_id)] = enrollmentCountMap[cid];
-      });
-
-      // 2. Fetch Activities for Active Classes
-      const { data: activities, error: actError } = await client
-        .from('activities')
-        .select('*')
-        .in('class_id', classIds);
-
-      if (actError) console.warn("Activities query warning:", actError.message);
-
-      allActivitiesList = activities || [];
-      const actIds = [...new Set(getDualTypeIds(allActivitiesList.map(a => a.id)))];
-
-      const actsByClassMap = {};
-      const actMap = {};
-      allActivitiesList.forEach(a => {
-        const cid = String(a.class_id);
-        if (!actsByClassMap[cid]) actsByClassMap[cid] = [];
-        actsByClassMap[cid].push(a);
-
-        actMap[String(a.id)] = a;
-        actMap[parseDbId(a.id)] = a;
-      });
-
-      // 3. Fetch Submissions
-      let subs = [];
-      if (actIds.length > 0) {
-        const { data: subsData, error: subsError } = await client
-          .from('submissions')
-          .select('*')
-          .in('activity_id', actIds)
-          .order('submitted_at', { ascending: false });
-
-        if (subsError) {
-          console.error("Submissions query error:", subsError.message);
-        }
-        subs = subsData || [];
-      }
-
-      const activeSubs = subs.filter(s => {
-        const st = String(s.status || '').toLowerCase();
-        return st !== 'draft' && st !== 'unsubmitted';
-      });
-
-      // 4. Batch Fetch User Profiles
-      const userSearchIds = [...new Set(getDualTypeIds(activeSubs.map(s => s.user_id || s.student_id)))];
-      let userMap = {};
-
-      if (userSearchIds.length > 0) {
-        const { data: userList } = await client
-          .from('users')
-          .select('id, full_name, email')
-          .in('id', userSearchIds);
-
-        (userList || []).forEach(u => {
-          userMap[String(u.id)] = u;
-          const pUid = parseDbId(u.id);
-          if (pUid) userMap[pUid] = u;
-        });
-      }
-
-      const classMap = {};
-      activeClassesList.forEach(c => {
-        classMap[String(c.id)] = c;
-        classMap[parseDbId(c.id)] = c;
-      });
-
-      // 5. 🎯 MAP RELATIVE TO CURRENT ACTIVE WEEK
-      const currentMonday = getCurrentMonday();
-
-      rawSubmissionsList = activeSubs.map(s => {
-        const matchedAct = actMap[String(s.activity_id)] || actMap[parseDbId(s.activity_id)] || {};
-        const matchedCls = classMap[String(matchedAct.class_id)] || classMap[parseDbId(matchedAct.class_id)] || {};
-        const studentKey = s.user_id || s.student_id;
-        const matchedUser = userMap[String(studentKey)] || userMap[parseDbId(studentKey)] || { full_name: s.user_name || "Student User" };
-
-        const subDate = new Date(s.submitted_at || s.created_at || Date.now());
-        const subMon = getMondayOfWeek(subDate);
-
-        // Calculate rolling distance in 7-day blocks:
-        // 0 weeks ago = Week 1 (Current Week)
-        // 1 week ago  = Week 2 (Last Week)
-        // 2 weeks ago = Week 3 (2 Weeks Ago)
-        const diffWeeks = Math.round((currentMonday.getTime() - subMon.getTime()) / (7 * 24 * 60 * 60 * 1000));
-        let weekNum = diffWeeks <= 0 ? 1 : diffWeeks + 1;
-        if (weekNum > 15) weekNum = 15;
-
-        const dayKey = DAY_KEYS[subDate.getDay()] || "Mon";
-
-        return {
-          ...s,
-          subDateObj: subDate,
-          weekNumber: weekNum,
-          dayKey: dayKey,
-          users: matchedUser,
-          activities: matchedAct,
-          classes: matchedCls
+    if (myClasses.length > 0) {
+      const currentSelectedCode = localStorage.getItem("selectedClass");
+      myClasses.forEach(c => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `📘 ${c.subject}`;
+        sideLink.href = classPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedClass", c.code);
+          localStorage.setItem("selectedClassId", String(c.id));
+          window.location.href = classPageUrl;
         };
+        sidebarClassList.appendChild(sideLink);
       });
+    } else {
+      sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
+    }
+  }
 
-      // 6. Group Submissions by Class
-      const subsByClassMap = {};
-      rawSubmissionsList.forEach(s => {
-        const cid = String(s.activities?.class_id);
-        if (cid) {
-          if (!subsByClassMap[cid]) subsByClassMap[cid] = [];
-          subsByClassMap[cid].push(s);
-        }
-      });
+  async function loadSidebarGroups() {
+    const client = getSupabaseClient();
+    if (!client) return;
 
-      const now = new Date();
+    const sidebarGroupList = document.getElementById("sidebarGroupList");
+    if (!sidebarGroupList) return;
+    sidebarGroupList.innerHTML = "";
 
-      // 7. Compute Class Inactivity Flags
-      classMetrics = activeClassesList.map(c => {
-        const cidStr = String(c.id);
-        const enrolledCount = enrollmentCountMap[cidStr] || 0;
-        const cActs = actsByClassMap[cidStr] || [];
-        const cSubs = subsByClassMap[cidStr] || [];
+    const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
+    let myGroups = [];
 
-        let latestActivityDate = null;
-        cActs.forEach(a => {
-          if (a.created_at) {
-            const actDate = new Date(a.created_at);
-            if (!latestActivityDate || actDate > latestActivityDate) {
-              latestActivityDate = actDate;
-            }
-          }
-        });
+    try {
+      let query = client
+        .from('groups')
+        .select('id, name, code, status')
+        .neq('status', 'archived')
+        .order('created_at', { ascending: false });
 
-        let daysInactive = 0;
-        let isInactive = false;
-        let inactivityReason = "";
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        query = query.in('teacher_id', userSearchIds);
+      }
 
-        if (cActs.length === 0) {
-          isInactive = true;
-          inactivityReason = "Zero learning activities posted";
-          const classDate = c.created_at ? new Date(c.created_at) : now;
-          daysInactive = Math.max(1, Math.floor((now - classDate) / (1000 * 60 * 60 * 24)));
-        } else if (latestActivityDate) {
-          daysInactive = Math.floor((now - latestActivityDate) / (1000 * 60 * 60 * 24));
-          if (daysInactive >= 14) {
-            isInactive = true;
-            inactivityReason = `Stale curriculum: No new tasks for ${daysInactive} days (>14d)`;
-          }
-        }
+      const { data } = await query;
+      myGroups = (data || []).filter(g => g && String(g.status || '').toLowerCase() !== 'archived');
+    } catch (err) {
+      console.error("Sidebar groups error:", err);
+    }
 
-        const gradedSubs = cSubs.filter(s => {
-          const st = String(s.status || '').toLowerCase();
-          return st === 'graded' || (s.grade !== null && s.grade !== undefined && s.grade !== '') || (s.score !== null && s.score !== undefined && s.score !== '');
-        });
-
-        let totalPct = 0;
-        gradedSubs.forEach(s => {
-          const matchedAct = actMap[String(s.activity_id)] || actMap[parseDbId(s.activity_id)];
-          const maxPts = Number(matchedAct?.total_points) || 100;
-          const scoreVal = s.grade !== null && s.grade !== undefined && s.grade !== '' ? s.grade : (s.score !== null && s.score !== undefined && s.score !== '' ? s.score : 0);
-          totalPct += (Number(scoreVal) / maxPts) * 100;
-        });
-
-        const avgGrade = gradedSubs.length > 0 ? Math.round(totalPct / gradedSubs.length) : 0;
-
-        return {
-          id: c.id,
-          code: c.code,
-          subject: c.subject,
-          enrolled: enrolledCount,
-          activitiesCount: cActs.length,
-          submissionsCount: cSubs.length,
-          avgGrade: avgGrade,
-          isInactive: isInactive,
-          daysInactive: daysInactive,
-          inactivityReason: inactivityReason,
-          subs: cSubs
+    if (myGroups.length > 0) {
+      const currentSelectedGroup = localStorage.getItem("selectedGroup");
+      myGroups.forEach(g => {
+        const sideLink = document.createElement("a");
+        sideLink.className = "sidebar-item";
+        if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
+        sideLink.textContent = `👥 ${g.name}`;
+        sideLink.href = groupPageUrl;
+        sideLink.onclick = (e) => {
+          e.preventDefault();
+          localStorage.removeItem("isArchivedView");
+          localStorage.setItem("selectedGroup", g.code);
+          localStorage.setItem("selectedGroupId", String(g.id));
+          window.location.href = groupPageUrl;
         };
+        sidebarGroupList.appendChild(sideLink);
       });
-
-      renderDashboard();
+    } else {
+      sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
     }
-
-    /* =====================================================
-        5. RENDER DASHBOARD & VISUALIZATIONS
-    ===================================================== */
-    function renderDashboard() {
-      let filteredMetrics = classMetrics;
-      if (selectedClassCode !== "ALL") {
-        filteredMetrics = classMetrics.filter(m => m.code === selectedClassCode);
-      }
-
-      const tbody = document.getElementById("classTableBody");
-
-      if (filteredMetrics.length === 0) {
-        if (tbody) {
-          tbody.innerHTML = `
-            <tr>
-              <td colspan="6" style="text-align:center; padding:35px; color:var(--muted);">
-                No active classes found in system.
-              </td>
-            </tr>
-          `;
-        }
-        document.getElementById("kpiHighestGrade").textContent = "0%";
-        document.getElementById("kpiHighestName").innerHTML = `<i class="fa-solid fa-star"></i> N/A`;
-        document.getElementById("kpiOverallAvg").textContent = "0%";
-        document.getElementById("kpiActiveActivitiesCount").textContent = "0 Acts";
-        document.getElementById("kpiInactiveClassesCount").textContent = "0 Class(es)";
-        renderAttentionBox([]);
-        renderTimelineGraph();
-        renderDailyMonitorSection();
-        renderComparisonChart([]);
-        renderTimelinessChart();
-        return;
-      }
-
-      const topClass = filteredMetrics.reduce((max, c) => c.avgGrade > max.avgGrade ? c : max, filteredMetrics[0]);
-      const inactiveClasses = filteredMetrics.filter(m => m.isInactive);
-      const totalActivitiesCount = filteredMetrics.reduce((sum, c) => sum + c.activitiesCount, 0);
-      const totalGradeSum = filteredMetrics.reduce((sum, c) => sum + c.avgGrade, 0);
-      const overallAvg = Math.round(totalGradeSum / filteredMetrics.length);
-
-      document.getElementById("kpiHighestGrade").textContent = `${topClass?.avgGrade || 0}%`;
-      document.getElementById("kpiHighestName").innerHTML = `<i class="fa-solid fa-star"></i> ${escapeHtml(topClass?.subject || 'N/A')}`;
-      document.getElementById("kpiOverallAvg").textContent = `${overallAvg}%`;
-      document.getElementById("kpiActiveActivitiesCount").textContent = `${totalActivitiesCount} Acts`;
-      document.getElementById("kpiInactiveClassesCount").textContent = `${inactiveClasses.length} Class(es)`;
-
-      renderAttentionBox(inactiveClasses);
-      renderTimelineGraph();
-      renderDailyMonitorSection();
-      renderComparisonChart(filteredMetrics);
-      renderTimelinessChart();
-      renderTable(filteredMetrics);
-    }
-
-    function renderAttentionBox(inactiveClasses) {
-      const attentionMsg = document.getElementById("attentionMessage");
-      const attentionTags = document.getElementById("attentionTags");
-      const attentionBox = document.getElementById("attentionBox");
-
-      if (!attentionMsg || !attentionTags) return;
-
-      attentionTags.innerHTML = "";
-
-      if (inactiveClasses.length > 0) {
-        if (attentionBox) {
-          attentionBox.style.background = "#fff1f2";
-          attentionBox.style.borderColor = "#fecdd3";
-        }
-        attentionMsg.innerHTML = `Identified <strong>${inactiveClasses.length} class(es)</strong> with inactivity warnings (either 0 tasks posted or >14 days without curriculum updates).`;
-
-        inactiveClasses.forEach(c => {
-          const tag = document.createElement("span");
-          tag.className = "attention-tag";
-          tag.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <strong>${escapeHtml(c.subject)}</strong> (${escapeHtml(c.code)}): ${escapeHtml(c.inactivityReason)}`;
-          attentionTags.appendChild(tag);
-        });
-      } else {
-        if (attentionBox) {
-          attentionBox.style.background = "#f0fdf4";
-          attentionBox.style.borderColor = "#bbf7d0";
-        }
-        attentionMsg.innerHTML = `<strong>All classes active and compliant.</strong> Every course has posted learning content within the last 14 days and active student participation.`;
-        attentionTags.innerHTML = `<span class="attention-tag" style="background:#dcfce7; border-color:#86efac; color:#166534;"><i class="fa-solid fa-circle-check"></i> Faculty Curriculum Engagement: 100% Up to Date</span>`;
-      }
-    }
-
-    /* 1. TIMELINE GRAPH (100% LIVE SUPABASE DRIVEN) */
-    function renderTimelineGraph() {
-      const canvas = document.getElementById("timelineChart");
-      if (!canvas) return;
-
-      const ctx = canvas.getContext("2d");
-
-      let scopedSubs = rawSubmissionsList;
-      if (selectedClassCode !== "ALL") {
-        scopedSubs = rawSubmissionsList.filter(s => s.classes?.code === selectedClassCode);
-      }
-
-      let labels = [];
-      let dataPoints = [];
-
-      if (selectedWeek === "ALL") {
-        labels = [
-          "Week 1", "Week 2", "Week 3", "Week 4", "Week 5",
-          "Week 6", "Week 7", "Week 8", "Week 9", "Week 10",
-          "Week 11", "Week 12", "Week 13", "Week 14", "Week 15"
-        ];
-        const weekCounts = new Array(15).fill(0);
-        scopedSubs.forEach(s => {
-          if (s.weekNumber >= 1 && s.weekNumber <= 15) {
-            weekCounts[s.weekNumber - 1]++;
-          }
-        });
-        dataPoints = weekCounts;
-      } else {
-        const targetWeekNum = parseInt(selectedWeek.replace("W", ""), 10) || 1;
-        const weekOnlySubs = scopedSubs.filter(s => s.weekNumber === targetWeekNum);
-
-        labels = DAY_ORDER;
-        const dailyCounts = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
-        weekOnlySubs.forEach(s => {
-          if (s.dayKey && dailyCounts[s.dayKey] !== undefined) {
-            dailyCounts[s.dayKey]++;
-          }
-        });
-        dataPoints = DAY_ORDER.map(d => dailyCounts[d]);
-      }
-
-      if (chartTimelineInstance) chartTimelineInstance.destroy();
-
-      const chartTitle = selectedWeek === "ALL" 
-        ? (selectedClassCode === "ALL" ? 'Semester Turn-Ins (Weeks 1 - 15)' : `${selectedClassCode} Semester Turn-Ins`)
-        : (selectedClassCode === "ALL" ? `Week ${selectedWeek.replace('W', '')} Turn-Ins` : `${selectedClassCode} Week ${selectedWeek.replace('W', '')} Turn-Ins`);
-
-      chartTimelineInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: chartTitle,
-            data: dataPoints,
-            borderColor: '#2563eb',
-            backgroundColor: 'rgba(37, 99, 235, 0.12)',
-            fill: true,
-            tension: 0.35,
-            borderWidth: 2.5,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointBackgroundColor: '#1e40af'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          onClick: (event, elements) => {
-            if (elements && elements.length > 0) {
-              const elIndex = elements[0].index;
-              if (selectedWeek !== "ALL") {
-                const clickedDay = DAY_ORDER[elIndex];
-                if (clickedDay) {
-                  switchDayTab(clickedDay);
-                  const monitor = document.getElementById("dailySubmissionMonitorCard");
-                  if (monitor) monitor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-              } else {
-                const targetWeekNum = elIndex + 1;
-                const weekSelect = document.getElementById("weekSelector");
-                if (weekSelect) {
-                  weekSelect.value = `W${targetWeekNum}`;
-                  switchWeekFilter(`W${targetWeekNum}`);
-                }
-              }
-            }
-          },
-          plugins: { 
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (context) => ` Activity: ${context.parsed.y} submissions`
-              }
-            }
-          },
-          scales: {
-            y: { 
-              beginAtZero: true, 
-              grid: { color: '#f1f5f9' },
-              ticks: { 
-                precision: 0,
-                font: { size: 11 } 
-              }
-            },
-            x: { 
-              grid: { display: false },
-              ticks: {
-                font: { size: 11 },
-                autoSkip: true,
-                maxTicksLimit: 15
-              }
-            }
-          }
-        }
-      });
-    }
-
-    /* 2. MONDAY–SUNDAY DAILY SUBMISSION MONITOR */
-    function switchDayTab(dayKey) {
-      selectedDayTab = dayKey;
-      renderDailyMonitorSection();
-    }
-
-    function renderDailyMonitorSection() {
-      let scopedSubs = rawSubmissionsList;
-      if (selectedClassCode !== "ALL") {
-        scopedSubs = rawSubmissionsList.filter(s => s.classes?.code === selectedClassCode);
-      }
-
-      let weekScopedSubs = scopedSubs;
-      if (selectedWeek !== "ALL") {
-        const targetWeekNum = parseInt(selectedWeek.replace("W", ""), 10) || 1;
-        weekScopedSubs = scopedSubs.filter(s => s.weekNumber === targetWeekNum);
-      }
-
-      const dayCounts = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
-      weekScopedSubs.forEach(s => {
-        if (s.dayKey && dayCounts[s.dayKey] !== undefined) {
-          dayCounts[s.dayKey]++;
-        }
-      });
-
-      DAY_ORDER.forEach(d => {
-        const btn = document.getElementById(`tab-${d}`);
-        const badge = document.getElementById(`badge-${d}`);
-        const count = dayCounts[d];
-
-        if (badge) {
-          badge.textContent = count;
-          if (count > 0) {
-            badge.classList.add("has-data");
-          } else {
-            badge.classList.remove("has-data");
-          }
-        }
-
-        if (btn) {
-          if (d === selectedDayTab) {
-            btn.classList.add("active");
-          } else {
-            btn.classList.remove("active");
-          }
-        }
-      });
-
-      const headerLabel = document.getElementById("activeDayHeaderLabel");
-      const countLabel = document.getElementById("activeDayCountLabel");
-      const sublabel = document.getElementById("dailyMonitorSublabel");
-      const fullDayName = DAY_LABELS[selectedDayTab] || "Monday";
-      const daySubs = weekScopedSubs.filter(s => s.dayKey === selectedDayTab);
-
-      if (headerLabel) {
-        const weekTag = selectedWeek === "ALL" ? "(Full Term)" : `(Week ${selectedWeek.replace('W', '')})`;
-        headerLabel.innerHTML = `<i class="fa-solid fa-clock"></i> ${fullDayName} Submissions ${weekTag}`;
-      }
-
-      if (countLabel) {
-        countLabel.textContent = `${daySubs.length} Turn-In(s) Recorded`;
-      }
-
-      if (sublabel) {
-        sublabel.textContent = selectedWeek === "ALL" 
-          ? "Showing turn-ins across the semester for this day. Click a day tab or chart point to inspect students."
-          : `Showing Week ${selectedWeek.replace('W', '')} student turn-ins. Click any day to inspect deliverables.`;
-      }
-
-      const tbody = document.getElementById("dailySubmissionsTableBody");
-      if (!tbody) return;
-
-      if (daySubs.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" class="empty-submissions-state">
-              <i class="fa-solid fa-inbox"></i><br>
-              No submissions turned in on ${fullDayName} for this timeframe.
-            </td>
-          </tr>
-        `;
-        return;
-      }
-
-      tbody.innerHTML = "";
-      daySubs.forEach(sub => {
-        const studentName = sub.users?.full_name || sub.user_name || "Student User";
-        const subjectName = sub.classes?.subject || "Course";
-        const classCode = sub.classes?.code || (selectedClassCode !== "ALL" ? selectedClassCode : "");
-        const activityTitle = sub.activities?.title || "Class Activity";
-        const maxPts = sub.activities?.total_points || 100;
-
-        const subDate = sub.subDateObj || new Date();
-        const timeFormatted = !isNaN(subDate.getTime()) 
-          ? subDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          : "11:59 PM";
-        const dateFormatted = !isNaN(subDate.getTime())
-          ? subDate.toLocaleDateString([], { month: 'short', day: 'numeric' })
-          : "";
-
-        const st = String(sub.status || '').toLowerCase();
-        const currentGrade = sub.grade !== null && sub.grade !== undefined && sub.grade !== '' ? sub.grade : (sub.score !== null && sub.score !== undefined && sub.score !== '' ? sub.score : "");
-        const isGraded = st === 'graded' || currentGrade !== "";
-
-        const statusBadge = isGraded
-          ? `<span class="badge badge-top">Graded: ${currentGrade}/${maxPts}</span>`
-          : `<span class="badge badge-average">Pending Evaluation</span>`;
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td><strong>👤 ${escapeHtml(studentName)}</strong></td>
-          <td>📘 ${escapeHtml(subjectName)} <span style="font-size:11px; color:var(--muted);">${escapeHtml(classCode)}</span></td>
-          <td>📝 ${escapeHtml(activityTitle)}</td>
-          <td>${dateFormatted} ${timeFormatted}</td>
-          <td>${statusBadge}</td>
-          <td>
-            <button type="button" class="btn-grade-shortcut" onclick="openStudentWork('${escapeJsString(sub.id)}', '${escapeJsString(sub.activity_id)}', '${escapeJsString(sub.user_id || sub.student_id)}')">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i> Grade Work
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function openStudentWork(subId, actId, studentId) {
-      if (subId) localStorage.setItem("selectedSubmissionId", String(subId));
-      if (actId) localStorage.setItem("selectedActivityId", String(actId));
-      if (studentId) {
-        localStorage.setItem("selectedStudentId", String(studentId));
-        localStorage.setItem("gradingStudentId", String(studentId));
-      }
-      window.location.href = `${studentWorkUrl}?submission_id=${encodeURIComponent(subId || '')}&activity_id=${encodeURIComponent(actId || '')}&student_id=${encodeURIComponent(studentId || '')}`;
-    }
-
-    /* 3. BAR CHART: CLASS GRADE COMPARISON */
-    function renderComparisonChart(metrics) {
-      const canvas = document.getElementById("gradeComparisonChart");
-      if (!canvas) return;
-
-      const ctx = canvas.getContext("2d");
-
-      const labels = metrics.map(m => m.subject);
-      const data = metrics.map(m => m.avgGrade);
-      const colors = metrics.map(m => m.isInactive ? '#f59e0b' : (m.avgGrade < 75 ? '#ef4444' : '#2563eb'));
-
-      if (chartComparisonInstance) chartComparisonInstance.destroy();
-
-      chartComparisonInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Average Score (%)',
-            data: data,
-            backgroundColor: colors,
-            borderRadius: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { 
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                title: (items) => metrics[items[0].dataIndex]?.subject || items[0].label,
-                label: (context) => ` Average Grade: ${context.parsed.y}%`
-              }
-            }
-          },
-          scales: {
-            y: { 
-              beginAtZero: true, 
-              max: 100, 
-              grid: { color: '#f1f5f9' },
-              ticks: { font: { size: 11 } }
-            },
-            x: { 
-              grid: { display: false },
-              ticks: {
-                font: { size: 11 },
-                maxRotation: 40,
-                minRotation: 0,
-                autoSkip: true,
-                callback: function(val, index) {
-                  const label = this.getLabelForValue(val) || '';
-                  return label.length > 14 ? label.substring(0, 12) + '...' : label;
-                }
-              }
-            }
-          }
-        }
-      });
-    }
-
-    /* 4. DOUGHNUT CHART: MUTUALLY EXCLUSIVE TIMELINESS BREAKDOWN */
-    function renderTimelinessChart() {
-      const canvas = document.getElementById("timelinessChart");
-      if (!canvas) return;
-
-      const ctx = canvas.getContext("2d");
-
-      let targetSubs = rawSubmissionsList;
-      if (selectedClassCode !== "ALL") {
-        targetSubs = rawSubmissionsList.filter(s => s.classes?.code === selectedClassCode);
-      }
-
-      let onTimeCount = 0;
-      let lateCount = 0;
-      let pendingCount = 0;
-
-      targetSubs.forEach(s => {
-        const st = String(s.status || '').toLowerCase();
-        const hasScore = (s.grade !== null && s.grade !== undefined && s.grade !== '') || (s.score !== null && s.score !== undefined && s.score !== '');
-        const isGraded = st === 'graded' || hasScore;
-
-        if (!isGraded) {
-          pendingCount++;
-        } else {
-          const deadlineDate = s.activities?.deadline || s.activities?.due_date;
-          const submittedDate = s.submitted_at || s.created_at;
-
-          if (deadlineDate && submittedDate) {
-            const dTime = new Date(deadlineDate).getTime();
-            const sTime = new Date(submittedDate).getTime();
-            if (!isNaN(dTime) && !isNaN(sTime) && sTime > dTime) {
-              lateCount++;
-            } else {
-              onTimeCount++;
-            }
-          } else {
-            onTimeCount++;
-          }
-        }
-      });
-
-      const totalAssessed = onTimeCount + lateCount + pendingCount;
-      const chartData = totalAssessed === 0 ? [0, 0, 1] : [onTimeCount, lateCount, pendingCount];
-      const chartColors = totalAssessed === 0 ? ['#e2e8f0', '#e2e8f0', '#cbd5e1'] : ['#16a34a', '#ef4444', '#f59e0b'];
-
-      if (chartTimelinessInstance) chartTimelinessInstance.destroy();
-
-      chartTimelinessInstance = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: ['On Time', 'Late Submission', 'Pending Evaluation'],
-          datasets: [{
-            data: chartData,
-            backgroundColor: chartColors,
-            borderWidth: 2
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { 
-            legend: { 
-              position: 'bottom',
-              labels: {
-                boxWidth: 12,
-                padding: 12,
-                font: { size: 11.5 }
-              }
-            } 
-          }
-        }
-      });
-    }
-
-    /* 5. RENDER ROSTER STATUS TABLE */
-    function renderTable(metrics) {
-      const tbody = document.getElementById("classTableBody");
-      if (!tbody) return;
-
-      tbody.innerHTML = "";
-
-      metrics.forEach(m => {
-        let statusBadge = `<span class="badge badge-average">Active</span>`;
-
-        if (m.isInactive) {
-          statusBadge = `<span class="badge badge-inactive" title="${escapeHtml(m.inactivityReason)}"><i class="fa-solid fa-triangle-exclamation"></i> Inactive (${m.daysInactive}d)</span>`;
-        } else if (m.avgGrade >= 90) {
-          statusBadge = `<span class="badge badge-top"><i class="fa-solid fa-star"></i> High Performing</span>`;
-        } else if (m.avgGrade < 75) {
-          statusBadge = `<span class="badge badge-lagging"><i class="fa-solid fa-triangle-exclamation"></i> Lagging</span>`;
-        }
-
-        const actionBtnLabel = userRole === "ADMIN" ? "Audit Ledger →" : "View Grades →";
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td><strong>📘 ${escapeHtml(m.subject)}</strong><br><span style="font-size:11px; color:var(--muted);">${escapeHtml(m.code)}</span></td>
-          <td>${m.enrolled} Students</td>
-          <td>${m.activitiesCount} Posted (${m.submissionsCount} Turn-Ins)</td>
-          <td><strong>${m.avgGrade}%</strong></td>
-          <td>${statusBadge}</td>
-          <td>
-            <button class="btn-action-class" onclick="openClassGrades('${escapeJsString(m.code)}', '${m.id}')">
-              ${actionBtnLabel}
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function openClassGrades(classCode, classId) {
-      localStorage.removeItem("isArchivedView");
-      localStorage.setItem("selectedClass", classCode);
-      localStorage.setItem("selectedClassId", String(classId));
-      window.location.href = gradesUrl;
-    }
-
-    /* =====================================================
-        6. LOAD SIDEBAR CLASSES & GROUPS
-    ===================================================== */
-    async function loadSidebarClasses() {
-      const client = getSupabaseClient();
-      if (!client) return;
-
-      const sidebarClassList = document.getElementById("sidebarClassList");
-      if (!sidebarClassList) return;
-      sidebarClassList.innerHTML = "";
-
-      const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
-      let myClasses = [];
-
-      try {
-        if (userRole === "TEACHER" && userSearchIds.length > 0) {
-          const { data } = await client
-            .from('classes')
-            .select('id, subject, code, status')
-            .eq('status', 'active')
-            .in('teacher_id', userSearchIds)
-            .order('created_at', { ascending: false });
-          myClasses = data || [];
-        } else {
-          const { data } = await client
-            .from('classes')
-            .select('id, subject, code, status')
-            .eq('status', 'active')
-            .order('created_at', { ascending: false });
-          myClasses = data || [];
-        }
-      } catch (err) {
-        console.error("Sidebar classes error:", err);
-      }
-
-      myClasses = myClasses.filter(c => c && c.status !== 'archived');
-
-      if (myClasses.length > 0) {
-        const currentSelectedCode = localStorage.getItem("selectedClass");
-        myClasses.forEach(c => {
-          const sideLink = document.createElement("a");
-          sideLink.className = "sidebar-item";
-          if (c.code === currentSelectedCode) sideLink.style.fontWeight = "bold";
-          sideLink.textContent = `📘 ${c.subject}`;
-          sideLink.href = classPageUrl;
-          sideLink.onclick = (e) => {
-            e.preventDefault();
-            localStorage.removeItem("isArchivedView");
-            localStorage.setItem("selectedClass", c.code);
-            localStorage.setItem("selectedClassId", String(c.id));
-            window.location.href = classPageUrl;
-          };
-          sidebarClassList.appendChild(sideLink);
-        });
-      } else {
-        sidebarClassList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active classes</p>`;
-      }
-    }
-
-    async function loadSidebarGroups() {
-      const client = getSupabaseClient();
-      if (!client) return;
-
-      const sidebarGroupList = document.getElementById("sidebarGroupList");
-      if (!sidebarGroupList) return;
-      sidebarGroupList.innerHTML = "";
-
-      const userSearchIds = [...new Set(getDualTypeIds([currentUserId]))];
-      let myGroups = [];
-
-      try {
-        if (userRole === "TEACHER" && userSearchIds.length > 0) {
-          const { data } = await client
-            .from('groups')
-            .select('id, name, code, status')
-            .eq('status', 'active')
-            .in('teacher_id', userSearchIds)
-            .order('created_at', { ascending: false });
-          myGroups = data || [];
-        } else {
-          const { data } = await client
-            .from('groups')
-            .select('id, name, code, status')
-            .eq('status', 'active')
-            .order('created_at', { ascending: false });
-          myGroups = data || [];
-        }
-      } catch (err) {
-        console.error("Sidebar groups error:", err);
-      }
-
-      myGroups = myGroups.filter(g => g && g.status !== 'archived');
-
-      if (myGroups.length > 0) {
-        const currentSelectedGroup = localStorage.getItem("selectedGroup");
-        myGroups.forEach(g => {
-          const sideLink = document.createElement("a");
-          sideLink.className = "sidebar-item";
-          if (g.code === currentSelectedGroup) sideLink.style.fontWeight = "bold";
-          sideLink.textContent = `👥 ${g.name}`;
-          sideLink.href = groupPageUrl;
-          sideLink.onclick = (e) => {
-            e.preventDefault();
-            localStorage.removeItem("isArchivedView");
-            localStorage.setItem("selectedGroup", g.code);
-            localStorage.setItem("selectedGroupId", String(g.id));
-            window.location.href = groupPageUrl;
-          };
-          sidebarGroupList.appendChild(sideLink);
-        });
-      } else {
-        sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
-      }
-    }
+  }
 </script>
-</body>
 
 </html>

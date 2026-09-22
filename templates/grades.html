@@ -1886,7 +1886,7 @@
   }
 
 /* =====================================================
-      4. CORE ROSTER, BENCHMARK & PERFORMANCE RENDERER
+      4. CORE ROSTER, BENCHMARK & PERFORMANCE RENDERER (BASE-50)
   ===================================================== */
   async function renderRosterAndGrades() {
     const client = getSupabaseClient();
@@ -1985,7 +1985,7 @@
       return;
     }
 
-    // 6. Build Student Grade Matrix
+    // 6. Build Student Grade Matrix with Base-50 Transmutation
     const studentPerformanceList = [];
     const now = new Date().getTime();
 
@@ -2018,7 +2018,7 @@
           subMap[parseDbId(s.activity_id)] = s;
         });
 
-        let totalWeightedPct = 0;
+        let totalTransmutedPct = 0;
         let completedCount = 0;
         let countableCount = 0;
         let totalPointsEarned = 0;
@@ -2036,7 +2036,9 @@
 
             if (st === 'graded' || hasScore) {
               const scoreVal = Number(sub.grade !== null && sub.grade !== undefined ? sub.grade : sub.score) || 0;
-              totalWeightedPct += (scoreVal / maxPts) * 100;
+              // 🎯 Base-50 Formula: ((raw / max) * 50) + 50
+              const transmutedScore = Math.round(((scoreVal / maxPts) * 50) + 50);
+              totalTransmutedPct += transmutedScore;
               totalPointsEarned += scoreVal;
               completedCount++;
               countableCount++;
@@ -2045,12 +2047,13 @@
               if (isOverdue) countableCount++;
             }
           } else if (isOverdue) {
-            totalWeightedPct += 0;
+            // Overdue missing work counts as 0%
+            totalTransmutedPct += 0;
             countableCount++;
           }
         });
 
-        const finalAvg = countableCount > 0 ? Math.round(totalWeightedPct / countableCount) : 0;
+        const finalAvg = countableCount > 0 ? Math.round(totalTransmutedPct / countableCount) : 0;
 
         studentPerformanceList.push({
           studentId: stu.id,
@@ -2061,6 +2064,7 @@
           completedCount: completedCount,
           totalActivities: clsActs.length,
           averagePct: finalAvg,
+          isPassing: finalAvg >= 75,
           totalPointsEarned: totalPointsEarned,
           gpa: getGpaEquivalent(finalAvg)
         });
@@ -2107,64 +2111,108 @@
     renderLeaderboard([]);
   }
 
-  /* =====================================================
-      5. TOP 3 HIGHEST SCORING STUDENTS PODIUM
+/* =====================================================
+      5. ALL-STUDENT SCORE RANKING & PERFORMANCE FILTER
   ===================================================== */
+  let rankingFilterMode = "all"; // Options: 'all', 'highest', 'lowest'
+
   function renderPodium(studentList) {
     const container = document.getElementById("topStudentsPodium");
     const heading = document.getElementById("podiumHeading");
     if (!container) return;
 
+    // Update Heading
     if (heading) {
-      heading.textContent = selectedClassCode === "all" 
-        ? "Top 3 Highest Scoring Students (Institutional Leaderboard)"
-        : `Top 3 Highest Scoring Students (${escapeHtml(selectedClassCode)})`;
+      heading.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 10px;">
+          <span>🏆 Student Score Ranking (${selectedClassCode === "all" ? "All Classes" : escapeHtml(selectedClassCode)})</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="rankingPerformanceFilter" style="font-size: 12px; color: var(--muted); font-weight: normal;">Filter Tier:</label>
+            <select id="rankingPerformanceFilter" onchange="changeRankingFilter(this.value)" style="padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff; color: #334155; cursor: pointer;">
+              <option value="all" ${rankingFilterMode === 'all' ? 'selected' : ''}>All Students (Ranked)</option>
+              <option value="highest" ${rankingFilterMode === 'highest' ? 'selected' : ''}>Passed (≥ 75%)</option>
+              <option value="lowest" ${rankingFilterMode === 'lowest' ? 'selected' : ''}>Needs Remediation (< 75%)</option>
+            </select>
+          </div>
+        </div>
+      `;
     }
 
     container.innerHTML = "";
 
     if (!studentList || studentList.length === 0) {
       container.innerHTML = `
-        <div class="empty-state-card" style="grid-column: 1 / -1;">
-          <i class="fa-solid fa-trophy" style="font-size: 26px; color: var(--muted); margin-bottom: 8px;"></i><br>
-          No student scores recorded yet to generate podium rankings.
+        <div class="empty-state-card" style="grid-column: 1 / -1; text-align: center; padding: 25px; color: var(--muted);">
+          <i class="fa-solid fa-ranking-star" style="font-size: 26px; margin-bottom: 8px; color: #94a3b8;"></i><br>
+          No student scores recorded yet to generate performance rankings.
         </div>
       `;
       return;
     }
 
-    // Sort descending by percentage
-    const sorted = [...studentList].sort((a, b) => b.averagePct - a.averagePct);
-    const top3 = sorted.slice(0, 3);
+    // Sort descending (Highest to Lowest)
+    let sorted = [...studentList].sort((a, b) => b.averagePct - a.averagePct);
 
-    const medals = [
-      { rank: "rank-1", medal: "🥇", title: "1st Place (Valedictory Benchmark)" },
-      { rank: "rank-2", medal: "🥈", title: "2nd Place (Honors Benchmark)" },
-      { rank: "rank-3", medal: "🥉", title: "3rd Place (Distinction Benchmark)" }
-    ];
+    // Apply Filter Selection
+    if (rankingFilterMode === "highest") {
+      sorted = sorted.filter(s => s.averagePct >= 75);
+    } else if (rankingFilterMode === "lowest") {
+      sorted = sorted.filter(s => s.averagePct < 75);
+    }
 
-    top3.forEach((item, idx) => {
-      const meta = medals[idx];
-      const card = document.createElement("div");
-      card.className = `podium-card ${meta.rank}`;
-      card.innerHTML = `
-        <div>
-          <span class="medal-badge" title="${meta.title}">${meta.medal}</span>
-          <div class="podium-student-name" onclick="openStudentBreakdown('${escapeJsString(item.studentId)}', '${escapeJsString(item.studentName)}', '${item.classId}')">
-            ${escapeHtml(item.studentName)}
-          </div>
-          <div class="podium-student-class">📘 ${escapeHtml(item.className)} (${escapeHtml(item.classCode)})</div>
+    if (sorted.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state-card" style="grid-column: 1 / -1; text-align: center; padding: 25px; color: var(--muted);">
+          <i class="fa-solid fa-filter" style="font-size: 24px; margin-bottom: 8px; color: #94a3b8;"></i><br>
+          No students match the "${rankingFilterMode === 'highest' ? 'Passed (≥ 75%)' : 'Needs Remediation (< 75%)'}" filter.
         </div>
-        <div style="margin-top: 10px;">
-          <span class="podium-score-pill">${item.averagePct}% Average</span>
+      `;
+      return;
+    }
+
+    sorted.forEach((item, idx) => {
+      const isPassed = item.averagePct >= 75;
+      const rankNum = idx + 1;
+      
+      let badgeTag = isPassed 
+        ? `<span style="background: #dcfce7; color: #166534; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px;"><i class="fa-solid fa-check"></i> Passed</span>`
+        : `<span style="background: #fee2e2; color: #991b1b; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px;"><i class="fa-solid fa-triangle-exclamation"></i> Remedial</span>`;
+
+      let rankMedal = `#${rankNum}`;
+      if (rankNum === 1 && rankingFilterMode !== 'lowest') rankMedal = "🥇 1st";
+      else if (rankNum === 2 && rankingFilterMode !== 'lowest') rankMedal = "🥈 2nd";
+      else if (rankNum === 3 && rankingFilterMode !== 'lowest') rankMedal = "🥉 3rd";
+
+      const card = document.createElement("div");
+      card.className = "podium-card";
+      card.style.cssText = `border-left: 4px solid ${isPassed ? '#16a34a' : '#dc2626'}; padding: 12px 16px; border-radius: 8px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;`;
+
+      card.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <span style="font-size: 13px; font-weight: 800; color: #475569; min-width: 48px;">${rankMedal}</span>
+          <div>
+            <div class="podium-student-name" onclick="openStudentBreakdown('${escapeJsString(item.studentId)}', '${escapeJsString(item.studentName)}', '${item.classId}')" style="font-weight: 700; font-size: 14px; cursor: pointer;" title="Inspect Breakdown">
+              ${escapeHtml(item.studentName)}
+            </div>
+            <div style="font-size: 12px; color: var(--muted);">📘 ${escapeHtml(item.className)} (${escapeHtml(item.classCode)})</div>
+          </div>
+        </div>
+        <div style="text-align: right; display: flex; align-items: center; gap: 10px;">
+          ${badgeTag}
+          <span class="podium-score-pill" style="font-size: 13px; font-weight: 700; color: ${isPassed ? '#16a34a' : '#dc2626'};">${item.averagePct}%</span>
         </div>
       `;
       container.appendChild(card);
     });
   }
 
+  function changeRankingFilter(val) {
+    rankingFilterMode = val;
+    renderPodium(cachedRosterRows);
+  }
+
 /* =====================================================
-      6. CLASS GRADE & ACTIVITY COMPARISON CHART
+      6. CLASS GRADE & ACTIVITY COMPARISON CHART (BASE-50)
   ===================================================== */
   function renderActivityComparisonChart(activities, submissions) {
     const canvas = document.getElementById("activityComparisonChart");
@@ -2261,9 +2309,10 @@
         let high = 0;
         graded.forEach(s => {
           const val = Number(s.grade !== null && s.grade !== undefined ? s.grade : s.score) || 0;
-          const pct = Math.round((val / maxPts) * 100);
-          sum += pct;
-          if (pct > high) high = pct;
+          // 🎯 Base-50 Transmuted: ((raw / max) * 50) + 50
+          const transmuted = Math.round(((val / maxPts) * 50) + 50);
+          sum += transmuted;
+          if (transmuted > high) high = transmuted;
         });
         avgScores.push(Math.round(sum / graded.length));
         highestScores.push(high);
@@ -2470,8 +2519,8 @@
     filterGradesTable();
   }
 
-  /* =====================================================
-      9. STUDENT GRADE BREAKDOWN MODAL ENGINE & ACTIONS
+ /* =====================================================
+      9. STUDENT GRADE BREAKDOWN MODAL ENGINE & ACTIONS (BASE-50)
   ===================================================== */
   // Active context tracker for modal action buttons (View & Export)
   let activeModalStudent = {
@@ -2530,7 +2579,7 @@
 
     let totalPoints = 0;
     let completedCount = 0;
-    let sumPct = 0;
+    let sumTransmutedPct = 0;
     let scoredCount = 0;
     const now = new Date().getTime();
 
@@ -2561,12 +2610,19 @@
           if (st === "graded" || hasScore) {
             const rawScore = sub.grade !== null && sub.grade !== undefined ? sub.grade : sub.score;
             const val = Math.round(Number(rawScore) * 100) / 100 || 0;
-            scoreStr = `${val} / ${maxPts}`;
+            // 🎯 Base-50 Formula: ((raw / max) * 50) + 50
+            const transmuted = Math.round(((val / maxPts) * 50) + 50);
+            const isPassing = transmuted >= 75;
+
+            scoreStr = `${val} / ${maxPts} (${transmuted}%)`;
             totalPoints += val;
             completedCount++;
             scoredCount++;
-            sumPct += (val / maxPts) * 100;
-            statusBadge = `<span class="badge badge-graded"><i class="fa-solid fa-check"></i> Graded</span>`;
+            sumTransmutedPct += transmuted;
+
+            statusBadge = isPassing
+              ? `<span class="badge badge-graded"><i class="fa-solid fa-check"></i> Passed (${transmuted}%)</span>`
+              : `<span class="badge" style="background:#fee2e2; color:#991b1b; border:1px solid #fca5a5;"><i class="fa-solid fa-triangle-exclamation"></i> Remedial (${transmuted}%)</span>`;
           } else {
             scoreStr = `- / ${maxPts}`;
             completedCount++;
@@ -2574,9 +2630,10 @@
           }
         } else {
           if (isOverdue) {
-            scoreStr = `0 / ${maxPts}`;
+            scoreStr = `0 / ${maxPts} (0%)`;
             scoredCount++;
-            statusBadge = `<span class="badge" style="background:#fee2e2; color:#991b1b; border:1px solid #fca5a5;"><i class="fa-solid fa-ban"></i> Failed (Overdue)</span>`;
+            sumTransmutedPct += 0;
+            statusBadge = `<span class="badge" style="background:#fee2e2; color:#991b1b; border:1px solid #fca5a5;"><i class="fa-solid fa-ban"></i> Failed (Overdue: 0%)</span>`;
           } else {
             scoreStr = `- / ${maxPts}`;
             statusBadge = `<span class="badge" style="background:#fef3c7; color:#92400e; border:1px solid #fcd34d;"><i class="fa-regular fa-clock"></i> Due Soon</span>`;
@@ -2594,7 +2651,7 @@
       });
     }
 
-    const avg = scoredCount > 0 ? Math.round(sumPct / scoredCount) : 0;
+    const avg = scoredCount > 0 ? Math.round(sumTransmutedPct / scoredCount) : 0;
     document.getElementById("modalAvgGrade").textContent = `${avg}%`;
     document.getElementById("modalCompletedTasks").textContent = `${completedCount} / ${targetActs.length}`;
     document.getElementById("modalTotalPoints").textContent = `${totalPoints} pts`;
@@ -2701,7 +2758,7 @@
           <strong>Generated:</strong> ${escapeHtml(reportDate)}
         </div>
         <div class="summary-card">
-          <strong>Average Score:</strong> ${escapeHtml(avgScore)} &nbsp;&nbsp;|&nbsp;&nbsp;
+          <strong>Average Base-50 Score:</strong> ${escapeHtml(avgScore)} &nbsp;&nbsp;|&nbsp;&nbsp;
           <strong>Tasks Completed:</strong> ${escapeHtml(completedTasks)} &nbsp;&nbsp;|&nbsp;&nbsp;
           <strong>Total Points Earned:</strong> ${escapeHtml(totalPts)}
         </div>
@@ -2740,11 +2797,11 @@
     }
   });
 
-  /* =====================================================
-      10. PRINT, EXCEL & CSV EXPORT TOOLS
+/* =====================================================
+      10. PRINT, EXCEL & CSV EXPORT TOOLS (BASE-50 ALIGNED)
   ===================================================== */
   function exportGradesToCSV() {
-    if (cachedRosterRows.length === 0) {
+    if (!cachedRosterRows || cachedRosterRows.length === 0) {
       alert("No student grade records available to export.");
       return;
     }
@@ -2752,20 +2809,22 @@
     const currentClassObj = classList.find(c => c.code === selectedClassCode) || {};
     const className = selectedClassCode === "all" ? "All Active Classes Overview" : (currentClassObj.subject || selectedClassCode);
 
-    let csvContent = "\uFEFF"; // UTF-8 BOM
+    let csvContent = "\uFEFF"; // UTF-8 BOM for universal Excel compatibility
     csvContent += "REGIS MARIE COLLEGE - OFFICIAL MASTER GRADE LEDGER\r\n";
     csvContent += `Class Selection: ${escapeCsvCell(className)},Class Code: ${escapeCsvCell(selectedClassCode)}\r\n`;
     csvContent += `Generated: ${new Date().toLocaleDateString()},Authorized Role: ${userRole}\r\n\r\n`;
-    csvContent += "Student Name,Enrolled Subject,Class Code,Submitted Progress,Average Score (%),Philippine GPA Equivalent\r\n";
+    csvContent += "Student Name,Enrolled Subject,Class Code,Submitted Progress,Base-50 Transmuted Average (%),Philippine GPA Equivalent,Academic Remarks\r\n";
 
     cachedRosterRows.forEach(item => {
+      const remarks = item.averagePct >= 75 ? "Passed" : "Needs Remediation (< 75%)";
       csvContent += [
         escapeCsvCell(item.studentName),
         escapeCsvCell(item.className),
         escapeCsvCell(item.classCode),
         escapeCsvCell(`${item.completedCount} / ${item.totalActivities}`),
-        escapeCsvCell(item.averagePct),
-        escapeCsvCell(item.gpa)
+        escapeCsvCell(`${item.averagePct}%`),
+        escapeCsvCell(item.gpa),
+        escapeCsvCell(remarks)
       ].join(",") + "\r\n";
     });
 
@@ -2784,16 +2843,42 @@
 
   function exportGradesToExcel() {
     const table = document.querySelector("#teacherTableView table");
-    if (!table || cachedRosterRows.length === 0) {
+    if (!table || !cachedRosterRows || cachedRosterRows.length === 0) {
       alert("No gradebook records available to export.");
       return;
     }
 
     const clonedTable = table.cloneNode(true);
-    // Remove the Action column
+
+    // 1. Remove the interactive Action column (Column 6)
     clonedTable.querySelectorAll("tr").forEach(r => {
       const cells = r.querySelectorAll("th, td");
       if (cells.length >= 6) cells[5].remove();
+    });
+
+    // 2. Append Academic Remarks Header
+    const theadRow = clonedTable.querySelector("thead tr") || clonedTable.querySelector("tr");
+    if (theadRow) {
+      const th = document.createElement("th");
+      th.textContent = "Academic Remarks";
+      theadRow.appendChild(th);
+    }
+
+    // 3. Append Remarks Cell to each student row
+    const bodyRows = clonedTable.querySelectorAll("tbody tr");
+    bodyRows.forEach(row => {
+      const cells = row.querySelectorAll("td");
+      if (cells.length >= 4) {
+        const avgText = cells[3].textContent.replace(/[^0-9]/g, "");
+        const avgNum = parseInt(avgText, 10) || 0;
+        const isPassed = avgNum >= 75;
+
+        const td = document.createElement("td");
+        td.textContent = isPassed ? "Passed" : "Needs Remediation (< 75%)";
+        td.style.fontWeight = "bold";
+        td.style.color = isPassed ? "#166534" : "#991b1b";
+        row.appendChild(td);
+      }
     });
 
     const currentClassObj = classList.find(c => c.code === selectedClassCode) || {};

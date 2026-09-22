@@ -911,10 +911,11 @@ body, button, input, select, textarea {
       .subscribe();
   }
 
-  /* SMART ICON RESOLVER */
+ /* SMART ICON RESOLVER */
   function getIcon(title = '', type = '') {
     const lower = String(title).toLowerCase();
     const typeLower = String(type).toLowerCase();
+    if (typeLower === 'remedial_lesson' || lower.includes('remedial') || lower.includes('failed')) return '⚠️';
     if (typeLower === 'group_mention' || lower.includes('@all') || lower.includes('📢')) return '📢';
     if (typeLower === 'private_message' || lower.includes('message') || lower.includes('chat') || lower.includes('💬')) return '💬';
     if (typeLower === 'student_submission' || lower.includes('submission') || lower.includes('turned in') || lower.includes('submitted')) return '📥';
@@ -1014,7 +1015,7 @@ body, button, input, select, textarea {
     });
   }
 
-  /* =====================================================
+/* =====================================================
       4. NOTIFICATION USER ACTIONS & INTELLIGENT ROUTING
   ===================================================== */
   window.filterNotifications = function (filter) {
@@ -1034,6 +1035,7 @@ body, button, input, select, textarea {
 
     const isAlreadyRead = notif.is_read || notif.read || false;
 
+    // Mark as read in Supabase
     if (client && !isAlreadyRead && id) {
       const notifSearchIds = getDualTypeIds([id]);
       await client
@@ -1045,13 +1047,37 @@ body, button, input, select, textarea {
     }
 
     const lowerTitle = String(notif.title || '').toLowerCase();
+    const lowerMsg = String(notif.message || '').toLowerCase();
     const notifType = String(notif.type || '').toLowerCase();
     const actId = notif.activity_id || '';
     const subId = notif.submission_id || '';
     const classCode = notif.class_code || '';
+    let lessonId = notif.lesson_id || '';
     const isLesson = notifType === 'lesson' || lowerTitle.includes('lesson') || lowerTitle.includes('material');
-    // For lessons, app.py stores the class_id in target_id
-    const resolvedClassId = notif.class_id || (isLesson ? notif.target_id : null) || '';
+    let resolvedClassId = notif.class_id || (isLesson ? notif.target_id : null) || '';
+
+    // 🎯 Detect Remedial Alert (< 75% failure trigger)
+    const isRemedial = notifType === 'remedial_lesson' || 
+                       lowerTitle.includes('remedial') || 
+                       lowerMsg.includes('failed in this activity') ||
+                       lowerMsg.includes('please read this lesson');
+
+    // Resilient fallback: If lesson_id is not in the notification record, fetch it from activities table
+    if (isRemedial && (!lessonId || !resolvedClassId) && actId && client) {
+      try {
+        const { data: actData } = await client
+          .from('activities')
+          .select('lesson_id, class_id')
+          .eq('id', parseDbId(actId))
+          .maybeSingle();
+        if (actData) {
+          if (!lessonId && actData.lesson_id) lessonId = actData.lesson_id;
+          if (!resolvedClassId && actData.class_id) resolvedClassId = actData.class_id;
+        }
+      } catch (e) {
+        console.warn("Could not fetch remedial activity details:", e);
+      }
+    }
 
     // 1. Private Chat Notification Routing
     const isChat = notifType === 'private_message' || 
@@ -1131,8 +1157,16 @@ body, button, input, select, textarea {
     if (!finalTargetUrl) {
       if (notifType === 'group_mention' || lowerTitle.includes('@all')) {
         finalTargetUrl = classCode ? `${groupPageUrl}?code=${encodeURIComponent(classCode)}` : groupPageUrl;
+      } else if (isRemedial) {
+        // 📚 Remedial routing: routes student straight to the study lesson
+        if (lessonId) {
+          finalTargetUrl = `${lessonsUrl}?lesson_id=${encodeURIComponent(lessonId)}${resolvedClassId ? `&class_id=${encodeURIComponent(resolvedClassId)}` : ''}`;
+        } else if (resolvedClassId) {
+          finalTargetUrl = `${lessonsUrl}?class_id=${encodeURIComponent(resolvedClassId)}${classCode ? `&code=${encodeURIComponent(classCode)}` : ''}`;
+        } else {
+          finalTargetUrl = lessonsUrl;
+        }
       } else if (isLesson) {
-        // ✅ Routes both Teachers and Students directly to the lesson page with class_id
         finalTargetUrl = resolvedClassId 
           ? `${lessonsUrl}?class_id=${encodeURIComponent(resolvedClassId)}${classCode ? `&code=${encodeURIComponent(classCode)}` : ''}`
           : lessonsUrl;
@@ -1151,7 +1185,7 @@ body, button, input, select, textarea {
           finalTargetUrl = homeUrl;
         }
       } else {
-        // STUDENT POV
+        // Standard Student View
         if (lowerTitle.includes('grade') || lowerTitle.includes('score') || lowerTitle.includes('evaluated')) {
           finalTargetUrl = actId ? `${activitySubmitUrl}?activity_id=${encodeURIComponent(actId)}` : reviewUrl;
         } else if (actId || notifType === 'activity' || lowerTitle.includes('activity') || lowerTitle.includes('deadline') || lowerTitle.includes('penalty') || lowerTitle.includes('left')) {
@@ -1163,29 +1197,28 @@ body, button, input, select, textarea {
     }
 
     // 3. Synchronize Context in localStorage
-    if (isLesson) {
-      if (resolvedClassId) localStorage.setItem("selectedClassId", String(resolvedClassId));
-    } else {
-      if (actId) localStorage.setItem("selectedActivityId", String(actId));
-    }
-
+    if (lessonId) localStorage.setItem("selectedLessonId", String(lessonId));
+    if (resolvedClassId) localStorage.setItem("selectedClassId", String(resolvedClassId));
+    if (actId) localStorage.setItem("selectedActivityId", String(actId));
     if (subId) localStorage.setItem("selectedSubmissionId", String(subId));
     if (classCode) {
       localStorage.setItem("selectedClass", classCode);
       localStorage.setItem("selectedGroup", classCode);
     }
 
-    // Parse URL query parameters to ensure complete context sync
+    // 4. Parse URL query parameters to ensure total storage sync
     try {
       const parsedUrl = new URL(finalTargetUrl, window.location.origin);
       const qAct = parsedUrl.searchParams.get('activity_id');
       const qSub = parsedUrl.searchParams.get('submission_id');
       const qStu = parsedUrl.searchParams.get('student_id');
       const qCls = parsedUrl.searchParams.get('class_id');
+      const qLes = parsedUrl.searchParams.get('lesson_id');
       const qCode = parsedUrl.searchParams.get('class_code') || parsedUrl.searchParams.get('code') || parsedUrl.searchParams.get('group');
 
       if (qAct) localStorage.setItem("selectedActivityId", String(qAct));
       if (qSub) localStorage.setItem("selectedSubmissionId", String(qSub));
+      if (qLes) localStorage.setItem("selectedLessonId", String(qLes));
       if (qStu) {
         localStorage.setItem("selectedStudentId", String(qStu));
         localStorage.setItem("gradingStudentId", String(qStu));

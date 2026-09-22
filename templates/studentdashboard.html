@@ -970,6 +970,9 @@ body, button, input, select, textarea {
 
 <body>
 
+  <!-- MOBILE BACKDROP OVERLAY -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
   <!-- MOBILE MENU BUTTON -->
   <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open menu">
     <i class="fa-solid fa-bars"></i>
@@ -1002,7 +1005,7 @@ body, button, input, select, textarea {
 
     <!-- LOGOUT BUTTON -->
     <a onclick="logoutUser()" class="sidebar-logout-btn" style="cursor: pointer; margin-top: 18px; display: block;">
-      🚪 Logout
+      <i class="fa-solid fa-right-from-bracket"></i> Logout
     </a>
   </aside>
 
@@ -1013,7 +1016,7 @@ body, button, input, select, textarea {
     <header class="page-header">
       <div class="header-title-group">
         <h1 id="dashTitle"><i class="fa-solid fa-users-viewfinder"></i> Student Performance & Analytics Dashboard</h1>
-        <p id="dashSub">Class cohort metrics, individual progression trends, and cumulative student rankings.</p>
+        <p id="dashSub">Class cohort metrics, activity diagnostics, and individual student intervention tracking.</p>
       </div>
 
       <div class="controls-group">
@@ -1026,35 +1029,40 @@ body, button, input, select, textarea {
 
     <div class="container">
 
-      <!-- KPI SUMMARY CARDS -->
+      <!-- KPI SUMMARY CARDS (TOP PERFORMER REMOVED -> REPLACED WITH ACTIVITY DIAGNOSTIC) -->
       <div class="kpi-grid">
+        
+        <!-- 1. Average Class Grade -->
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title" id="kpiAvgTitle">Average Class Grade</span>
             <div class="kpi-icon-box" style="background:var(--primary-light); color:var(--primary);"><i class="fa-solid fa-award"></i></div>
           </div>
           <div class="kpi-value" id="kpiAvgScore">0%</div>
-          <div class="kpi-subtext positive" id="kpiGpaLabel"><i class="fa-solid fa-circle-check"></i> 0.0 GPA Equivalent</div>
+          <div class="kpi-subtext positive" id="kpiGpaLabel"><i class="fa-solid fa-circle-check"></i> Base-50 Scaled Average</div>
         </div>
 
+        <!-- 2. Failing Activity Diagnostic (Replaces Top Performing Student) -->
         <div class="kpi-card">
           <div class="kpi-header">
-            <span class="kpi-title">Top Performing Student</span>
-            <div class="kpi-icon-box" style="background:var(--success-light); color:var(--success);"><i class="fa-solid fa-trophy"></i></div>
+            <span class="kpi-title">Activities Needing Review</span>
+            <div class="kpi-icon-box" style="background:#fef3c7; color:#b45309;"><i class="fa-solid fa-triangle-exclamation"></i></div>
           </div>
-          <div class="kpi-value" id="kpiStrongName" style="font-size: 20px;">None</div>
-          <div class="kpi-subtext positive" id="kpiStrongScore"><i class="fa-solid fa-star"></i> 0% Cumulative</div>
+          <div class="kpi-value" id="kpiFlaggedActivitiesCount" style="color: #b45309;">0 Acts</div>
+          <div class="kpi-subtext negative" id="kpiFlaggedActivitiesSubtext"><i class="fa-solid fa-circle-exclamation"></i> Cohort Avg &lt; 75% Benchmark</div>
         </div>
 
+        <!-- 3. Students Needing Support -->
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Students Needing Support</span>
             <div class="kpi-icon-box" style="background:var(--danger-light); color:var(--danger);"><i class="fa-solid fa-user-minus"></i></div>
           </div>
-          <div class="kpi-value" id="kpiWeakCount">0</div>
-          <div class="kpi-subtext negative" id="kpiWeakSubtext"><i class="fa-solid fa-triangle-exclamation"></i> Below 75% Benchmark</div>
+          <div class="kpi-value" id="kpiWeakCount" style="color: var(--danger);">0</div>
+          <div class="kpi-subtext negative" id="kpiWeakSubtext"><i class="fa-solid fa-triangle-exclamation"></i> Below 75% Passing Mark</div>
         </div>
 
+        <!-- 4. Total Graded Submissions -->
         <div class="kpi-card">
           <div class="kpi-header">
             <span class="kpi-title">Total Graded Submissions</span>
@@ -1062,6 +1070,28 @@ body, button, input, select, textarea {
           </div>
           <div class="kpi-value" id="kpiCompletedCount">0</div>
           <div class="kpi-subtext positive"><i class="fa-solid fa-bolt"></i> Evaluated Submissions</div>
+        </div>
+      </div>
+
+      <!-- 🎯 ACTIVITY DIAGNOSTIC ALERT HUB (FAILING ACTIVITIES DETECTOR) -->
+      <div class="card" id="activityDiagnosticCard" style="margin-bottom: 24px; border-left: 4px solid #f59e0b;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <h2 style="font-size: 15px; margin: 0; display: flex; align-items: center; gap: 8px; color: #92400e;">
+              <i class="fa-solid fa-microscope"></i> Class Activity Diagnostic: Difficult &amp; Failing Tasks (&lt; 75% Cohort Avg)
+            </h2>
+            <span style="font-size: 12px; color: var(--muted); font-weight: 500;">
+              Detects specific learning tasks where the majority of students struggled or scored below passing.
+            </span>
+          </div>
+          <span id="activityDiagnosticStatusBadge" style="background: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 11.5px;">
+            Analyzing class activities...
+          </span>
+        </div>
+        <div style="padding: 14px 20px;" id="activityDiagnosticContent">
+          <div id="activityDiagnosticTags" style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 12.5px; color: var(--muted);"><i class="fa-solid fa-spinner fa-spin"></i> Checking activity averages...</span>
+          </div>
         </div>
       </div>
 
@@ -1080,7 +1110,7 @@ body, button, input, select, textarea {
         <div class="students-header-row">
           <div class="students-header-title">
             <i class="fa-solid fa-users" style="color: var(--primary);"></i>
-            <span>All Students Overview (<span id="studentRosterCount">0</span>)</span>
+            <span>All Enrolled Students (<span id="studentRosterCount">0</span>)</span>
           </div>
           <div class="student-search-wrapper">
             <i class="fa-solid fa-magnifying-glass"></i>
@@ -1156,10 +1186,13 @@ body, button, input, select, textarea {
         </div>
       </div>
 
-      <!-- DETAILED STUDENT REPORT TABLE -->
+      <!-- DETAILED STUDENT REPORT TABLE (STUDENT NAMES ARE CLICKABLE) -->
       <div class="card">
-        <div class="card-header">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
           <h2><i class="fa-solid fa-user-graduate"></i> Student Performance Ledger</h2>
+          <span style="font-size: 12px; color: var(--muted); font-weight: 500;">
+            💡 Click any student name to inspect their full activity portfolio.
+          </span>
         </div>
 
         <div class="table-wrapper">
@@ -1194,6 +1227,61 @@ body, button, input, select, textarea {
     </div>
   </main>
 
+  <!-- 🌟 ALL ACTIVITIES STUDENT BREAKDOWN MODAL -->
+  <div id="studentActivitiesModal" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.65); z-index: 9999; justify-content: center; align-items: center; padding: 16px; backdrop-filter: blur(2px);">
+    <div style="background: #ffffff; border-radius: 12px; max-width: 800px; width: 100%; max-height: 88vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); overflow: hidden;">
+      
+      <!-- Modal Header -->
+      <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
+        <div>
+          <h3 id="modalStudentTitle" style="margin: 0; font-size: 16px; color: #1e293b; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-user-graduate" style="color: #2563eb;"></i> Student Activity Portfolio
+          </h3>
+          <span id="modalStudentClassSub" style="font-size: 12px; color: var(--muted, #64748b);">Class: Loading...</span>
+        </div>
+        <button type="button" onclick="closeStudentActivitiesModal()" style="background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; padding: 4px 8px;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Summary KPI Bar -->
+      <div id="modalStudentSummaryBar" style="padding: 12px 20px; background: #f1f5f9; display: flex; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid #e2e8f0; font-size: 12px; font-weight: 700;">
+        <!-- Injected dynamically -->
+      </div>
+
+      <!-- Table of All Activities -->
+      <div style="padding: 0; overflow-y: auto; flex: 1;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+          <thead>
+            <tr style="background: #ffffff; border-bottom: 2px solid #e2e8f0; text-align: left; position: sticky; top: 0; z-index: 1;">
+              <th style="padding: 10px 14px;">Activity Title</th>
+              <th style="padding: 10px 14px;">Due Date</th>
+              <th style="padding: 10px 14px;">Raw Score</th>
+              <th style="padding: 10px 14px;">50% Base Score</th>
+              <th style="padding: 10px 14px;">Evaluation Status</th>
+            </tr>
+          </thead>
+          <tbody id="modalStudentActivitiesBody">
+            <!-- Populated dynamically -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Modal Footer -->
+      <div style="padding: 12px 20px; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" id="modalViewStudentGradesBtn" style="background: #2563eb; color: #ffffff; border: none; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+          Open Full Grade Sheet <i class="fa-solid fa-arrow-right"></i>
+        </button>
+        <button type="button" onclick="closeStudentActivitiesModal()" style="background: #e2e8f0; color: #475569; border: none; padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;">
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+
 <script>
   /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
   window.addEventListener('pageshow', function (event) {
@@ -1203,7 +1291,7 @@ body, button, input, select, textarea {
   });
 
   /* =====================================================
-      0. TYPE-SAFE ID HELPERS
+      0. TYPE-SAFE ID HELPERS & UTILITIES
   ===================================================== */
   function parseDbId(idVal) {
     if (!idVal) return idVal;
@@ -1224,6 +1312,36 @@ body, button, input, select, textarea {
       }
     });
     return Array.from(result);
+  }
+
+  function escapeHtml(text) {
+    if (!text) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeJsString(str) {
+    if (!str) return "";
+    return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+  }
+
+  /* PHILIPPINE COLLEGIATE GPA STANDARD (75% PASSING = 3.00) */
+  function getGpaEquivalent(pct) {
+    if (pct === null || pct === undefined || isNaN(pct) || pct <= 0) return "N/A";
+    if (pct >= 97) return "1.00 (Excellent)";
+    if (pct >= 94) return "1.25 (Superior)";
+    if (pct >= 91) return "1.50 (Very Good)";
+    if (pct >= 88) return "1.75 (Good)";
+    if (pct >= 85) return "2.00 (Above Average)";
+    if (pct >= 82) return "2.25 (Average)";
+    if (pct >= 79) return "2.50 (Satisfactory)";
+    if (pct >= 76) return "2.75 (Fair)";
+    if (pct >= 75) return "3.00 (Passing)";
+    return "5.00 (Failed)";
   }
 
   /* =====================================================
@@ -1257,78 +1375,86 @@ body, button, input, select, textarea {
   const accountUrl = "{{ url_for('account_page') }}";
   const classPageUrl = "{{ url_for('class_page') }}";
   const groupPageUrl = "{{ url_for('group_page') }}";
-  const privateMessageInboxUrl = "private-message.html";
+  const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
 
   const sidebarMenu = document.getElementById("sidebarMenu");
 
-  if (userRole === "ADMIN") {
-    // 🔒 STANDARDIZED ADMIN AUDITOR MENU
-    sidebarMenu.innerHTML = `
-      <a href="${homeUrl}">🏠 Institutional Hub</a>
-      <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
-      <a href="${studentDashboardUrl}" class="active">📈 At-Risk Student Monitor</a>
-      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
-      <a href="${gradesUrl}">💯 Master Gradebook</a>
-      <a href="${archiveUrl}">📦 Archival Vault</a>
-      <a href="${notifyUrl}">🔔 System Alerts</a>
-      <a href="${accountUrl}">👤 Account Profile</a>
-    `;
-  } else {
-    // TEACHER
-    sidebarMenu.innerHTML = `
-      <a href="${homeUrl}">🏠 Home</a>
-      <a href="${createUrl}">➕ Create Class/Group</a>
-      <a href="${calendarUrl}">📅 Calendar</a>
-      <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
-      <a href="${classDashboardUrl}">📊 Class Dashboard</a>
-      <a href="${studentDashboardUrl}" class="active">📈 Student Dashboard</a>
-      <a href="${gradesUrl}">💯 Grades</a>
-      <a href="${submissionsUrl}">📝 Submissions</a>
-      <a href="${archiveUrl}">📦 Archive</a>
-      <a href="${notifyUrl}">🔔 Notifications</a>
-      <a href="${accountUrl}">👤 Account</a>
-    `;
+  if (sidebarMenu) {
+    if (userRole === "ADMIN") {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Institutional Hub</a>
+        <a href="${classDashboardUrl}">📊 Class Inactivity Analytics</a>
+        <a href="${studentDashboardUrl}" class="active">📈 At-Risk Student Monitor</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${gradesUrl}">💯 Master Gradebook</a>
+        <a href="${archiveUrl}">📦 Archival Vault</a>
+        <a href="${notifyUrl}">🔔 System Alerts</a>
+        <a href="${accountUrl}">👤 Account Profile</a>
+      `;
+    } else {
+      sidebarMenu.innerHTML = `
+        <a href="${homeUrl}">🏠 Home</a>
+        <a href="${createUrl}">➕ Create Class/Group</a>
+        <a href="${calendarUrl}">📅 Calendar</a>
+        <a href="${privateMessageInboxUrl}">💬 Private Messages</a>
+        <a href="${classDashboardUrl}">📊 Class Dashboard</a>
+        <a href="${studentDashboardUrl}" class="active">📈 Student Dashboard</a>
+        <a href="${gradesUrl}">💯 Grades</a>
+        <a href="${submissionsUrl}">📝 Submissions</a>
+        <a href="${archiveUrl}">📦 Archive</a>
+        <a href="${notifyUrl}">🔔 Notifications</a>
+        <a href="${accountUrl}">👤 Account</a>
+      `;
+    }
   }
 
-  /* MOBILE SIDEBAR TOGGLE */
+  /* MOBILE SIDEBAR TOGGLE & BACKDROP */
   const mobileMenuBtn = document.getElementById("mobileMenuBtn");
   const sidebar = document.getElementById("sidebar");
+  const sidebarOverlay = document.getElementById("sidebarOverlay");
+
+  function toggleMobileDrawer(open) {
+    const shouldOpen = open !== undefined ? open : !sidebar.classList.contains("active");
+    if (shouldOpen) {
+      sidebar.classList.add("active");
+      if (sidebarOverlay) sidebarOverlay.classList.add("active");
+    } else {
+      sidebar.classList.remove("active");
+      if (sidebarOverlay) sidebarOverlay.classList.remove("active");
+    }
+  }
 
   if (mobileMenuBtn && sidebar) {
     mobileMenuBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      sidebar.classList.toggle("active");
-    });
-
-    document.addEventListener("click", (e) => {
-      if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
-        sidebar.classList.remove("active");
-      }
+      toggleMobileDrawer();
     });
   }
 
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener("click", () => toggleMobileDrawer(false));
+  }
+
+  document.addEventListener("click", (e) => {
+    if (sidebar && !sidebar.contains(e.target) && mobileMenuBtn && !mobileMenuBtn.contains(e.target)) {
+      toggleMobileDrawer(false);
+    }
+  });
+
   function logoutUser() {
-    localStorage.clear();
+    const authKeys = [
+      "user_id", "userRole", "role", "full_name", "email",
+      "selectedClass", "selectedClassId", "selectedGroup", "selectedGroupId",
+      "selectedSubmissionId", "selectedActivityId", "selectedStudentId",
+      "gradingStudentId", "updateType", "updateClassId", "updateGroupId",
+      "joinedClasses", "joinedGroups", "isArchivedView"
+    ];
+    authKeys.forEach(key => localStorage.removeItem(key));
     sessionStorage.clear();
     window.location.replace("{{ url_for('logout') }}");
   }
 
-  /* GPA CONVERTER (PH STANDARD) */
-  function getGpaEquivalent(pct) {
-    if (pct <= 0) return "N/A";
-    if (pct >= 96) return "1.00 (A+)";
-    if (pct >= 91.5) return "1.25 (A)";
-    if (pct >= 87) return "1.50 (A-)";
-    if (pct >= 82.5) return "1.75 (B+)";
-    if (pct >= 78) return "2.00 (B)";
-    if (pct >= 73.5) return "2.25 (B-)";
-    if (pct >= 69) return "2.50 (C+)";
-    if (pct >= 64.5) return "2.75 (C)";
-    if (pct >= 60) return "3.00 (Pass)";
-    return "5.00 (Fail)";
-  }
-
- /* =====================================================
+  /* =====================================================
       2. SUPABASE INITIALIZATION & GLOBAL STATE
   ===================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
@@ -1352,10 +1478,11 @@ body, button, input, select, textarea {
   let activeStudentName = "";
   let activeWeekFilter = "ALL";
 
-  let enrolledStudentsList = []; // Roster of the active class
-  let classActivitiesList = [];  // Chronological activities of the active class
+  let enrolledStudentsList = []; // Roster of active class
+  let classActivitiesList = [];  // Chronological activities
   let classSubmissionsList = []; // All submissions for those activities
-  let studentMetrics = [];       // Aggregated cumulative scores
+  let studentMetrics = [];       // Aggregated Base-50 scores
+  let flaggedActivitiesList = []; // Difficult activities (< 75% cohort avg)
 
   /* CHART INSTANCES */
   let chartTimelineInstance = null;
@@ -1376,7 +1503,7 @@ body, button, input, select, textarea {
     const banner = document.createElement("div");
     banner.id = "adminStudentDashBanner";
     banner.style.cssText = "background: #fef3c7; color: #92400e; border-left: 4px solid #f59e0b; padding: 12px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; margin-bottom: 20px;";
-    banner.innerHTML = "🛡️ <strong>Institutional Audit Mode:</strong> Real-time monitoring of failing grade distributions (<75%) and academic interventions across all subjects.";
+    banner.innerHTML = "🛡️ <strong>Institutional Audit Mode:</strong> Real-time monitoring of failing grade distributions (< 75%) and academic interventions across all subjects.";
     
     const container = document.querySelector(".container") || document.querySelector(".main-content");
     if (container) container.insertBefore(banner, container.firstChild);
@@ -1391,17 +1518,17 @@ body, button, input, select, textarea {
 
     const userSearchIds = getDualTypeIds([currentUserId]);
 
-    let query = client.from('classes').select('*').eq('status', 'active').order('created_at', { ascending: false });
+    let query = client.from('classes').select('*').neq('status', 'archived').order('created_at', { ascending: false });
     if (userRole === "TEACHER" && userSearchIds.length > 0) {
       query = query.in('teacher_id', userSearchIds);
     }
 
     const { data } = await query;
-    myClassesList = data || [];
+    myClassesList = (data || []).filter(c => c && String(c.status || '').toLowerCase() !== 'archived');
 
     populateClassSelector();
 
-    // Preserve previously selected class from localStorage if available
+    // Preserve previously selected class from localStorage if valid
     const savedClassId = localStorage.getItem("selectedClassId");
     if (savedClassId && myClassesList.some(c => String(c.id) === String(savedClassId))) {
       activeClassId = savedClassId;
@@ -1441,7 +1568,6 @@ body, button, input, select, textarea {
     localStorage.setItem("selectedClassId", activeClassId);
     localStorage.setItem("selectedClass", activeClassCode);
 
-    // Reset student selection when switching classes
     activeStudentId = null;
     activeStudentName = "";
     activeWeekFilter = "ALL";
@@ -1457,13 +1583,14 @@ body, button, input, select, textarea {
     const classSearchIds = getDualTypeIds([classId]);
     const currentClassObj = myClassesList.find(c => String(c.id) === String(classId));
 
-    // 1. Batch Fetch Enrolled Students in this class
-    const { data: memberships } = await client
-      .from('class_memberships')
-      .select('user_id')
-      .in('class_id', classSearchIds);
+    // 1. Fetch Enrolled Students (checking both user_id and student_id)
+    const [memUser, memStudent] = await Promise.all([
+      client.from('class_memberships').select('user_id').in('class_id', classSearchIds),
+      client.from('class_memberships').select('student_id').in('class_id', classSearchIds)
+    ]);
 
-    const studentUserIds = getDualTypeIds((memberships || []).map(m => m.user_id));
+    const combinedMems = [...(memUser.data || []), ...(memStudent.data || [])];
+    const studentUserIds = getDualTypeIds(combinedMems.map(m => m.user_id || m.student_id));
     enrolledStudentsList = [];
 
     if (studentUserIds.length > 0) {
@@ -1479,7 +1606,7 @@ body, button, input, select, textarea {
       }));
     }
 
-    // 2. Fetch All Activities for this class in chronological order
+    // 2. Fetch Activities in chronological order
     const { data: activities } = await client
       .from('activities')
       .select('*')
@@ -1493,7 +1620,7 @@ body, button, input, select, textarea {
 
     const actIds = getDualTypeIds(classActivitiesList.map(a => a.id));
 
-    // 3. Fetch All Submissions across these activities
+    // 3. Fetch Submissions
     if (actIds.length > 0) {
       const { data: subs } = await client
         .from('submissions')
@@ -1504,10 +1631,11 @@ body, button, input, select, textarea {
       classSubmissionsList = [];
     }
 
-    // 4. Compute Cumulative Scores for every enrolled student
+    // 4. Compute Base-50 Student Metrics & Activity Diagnostics
     calculateMetrics();
+    calculateActivityDiagnostics();
 
-    // Default select the top student or first student in the roster
+    // Default select first student if available
     if (studentMetrics.length > 0) {
       activeStudentId = studentMetrics[0].studentId;
       activeStudentName = studentMetrics[0].studentName;
@@ -1529,34 +1657,51 @@ body, button, input, select, textarea {
     return Math.min(15, fallbackIndex);
   }
 
+  /* 🎯 BASE-50 TRANSMUTATION STUDENT CALCULATIONS */
   function calculateMetrics() {
+    const now = new Date().getTime();
+
     studentMetrics = enrolledStudentsList.map(student => {
-      let earnedPoints = 0;
-      let totalMaxPoints = 0;
+      let totalTransmutedSum = 0;
+      let countableActivitiesCount = 0;
       let gradedActivitiesCount = 0;
 
       classActivitiesList.forEach(act => {
         const sub = classSubmissionsList.find(s =>
-          String(s.activity_id) === String(act.id) &&
-          String(s.user_id) === String(student.id)
+          (String(s.activity_id) === String(act.id) || parseDbId(s.activity_id) === parseDbId(act.id)) &&
+          (String(s.user_id || s.student_id) === String(student.id) || parseDbId(s.user_id || s.student_id) === parseDbId(student.id))
         );
 
-        const maxPoints = Number(act.total_points) || 100;
-        totalMaxPoints += maxPoints;
+        const maxPoints = Number(act.total_points) > 0 ? Number(act.total_points) : 100;
+        const deadline = act.deadline || act.due_date;
+        const isOverdue = deadline ? (now > new Date(deadline).getTime()) : false;
 
         if (sub) {
-          const rawScore = sub.grade !== null && sub.grade !== undefined ? sub.grade :
-                           sub.score !== null && sub.score !== undefined ? sub.score : null;
+          const rawScore = sub.grade !== null && sub.grade !== undefined && sub.grade !== '' 
+            ? sub.grade 
+            : (sub.score !== null && sub.score !== undefined && sub.score !== '' ? sub.score : null);
 
           if (rawScore !== null) {
-            earnedPoints += Number(rawScore);
+            const val = Math.round(Number(rawScore) * 100) / 100 || 0;
+            // 🎯 Base-50 Formula: ((raw / max) * 50) + 50
+            const transmuted = Math.round(((val / maxPoints) * 50) + 50);
+            totalTransmutedSum += transmuted;
+            countableActivitiesCount++;
             gradedActivitiesCount++;
+          } else {
+            // Submitted but pending grade
+            if (isOverdue) countableActivitiesCount++;
           }
+        } else if (isOverdue) {
+          // Overdue / Missing counts as 0%
+          totalTransmutedSum += 0;
+          countableActivitiesCount++;
         }
       });
 
-      // Overall cumulative percentage across all activities in this class
-      const cumulativeAvg = totalMaxPoints > 0 ? Math.round((earnedPoints / totalMaxPoints) * 100) : 0;
+      const cumulativeAvg = countableActivitiesCount > 0 
+        ? Math.round(totalTransmutedSum / countableActivitiesCount) 
+        : 0;
 
       return {
         studentId: student.id,
@@ -1564,19 +1709,62 @@ body, button, input, select, textarea {
         studentEmail: student.email,
         gradedCount: gradedActivitiesCount,
         totalActivities: classActivitiesList.length,
-        avgGrade: cumulativeAvg
+        avgGrade: cumulativeAvg,
+        isPassing: cumulativeAvg >= 75
       };
     });
 
-    // Rank from highest to lowest cumulative grade
+    // Rank from highest to lowest cumulative Base-50 score
     studentMetrics.sort((a, b) => b.avgGrade - a.avgGrade);
   }
 
+  /* 🎯 ACTIVITY DIAGNOSTIC SCANNER: FAILING / DIFFICULT ACTIVITY DETECTOR */
+  function calculateActivityDiagnostics() {
+    flaggedActivitiesList = [];
+
+    classActivitiesList.forEach(act => {
+      const maxPts = Number(act.total_points) > 0 ? Number(act.total_points) : 100;
+      const actSubs = classSubmissionsList.filter(s => 
+        String(s.activity_id) === String(act.id) || parseDbId(s.activity_id) === parseDbId(act.id)
+      );
+
+      const gradedSubs = actSubs.filter(s => {
+        const raw = s.grade !== null && s.grade !== undefined && s.grade !== '' 
+          ? s.grade 
+          : (s.score !== null && s.score !== undefined && s.score !== '' ? s.score : null);
+        return raw !== null;
+      });
+
+      if (gradedSubs.length > 0) {
+        let totalBase50 = 0;
+        gradedSubs.forEach(s => {
+          const raw = Number(s.grade !== null && s.grade !== undefined ? s.grade : s.score) || 0;
+          const transmuted = Math.round(((raw / maxPts) * 50) + 50);
+          totalBase50 += transmuted;
+        });
+
+        const cohortAvg = Math.round(totalBase50 / gradedSubs.length);
+
+        // Flag any activity where cohort average is below 75%
+        if (cohortAvg < 75) {
+          flaggedActivitiesList.push({
+            id: act.id,
+            title: act.title || "Class Activity",
+            cohortAvg: cohortAvg,
+            gradedCount: gradedSubs.length,
+            week: act.computedWeek
+          });
+        }
+      }
+    });
+  }
+
   /* =====================================================
-      4. UI RENDERING, ROSTER, CHARTS & ZERO-SAFE ENGINE
+      4. UI RENDERING, DIAGNOSTICS & CHARTS
   ==================================================== */
   function renderDashboard() {
     renderKPIs();
+    renderActivityDiagnostics();
     renderAttentionBox();
     renderStudentRoster(studentMetrics);
     renderTimelineGraph();
@@ -1585,29 +1773,75 @@ body, button, input, select, textarea {
     renderTable();
   }
 
+  /* 🎯 SAFE KPI RENDERING (TOP PERFORMER REMOVED -> REPLACED WITH ACTIVITY DIAGNOSTICS) */
   function renderKPIs() {
+    const avgEl = document.getElementById("kpiAvgScore");
+    const gpaEl = document.getElementById("kpiGpaLabel");
+    const flaggedEl = document.getElementById("kpiFlaggedActivitiesCount");
+    const weakCountEl = document.getElementById("kpiWeakCount");
+    const weakSubEl = document.getElementById("kpiWeakSubtext");
+    const completedEl = document.getElementById("kpiCompletedCount");
+
     if (studentMetrics.length === 0) {
-      document.getElementById("kpiAvgScore").textContent = "0%";
-      document.getElementById("kpiGpaLabel").innerHTML = `<i class="fa-solid fa-circle-check"></i> N/A Equivalent`;
-      document.getElementById("kpiStrongName").textContent = "None";
-      document.getElementById("kpiStrongScore").innerHTML = `<i class="fa-solid fa-star"></i> 0% Cumulative`;
-      document.getElementById("kpiWeakCount").textContent = "0";
-      document.getElementById("kpiCompletedCount").textContent = "0";
+      if (avgEl) avgEl.textContent = "0%";
+      if (gpaEl) gpaEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> N/A Equivalent`;
+      if (flaggedEl) flaggedEl.textContent = "0 Acts";
+      if (weakCountEl) weakCountEl.textContent = "0";
+      if (completedEl) completedEl.textContent = "0";
       return;
     }
 
     const overallAvg = Math.round(studentMetrics.reduce((sum, s) => sum + s.avgGrade, 0) / studentMetrics.length);
-    const topStudent = studentMetrics[0];
     const laggingStudents = studentMetrics.filter(s => s.avgGrade < 75);
     const totalGraded = studentMetrics.reduce((sum, s) => sum + s.gradedCount, 0);
 
-    document.getElementById("kpiAvgScore").textContent = `${overallAvg}%`;
-    document.getElementById("kpiGpaLabel").innerHTML = `<i class="fa-solid fa-circle-check"></i> ${getGpaEquivalent(overallAvg)}`;
-    document.getElementById("kpiStrongName").textContent = topStudent.studentName;
-    document.getElementById("kpiStrongScore").innerHTML = `<i class="fa-solid fa-star"></i> ${topStudent.avgGrade}% Cumulative`;
-    document.getElementById("kpiWeakCount").textContent = `${laggingStudents.length}`;
-    document.getElementById("kpiWeakSubtext").innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${laggingStudents.length} Students Below 75%`;
-    document.getElementById("kpiCompletedCount").textContent = `${totalGraded}`;
+    if (avgEl) avgEl.textContent = `${overallAvg}%`;
+    if (gpaEl) gpaEl.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${getGpaEquivalent(overallAvg)}`;
+    if (flaggedEl) flaggedEl.textContent = `${flaggedActivitiesList.length} Acts`;
+    if (weakCountEl) weakCountEl.textContent = `${laggingStudents.length}`;
+    if (weakSubEl) weakSubEl.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${laggingStudents.length} Students Below 75%`;
+    if (completedEl) completedEl.textContent = `${totalGraded}`;
+  }
+
+  /* 🎯 RENDER ACTIVITY DIAGNOSTIC ALERT HUB */
+  function renderActivityDiagnostics() {
+    const badge = document.getElementById("activityDiagnosticStatusBadge");
+    const tagsContainer = document.getElementById("activityDiagnosticTags");
+    if (!tagsContainer) return;
+
+    tagsContainer.innerHTML = "";
+
+    if (flaggedActivitiesList.length > 0) {
+      if (badge) {
+        badge.style.background = "#fee2e2";
+        badge.style.color = "#991b1b";
+        badge.textContent = `⚠️ ${flaggedActivitiesList.length} Difficult Task(s) Detected`;
+      }
+
+      flaggedActivitiesList.forEach(act => {
+        const tag = document.createElement("span");
+        tag.className = "attention-tag";
+        tag.style.cssText = "background: #fee2e2; border: 1px solid #fca5a5; color: #991b1b; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;";
+        tag.innerHTML = `
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <strong>${escapeHtml(act.title)}</strong> (W${act.week}):
+          Cohort Avg: <strong>${act.cohortAvg}%</strong> (Needs Remedial Review)
+        `;
+        tagsContainer.appendChild(tag);
+      });
+    } else {
+      if (badge) {
+        badge.style.background = "#dcfce7";
+        badge.style.color = "#166534";
+        badge.textContent = "✅ All Activity Averages Compliant (≥ 75%)";
+      }
+      tagsContainer.innerHTML = `
+        <span style="background: #dcfce7; border: 1px solid #86efac; color: #166534; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-circle-check"></i>
+          Cohort Performance Strong: No activities have a class average falling below the 75% threshold.
+        </span>
+      `;
+    }
   }
 
   function renderAttentionBox() {
@@ -1625,7 +1859,10 @@ body, button, input, select, textarea {
       laggingStudents.forEach(s => {
         const tag = document.createElement("span");
         tag.className = "attention-tag";
-        tag.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <strong>${escapeHtml(s.studentName)}</strong>: ${s.avgGrade}%`;
+        tag.style.cursor = "pointer";
+        tag.onclick = () => openStudentActivitiesModal(s.studentId, s.studentName);
+        tag.title = "Click to inspect student activity breakdown";
+        tag.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <strong>${escapeHtml(s.studentName)}</strong>: ${s.avgGrade}% (Click to audit)`;
         tags.appendChild(tag);
       });
     } else {
@@ -1664,7 +1901,12 @@ body, button, input, select, textarea {
             <div class="student-id-text">${escapeHtml(student.studentEmail)}</div>
           </div>
         </div>
-        <span class="badge ${badgeColorClass}">${student.avgGrade}%</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span class="badge ${badgeColorClass}">${student.avgGrade}%</span>
+          <button type="button" onclick="event.stopPropagation(); openStudentActivitiesModal('${student.studentId}', '${escapeJsString(student.studentName)}')" style="background: none; border: none; color: #2563eb; cursor: pointer; font-size: 13px;" title="View all activities">
+            <i class="fa-solid fa-folder-open"></i>
+          </button>
+        </div>
       `;
 
       grid.appendChild(card);
@@ -1684,7 +1926,6 @@ body, button, input, select, textarea {
     activeStudentId = String(studentId);
     activeStudentName = studentName;
 
-    // Highlight active card
     document.querySelectorAll(".student-card").forEach(c => {
       if (c.getAttribute("data-student-id") === activeStudentId) {
         c.classList.add("active");
@@ -1699,7 +1940,7 @@ body, button, input, select, textarea {
     renderTimelineGraph();
   }
 
-  /* 📈 ZERO-SAFE STUDENT GRADE PROGRESSION TREND */
+  /* 📈 ZERO-SAFE STUDENT GRADE PROGRESSION TREND (BASE-50 SCALE) */
   function renderTimelineGraph() {
     const canvas = document.getElementById("studentTimelineChart");
     if (!canvas) return;
@@ -1717,7 +1958,6 @@ body, button, input, select, textarea {
       badge.textContent = `Selected: ${activeStudentName}`;
     }
 
-    // Filter activities by selected Academic Week if not 'ALL'
     let activitiesToPlot = classActivitiesList;
     if (activeWeekFilter !== "ALL") {
       const targetWeek = parseInt(activeWeekFilter, 10);
@@ -1727,28 +1967,32 @@ body, button, input, select, textarea {
     const labels = [];
     const dataPoints = [];
     const pointColors = [];
+    const now = new Date().getTime();
 
     activitiesToPlot.forEach(act => {
       labels.push(act.title || "Untitled Activity");
 
       const sub = classSubmissionsList.find(s =>
-        String(s.activity_id) === String(act.id) &&
-        String(s.user_id) === String(activeStudentId)
+        (String(s.activity_id) === String(act.id) || parseDbId(s.activity_id) === parseDbId(act.id)) &&
+        (String(s.user_id || s.student_id) === String(activeStudentId) || parseDbId(s.user_id || s.student_id) === parseDbId(activeStudentId))
       );
 
-      const maxPoints = Number(act.total_points) || 100;
-      let scorePercent = 0; // Default zero
+      const maxPoints = Number(act.total_points) > 0 ? Number(act.total_points) : 100;
+      const deadline = act.deadline || act.due_date;
+      const isOverdue = deadline ? (now > new Date(deadline).getTime()) : false;
+
+      let scorePercent = 0;
 
       if (sub) {
-        const raw = sub.grade !== null && sub.grade !== undefined ? sub.grade :
-                    sub.score !== null && sub.score !== undefined ? sub.score : null;
+        const raw = sub.grade !== null && sub.grade !== undefined && sub.grade !== '' 
+          ? sub.grade 
+          : (sub.score !== null && sub.score !== undefined && sub.score !== '' ? sub.score : null);
 
         if (raw !== null) {
-          // Explicit zero preservation: 0 is plotted at 0%
-          scorePercent = Math.round((Number(raw) / maxPoints) * 100);
+          // 🎯 Base-50 Transmuted: ((raw / max) * 50) + 50
+          scorePercent = Math.round(((Number(raw) / maxPoints) * 50) + 50);
           pointColors.push(scorePercent < 75 ? '#ef4444' : '#00d2c4');
         } else {
-          // Submitted but ungraded
           scorePercent = 0;
           pointColors.push('#f59e0b');
         }
@@ -1772,7 +2016,7 @@ body, button, input, select, textarea {
       data: {
         labels: labels,
         datasets: [{
-          label: `${activeStudentName}'s Score (%)`,
+          label: `${activeStudentName}'s Base-50 Score (%)`,
           data: dataPoints,
           borderColor: '#00d2c4',
           backgroundColor: gradient,
@@ -1793,9 +2037,7 @@ body, button, input, select, textarea {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: function (context) {
-                return ` Score: ${context.parsed.y}%`;
-              }
+              label: (context) => ` Base-50 Score: ${context.parsed.y}%`
             }
           }
         },
@@ -1820,7 +2062,6 @@ body, button, input, select, textarea {
     });
   }
 
-  /* WEEK 1 - WEEK 15 FILTER CONTROLS */
   function switchWeekFilter(week) {
     activeWeekFilter = week;
     resetWeekFilterButtons();
@@ -1834,13 +2075,13 @@ body, button, input, select, textarea {
     document.querySelectorAll("#weekFilterBar .timeframe-btn").forEach(btn => btn.classList.remove("active"));
   }
 
-  /* 📊 SCORE COMPARISON LEADERBOARD (OVERALL CUMULATIVE SCORE ACROSS ALL ACTIVITIES) */
+  /* 📊 SCORE COMPARISON LEADERBOARD */
   function renderStudentComparisonChart() {
     const canvas = document.getElementById("studentComparisonChart");
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
-    const topStudents = studentMetrics.slice(0, 15); // Show top 15 in chart
+    const topStudents = studentMetrics.slice(0, 15);
 
     const labels = topStudents.map(s => s.studentName);
     const data = topStudents.map(s => s.avgGrade);
@@ -1853,7 +2094,7 @@ body, button, input, select, textarea {
       data: {
         labels: labels,
         datasets: [{
-          label: 'Cumulative Class Score (%)',
+          label: 'Cumulative Base-50 Score (%)',
           data: data,
           backgroundColor: colors,
           borderRadius: 6
@@ -1906,7 +2147,7 @@ body, button, input, select, textarea {
     });
   }
 
-  /* 📋 DETAILED PERFORMANCE LEDGER */
+  /* 📋 PERFORMANCE LEDGER (STUDENT NAMES ARE CLICKABLE) */
   function renderTable() {
     const tbody = document.getElementById("studentTableBody");
     if (!tbody) return;
@@ -1920,19 +2161,24 @@ body, button, input, select, textarea {
 
     studentMetrics.forEach((s, idx) => {
       let badgeClass = s.avgGrade >= 90 ? "badge-excellent" : (s.avgGrade >= 75 ? "badge-good" : "badge-danger");
-      let statusText = s.avgGrade >= 90 ? "Excellent" : (s.avgGrade >= 75 ? "On Track" : "At Risk / Failing");
+      let statusText = s.avgGrade >= 90 ? "Excellent" : (s.avgGrade >= 75 ? "On Track" : "At Risk (< 75%)");
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td><strong>#${idx + 1}</strong></td>
-        <td><strong>👤 ${escapeHtml(s.studentName)}</strong><br><span style="font-size:11px; color:var(--muted);">${escapeHtml(s.studentEmail)}</span></td>
+        <td>
+          <a href="javascript:void(0)" onclick="openStudentActivitiesModal('${escapeJsString(s.studentId)}', '${escapeJsString(s.studentName)}')" style="color: #2563eb; font-weight: 700; text-decoration: none; cursor: pointer;" title="Click to view all activities for this student">
+            👤 <span style="text-decoration: underline;">${escapeHtml(s.studentName)}</span>
+          </a>
+          <br><span style="font-size:11px; color:var(--muted);">${escapeHtml(s.studentEmail)}</span>
+        </td>
         <td>${s.gradedCount} / ${s.totalActivities} Tasks</td>
         <td><strong>${s.avgGrade}%</strong></td>
         <td><span class="badge ${badgeClass}">${getGpaEquivalent(s.avgGrade)}</span></td>
         <td><span class="badge ${badgeClass}">${statusText}</span></td>
         <td>
-          <button class="btn-view-breakdown" onclick="selectStudent('${s.studentId}', '${escapeHtml(s.studentName)}')">
-            Inspect Trend →
+          <button class="btn-view-breakdown" onclick="openStudentActivitiesModal('${escapeJsString(s.studentId)}', '${escapeJsString(s.studentName)}')">
+            All Activities →
           </button>
         </td>
       `;
@@ -1940,18 +2186,179 @@ body, button, input, select, textarea {
     });
   }
 
-  function escapeHtml(text) {
-    if (!text) return "";
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+  /* =====================================================
+      5. ALL ACTIVITIES MODAL ENGINE (INCLUDES OVERDUE & 0s)
+  ===================================================== */
+  function openStudentActivitiesModal(studentId, studentName) {
+    const modal = document.getElementById("studentActivitiesModal");
+    if (!modal) return;
+
+    const titleEl = document.getElementById("modalStudentTitle");
+    const subEl = document.getElementById("modalStudentClassSub");
+    const summaryBar = document.getElementById("modalStudentSummaryBar");
+    const tbody = document.getElementById("modalStudentActivitiesBody");
+    const viewBtn = document.getElementById("modalViewStudentGradesBtn");
+
+    const currentClassObj = myClassesList.find(c => String(c.id) === String(activeClassId)) || {};
+
+    if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-user-graduate" style="color: #2563eb;"></i> ${escapeHtml(studentName)}`;
+    if (subEl) subEl.textContent = `Enrolled Subject: ${currentClassObj.subject || 'Class'} (${currentClassObj.code || activeClassCode})`;
+
+    if (viewBtn) {
+      viewBtn.onclick = () => {
+        localStorage.setItem("selectedStudentId", String(studentId));
+        localStorage.setItem("gradingStudentId", String(studentId));
+        localStorage.setItem("selectedClass", activeClassCode);
+        const separator = studentGradesUrl.includes("?") ? "&" : "?";
+        window.location.href = `${studentGradesUrl}${separator}student_id=${encodeURIComponent(studentId)}&class=${encodeURIComponent(activeClassCode)}`;
+      };
+    }
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" style="text-align: center; padding: 25px; color: var(--muted);">
+          <i class="fa-solid fa-spinner fa-spin"></i> Loading student activities portfolio...
+        </td>
+      </tr>
+    `;
+    modal.style.display = "flex";
+
+    // 1. Gather all class activities
+    const classActs = classActivitiesList;
+
+    // 2. Gather student submissions
+    const studentSubs = classSubmissionsList.filter(s =>
+      String(s.user_id || s.student_id) === String(studentId) || parseDbId(s.user_id || s.student_id) === parseDbId(studentId)
+    );
+
+    const subMap = {};
+    studentSubs.forEach(s => {
+      subMap[String(s.activity_id)] = s;
+      subMap[parseDbId(s.activity_id)] = s;
+    });
+
+    const now = new Date().getTime();
+    let completedCount = 0;
+    let missingCount = 0;
+    let totalBase50Sum = 0;
+    let scoredCount = 0;
+
+    if (classActs.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; padding: 30px; color: var(--muted);">
+            No activities have been published in this class yet.
+          </td>
+        </tr>
+      `;
+      if (summaryBar) summaryBar.innerHTML = `<span style="color: var(--muted);">No class tasks available.</span>`;
+      return;
+    }
+
+    tbody.innerHTML = "";
+
+    classActs.forEach(act => {
+      const sub = subMap[String(act.id)] || subMap[parseDbId(act.id)];
+      const maxPts = Number(act.total_points) > 0 ? Number(act.total_points) : 100;
+      const deadline = act.deadline || act.due_date;
+      const deadlineTime = deadline ? new Date(deadline).getTime() : null;
+      const isOverdue = deadlineTime ? (now > deadlineTime) : false;
+
+      let rawScoreDisplay = "-";
+      let base50Display = "-";
+      let statusBadge = "";
+
+      if (sub) {
+        const st = String(sub.status || '').toLowerCase();
+        const rawScore = sub.grade !== null && sub.grade !== undefined && sub.grade !== '' 
+          ? sub.grade 
+          : (sub.score !== null && sub.score !== undefined && sub.score !== '' ? sub.score : null);
+
+        if (st === 'graded' || rawScore !== null) {
+          const val = Math.round(Number(rawScore) * 100) / 100 || 0;
+          // 🎯 Base-50 Transmuted: ((raw / max) * 50) + 50
+          const transmuted = Math.round(((val / maxPts) * 50) + 50);
+          const isPassing = transmuted >= 75;
+
+          rawScoreDisplay = `${val} / ${maxPts}`;
+          base50Display = `<strong style="color: ${isPassing ? '#16a34a' : '#dc2626'};">${transmuted}%</strong>`;
+          statusBadge = isPassing
+            ? `<span style="background: #dcfce7; color: #166534; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;"><i class="fa-solid fa-check"></i> Passed</span>`
+            : `<span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;"><i class="fa-solid fa-triangle-exclamation"></i> Remedial (< 75%)</span>`;
+
+          completedCount++;
+          scoredCount++;
+          totalBase50Sum += transmuted;
+        } else {
+          rawScoreDisplay = `- / ${maxPts}`;
+          base50Display = `<span style="color: var(--muted);">-</span>`;
+          statusBadge = `<span style="background: #eff6ff; color: #1d4ed8; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;"><i class="fa-solid fa-clock"></i> Turned In</span>`;
+          completedCount++;
+        }
+      } else {
+        if (isOverdue) {
+          // 🎯 Overdue / Missing counts as 0%
+          rawScoreDisplay = `0 / ${maxPts}`;
+          base50Display = `<strong style="color: #dc2626;">0%</strong>`;
+          statusBadge = `<span style="background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;"><i class="fa-solid fa-ban"></i> Overdue (Missing: 0)</span>`;
+          missingCount++;
+          scoredCount++;
+          totalBase50Sum += 0;
+        } else {
+          rawScoreDisplay = `- / ${maxPts}`;
+          base50Display = `<span style="color: var(--muted);">-</span>`;
+          statusBadge = `<span style="background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;"><i class="fa-regular fa-clock"></i> Assigned</span>`;
+        }
+      }
+
+      const dueFormatted = deadline 
+        ? new Date(deadline).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+        : 'No Deadline';
+
+      const tr = document.createElement("tr");
+      tr.style.borderBottom = "1px solid #f1f5f9";
+      tr.innerHTML = `
+        <td style="padding: 10px 14px;"><strong>📝 ${escapeHtml(act.title || "Class Activity")}</strong></td>
+        <td style="padding: 10px 14px; color: var(--muted);">${escapeHtml(dueFormatted)}</td>
+        <td style="padding: 10px 14px;">${rawScoreDisplay}</td>
+        <td style="padding: 10px 14px;">${base50Display}</td>
+        <td style="padding: 10px 14px;">${statusBadge}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    const avgScore = scoredCount > 0 ? Math.round(totalBase50Sum / scoredCount) : 0;
+    if (summaryBar) {
+      summaryBar.innerHTML = `
+        <span style="background: #ffffff; padding: 4px 10px; border-radius: 6px; border: 1px solid #cbd5e1;">
+          Cumulative Base-50: <strong style="color: ${avgScore >= 75 ? '#16a34a' : '#dc2626'};">${avgScore}%</strong>
+        </span>
+        <span style="background: #ffffff; padding: 4px 10px; border-radius: 6px; border: 1px solid #cbd5e1;">
+          Completed Tasks: <strong>${completedCount} / ${classActs.length}</strong>
+        </span>
+        <span style="background: #ffffff; padding: 4px 10px; border-radius: 6px; border: 1px solid #cbd5e1; color: ${missingCount > 0 ? '#991b1b' : '#166534'};">
+          Missing / 0% Work: <strong>${missingCount}</strong>
+        </span>
+      `;
+    }
   }
 
+  function closeStudentActivitiesModal() {
+    const modal = document.getElementById("studentActivitiesModal");
+    if (modal) modal.style.display = "none";
+  }
+
+  document.addEventListener("click", (e) => {
+    const modal = document.getElementById("studentActivitiesModal");
+    if (modal && e.target === modal) closeStudentActivitiesModal();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeStudentActivitiesModal();
+  });
+
   /* =====================================================
-      5. LOAD SIDEBAR CLASSES & GROUPS (TWO-STEP QUERY)
+      6. LOAD SIDEBAR CLASSES & GROUPS
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
@@ -1965,28 +2372,21 @@ body, button, input, select, textarea {
     let myClasses = [];
 
     try {
+      let query = client
+        .from('classes')
+        .select('id, subject, code, status')
+        .neq('status', 'archived')
+        .order('created_at', { ascending: false });
+
       if (userRole === "TEACHER" && userSearchIds.length > 0) {
-        const { data } = await client
-          .from('classes')
-          .select('id, subject, code, status')
-          .eq('status', 'active')
-          .in('teacher_id', userSearchIds)
-          .order('created_at', { ascending: false });
-        myClasses = data || [];
-      } else {
-        // ADMIN POV: Query all active institutional classes
-        const { data } = await client
-          .from('classes')
-          .select('id, subject, code, status')
-          .eq('status', 'active')
-          .order('created_at', { ascending: false });
-        myClasses = data || [];
+        query = query.in('teacher_id', userSearchIds);
       }
+
+      const { data } = await query;
+      myClasses = (data || []).filter(c => c && String(c.status || '').toLowerCase() !== 'archived');
     } catch (err) {
       console.error("Sidebar classes error:", err);
     }
-
-    myClasses = myClasses.filter(c => c && c.status !== 'archived');
 
     if (myClasses.length > 0) {
       const currentSelectedCode = localStorage.getItem("selectedClass");
@@ -2022,28 +2422,21 @@ body, button, input, select, textarea {
     let myGroups = [];
 
     try {
+      let query = client
+        .from('groups')
+        .select('id, name, code, status')
+        .neq('status', 'archived')
+        .order('created_at', { ascending: false });
+
       if (userRole === "TEACHER" && userSearchIds.length > 0) {
-        const { data } = await client
-          .from('groups')
-          .select('id, name, code, status')
-          .eq('status', 'active')
-          .in('teacher_id', userSearchIds)
-          .order('created_at', { ascending: false });
-        myGroups = data || [];
-      } else {
-        // ADMIN POV: Query all active institutional groups
-        const { data } = await client
-          .from('groups')
-          .select('id, name, code, status')
-          .eq('status', 'active')
-          .order('created_at', { ascending: false });
-        myGroups = data || [];
+        query = query.in('teacher_id', userSearchIds);
       }
+
+      const { data } = await query;
+      myGroups = (data || []).filter(g => g && String(g.status || '').toLowerCase() !== 'archived');
     } catch (err) {
       console.error("Sidebar groups error:", err);
     }
-
-    myGroups = myGroups.filter(g => g && g.status !== 'archived');
 
     if (myGroups.length > 0) {
       const currentSelectedGroup = localStorage.getItem("selectedGroup");

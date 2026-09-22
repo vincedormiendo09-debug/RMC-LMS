@@ -1141,7 +1141,7 @@
     }, 100);
   });
 
-  /* =====================================================
+/* =====================================================
       3. FETCH SUBMISSION & MULTI-ATTACHMENT PROCESSOR
   ===================================================== */
   async function fetchSubmissionDetailsFromSupabase() {
@@ -1283,7 +1283,7 @@
       if (container) container.parentNode.insertBefore(banner, container);
     }
 
-    // Evaluation Field Setup (Score Only)
+    // Evaluation Field Setup (Score & Base-50 Transmutation)
     const scoreInput = document.getElementById("swScoreInput");
     const scoreLabel = document.getElementById("swScoreLabel");
 
@@ -1300,13 +1300,30 @@
     const st = String(sub.status || '').toLowerCase();
     const isGraded = st === 'graded' || currentGrade !== "";
 
+    // 🎯 Compute Base-50 Transmuted Grade: ((raw / max) * 50) + 50
+    const rawNum = currentGrade !== "" ? Number(currentGrade) : null;
+    const transmutedGrade = rawNum !== null ? Math.round(((rawNum / maxPointsLimit) * 50) + 50) : null;
+    const isPassing = transmutedGrade !== null ? transmutedGrade >= 75 : false;
+
     if (statusBadge) {
       if (isGraded) {
-        statusBadge.textContent = "Graded";
+        statusBadge.innerHTML = `<i class="fa-solid fa-check"></i> Graded • ${transmutedGrade}% (${isPassing ? 'Pass' : 'Needs Review'})`;
         statusBadge.className = "badge badge-graded";
+        if (!isPassing) {
+          statusBadge.style.background = "#fee2e2";
+          statusBadge.style.color = "#991b1b";
+          statusBadge.style.borderColor = "#f87171";
+        } else {
+          statusBadge.style.background = "";
+          statusBadge.style.color = "";
+          statusBadge.style.borderColor = "";
+        }
       } else {
         statusBadge.textContent = "Pending Grade";
         statusBadge.className = "badge badge-pending";
+        statusBadge.style.background = "";
+        statusBadge.style.color = "";
+        statusBadge.style.borderColor = "";
       }
     }
 
@@ -1509,8 +1526,8 @@
     }
   }
 
-  /* =====================================================
-      4. EVALUATION & MULTI-CHANNEL DISPATCH (SCORE ONLY)
+/* =====================================================
+      4. EVALUATION & MULTI-CHANNEL DISPATCH (BASE-50 & REMEDIAL)
   ===================================================== */
   function toggleScoreLock() {
     if (userRole !== "TEACHER" || isClassArchived) {
@@ -1558,6 +1575,9 @@
     }
 
     const numericScore = Number(scoreVal);
+    // 🎯 Base-50 Formula: ((raw / max) * 50) + 50
+    const transmutedGrade = Math.round(((numericScore / maxPointsLimit) * 50) + 50);
+    const isPassing = transmutedGrade >= 75;
 
     let updatePayload = {
       grade: numericScore,
@@ -1593,22 +1613,37 @@
       return;
     }
 
+    // Resolve linked lesson and course context
+    const linkedLessonId = currentActivityData?.lesson_id || null;
+    const targetClassId = currentActivityData?.class_id || localStorage.getItem("selectedClassId") || null;
+
     // Dispatch In-App Notification directly to Student
     if (targetStudentUserId) {
       const parsedStudentId = parseDbId(targetStudentUserId);
       const activityId = currentSubmission?.activity_id ? parseDbId(currentSubmission.activity_id) : parseDbId(resolvedActId);
       const parsedSubId = parseDbId(targetSubId);
 
+      // Automated remedial notification when student fails (< 75%)
+      const notifTitle = isPassing 
+        ? `💯 Work Graded: ${targetActivityTitle}` 
+        : `⚠️ Remedial Review Required: ${targetActivityTitle}`;
+
+      const notifMessage = isPassing
+        ? `Your score for "${targetActivityTitle}" was recorded: ${numericScore}/${maxPointsLimit} (Transmuted: ${transmutedGrade}% - Passed).`
+        : `Please read this lesson because you failed in this activity. Your score: ${numericScore}/${maxPointsLimit} (Transmuted: ${transmutedGrade}% - Needs Improvement).`;
+
       try {
         const studentNotificationPayload = {
           user_id: parsedStudentId,
-          title: `💯 Work Graded: ${targetActivityTitle}`,
-          message: `Your score for "${targetActivityTitle}" was recorded: ${numericScore}/${maxPointsLimit}.`,
-          type: 'grade',
+          title: notifTitle,
+          message: notifMessage,
+          type: isPassing ? 'grade_posted' : 'remedial_lesson',
           link: `${activitySubmitUrl}?activity_id=${encodeURIComponent(activityId)}`,
           is_read: false,
           activity_id: activityId,
           submission_id: parsedSubId,
+          lesson_id: linkedLessonId ? parseDbId(linkedLessonId) : null,
+          class_id: targetClassId ? parseDbId(targetClassId) : null,
           created_at: new Date().toISOString()
         };
 
@@ -1617,6 +1652,8 @@
           .insert([studentNotificationPayload]);
 
         if (notifErr) {
+          delete studentNotificationPayload.lesson_id;
+          delete studentNotificationPayload.class_id;
           delete studentNotificationPayload.link;
           delete studentNotificationPayload.submission_id;
           delete studentNotificationPayload.activity_id;
@@ -1636,12 +1673,17 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            class_id: targetClassId,
+            lesson_id: linkedLessonId,
+            activity_id: activityId,
             class_title: targetSubjectName || 'Course',
-            title: `Grade Posted: ${targetActivityTitle}`,
-            type: 'grade_posted',
+            title: notifTitle,
+            type: isPassing ? 'grade_posted' : 'remedial_lesson',
             student_emails: emails,
             student_ids: studentIds,
-            details: `Score: ${numericScore}/${maxPointsLimit}. View complete evaluation in your portal.`
+            details: isPassing
+              ? `Score: ${numericScore}/${maxPointsLimit} (${transmutedGrade}% - Passed). View complete evaluation in your portal.`
+              : `Score: ${numericScore}/${maxPointsLimit} (${transmutedGrade}% - Failed). Please read this lesson because you failed in this activity.`
           })
         });
       } catch (alertErr) {
@@ -1657,13 +1699,27 @@
       saveBtn.className = "btn-update-score";
     }
 
+    // Update Status Badge with Base-50 Transmuted Result
     const statusBadge = document.getElementById("swStatusBadge");
     if (statusBadge) {
-      statusBadge.textContent = "Graded";
+      statusBadge.innerHTML = `<i class="fa-solid fa-check"></i> Graded • ${transmutedGrade}% (${isPassing ? 'Pass' : 'Needs Review'})`;
       statusBadge.className = "badge badge-graded";
+      if (!isPassing) {
+        statusBadge.style.background = "#fee2e2";
+        statusBadge.style.color = "#991b1b";
+        statusBadge.style.borderColor = "#f87171";
+      } else {
+        statusBadge.style.background = "";
+        statusBadge.style.color = "";
+        statusBadge.style.borderColor = "";
+      }
     }
 
-    alert(`🎉 Score ${numericScore}/${maxPointsLimit} saved successfully! Student has been notified.`);
+    if (!isPassing) {
+      alert(`⚠️ Score saved! The student received ${transmutedGrade}% (Below 75%). An automated remedial study alert pointing to the lesson has been sent.`);
+    } else {
+      alert(`🎉 Score saved successfully! The student received ${transmutedGrade}% (Passed).`);
+    }
   }
 
   /* =====================================================

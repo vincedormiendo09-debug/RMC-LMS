@@ -823,6 +823,7 @@ body, button, input, select, textarea {
       </div>
     </div>
   </div>
+</body>
 
 <script>
   /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
@@ -994,8 +995,8 @@ body, button, input, select, textarea {
     }
   }
 
-  /* =====================================================
-      2. SUPABASE INITIALIZATION
+/* =====================================================
+      2. SUPABASE INITIALIZATION & TARGET RESOLUTION
   ===================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
   const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduZGlxZ3l1dmplbmdsZnlkcWR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NDUxMTEsImV4cCI6MjEwMTMyMTExMX0.8TgmmXUxyX4cjfynjcA0fGA0seVkg7bpoWj3c3rI2bU";
@@ -1010,6 +1011,20 @@ body, button, input, select, textarea {
     return null;
   }
 
+  // 🎯 Resolve URL query parameters dispatched by notifications
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlLessonId = urlParams.get("lesson_id") || urlParams.get("id");
+  const urlClassId = urlParams.get("class_id");
+  const urlCode = urlParams.get("code") || urlParams.get("class_code");
+
+  if (urlClassId) localStorage.setItem("selectedClassId", String(urlClassId));
+  if (urlCode) localStorage.setItem("selectedClass", urlCode);
+  if (urlLessonId) localStorage.setItem("selectedLessonId", String(urlLessonId));
+
+  let selectedCode = urlCode || localStorage.getItem("selectedClass");
+  let selectedClassId = urlClassId || localStorage.getItem("selectedClassId");
+  let targetRemedialLessonId = urlLessonId || localStorage.getItem("selectedLessonId");
+
   // Cache lessons in memory so modal opens instantly
   let loadedLessonsList = [];
 
@@ -1021,11 +1036,8 @@ body, button, input, select, textarea {
     }, 100);
   });
 
-  const selectedCode = localStorage.getItem("selectedClass");
-  let selectedClassId = localStorage.getItem("selectedClassId");
-
-  /* =====================================================
-      3. FETCH & RENDER LESSONS FOR SELECTED CLASS
+/* =====================================================
+      3. FETCH & RENDER LESSONS (WITH REMEDIAL HIGHLIGHT)
   ===================================================== */
   async function initLessonsFeed() {
     const client = getSupabaseClient();
@@ -1151,14 +1163,27 @@ body, button, input, select, textarea {
     feedList.innerHTML = "";
 
     lessons.forEach(lesson => {
+      const isTargetRemedial = targetRemedialLessonId && (
+        String(lesson.id) === String(targetRemedialLessonId) || 
+        parseDbId(lesson.id) === parseDbId(targetRemedialLessonId)
+      );
+
       const card = document.createElement("div");
       card.className = "lesson-card";
+      card.id = `lesson_card_${lesson.id}`;
+
+      // Highlight styling if this is the remedial lesson
+      if (isTargetRemedial) {
+        card.style.border = "2px solid #f59e0b";
+        card.style.boxShadow = "0 0 16px rgba(245, 158, 11, 0.35)";
+        card.style.background = "#fffdf7";
+      }
 
       const createdDate = lesson.created_at ? new Date(lesson.created_at).toLocaleDateString(undefined, {
         year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
       }) : 'Recently Published';
 
-      // 🔒 HARD STOP: Edit and Delete buttons strictly reserved for active Faculty Teachers
+      // Action buttons for faculty
       let actionButtonsHTML = "";
       if (userRole === "TEACHER" && !isArchived) {
         actionButtonsHTML = `
@@ -1189,7 +1214,7 @@ body, button, input, select, textarea {
         `;
       }
 
-      // Attached File Box with Automated Download Functionality
+      // Attached File Box
       let attachmentHTML = "";
       if (lesson.file_url) {
         attachmentHTML = `
@@ -1205,7 +1230,15 @@ body, button, input, select, textarea {
         `;
       }
 
+      // Remedial Callout Badge
+      const remedialBadgeHTML = isTargetRemedial ? `
+        <div style="display:inline-flex; align-items:center; gap:6px; background:#fef3c7; color:#92400e; border:1px solid #fcd34d; font-size:11px; font-weight:700; padding:3px 8px; border-radius:4px; margin-bottom:8px;">
+          <i class="fa-solid fa-triangle-exclamation"></i> Required Remedial Study Material
+        </div>
+      ` : "";
+
       card.innerHTML = `
+        ${remedialBadgeHTML}
         <div class="lesson-card-header">
           <div>
             <h2 class="lesson-card-title" onclick="openLessonModal('${lesson.id}')" title="Click to zoom and view full lesson details">
@@ -1224,6 +1257,18 @@ body, button, input, select, textarea {
 
       feedList.appendChild(card);
     });
+
+    // 🎯 Auto-scroll to the targeted remedial lesson
+    if (targetRemedialLessonId) {
+      setTimeout(() => {
+        const targetEl = document.getElementById(`lesson_card_${targetRemedialLessonId}`);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        // Clear the one-time targeting query so reloads don't force-scroll
+        localStorage.removeItem("selectedLessonId");
+      }, 300);
+    }
   }
 
   /* =====================================================
@@ -1533,5 +1578,5 @@ body, button, input, select, textarea {
     }
   }
 </script>
-</body>
+
 </html>

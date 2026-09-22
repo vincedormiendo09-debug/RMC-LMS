@@ -801,6 +801,27 @@
         Publish assignments or quizzes for <strong id="currentClassName">Selected Class</strong>.
       </p>
 
+<!-- 📢 MANDATORY BROADCAST TO GROUP CHAT SELECTOR -->
+<div class="form-group" style="margin-top: 24px; margin-bottom: 24px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 14px 16px;">
+  <label for="activityTargetGroup" style="display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 700; color: #1e293b; margin-bottom: 6px;">
+    <i class="fa-solid fa-comments" style="color: #2563eb;"></i> Broadcast to Group Chat <span class="required" style="color: #dc2626;">*</span>
+  </label>
+  <select id="activityTargetGroup" required style="width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; background: #ffffff; color: #334155;">
+    <option value="" disabled selected>Select group chat</option>
+    <!-- Loaded dynamically with active groups created by this teacher -->
+  </select>
+</div>
+
+<!-- =========================================================
+             LINKED CURRICULUM LESSON (REMEDIAL INTERVENTION)
+        ========================================================= -->
+        <label for="linkedLesson">
+          <i class="fa-solid fa-book-bookmark"></i> Linked Lesson / Reviewer <span style="font-size: 12px; font-weight: normal; color: #64748b;">(Optional)</span>:
+        </label>
+        <select id="linkedLesson" style="width: 100%; padding: 11px 14px; border-radius: 8px; border: 1px solid #cbd5e1; margin-top: 6px; margin-bottom: 6px; font-size: 14px; background: #ffffff; color: #1e293b; font-family: inherit; outline: none; cursor: pointer;">
+          <option value="">Select a lesson connected to activity</option>
+        </select>
+
       <form id="activityForm">
         <!-- ACTIVITY TITLE -->
         <label for="title">Activity Title <span class="required">*</span></label>
@@ -1049,7 +1070,7 @@
     window.location.replace("{{ url_for('logout') }}");
   }
 
-  /* =====================================================
+/* =====================================================
       2. SUPABASE INITIALIZATION & CONSTANTS
   ===================================================== */
   const SUPABASE_URL = "https://wndiqgyuvjenglfydqdt.supabase.co";
@@ -1083,11 +1104,12 @@
   const selectedCode = localStorage.getItem("selectedClass");
   let currentClassName = "";
 
-  document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
       initPageDetails();
       loadSidebarClasses();
       loadSidebarGroups();
+      loadTeacherGroupsForActivity();
     }, 100);
   });
 
@@ -1109,7 +1131,7 @@
         query = query.eq('code', selectedCode);
       }
 
-      const { data: currentClass } = await query.maybeSingle();
+      const { data: currentClass, error: classErr } = await query.maybeSingle();
 
       if (currentClass) {
         currentClassId = currentClass.id;
@@ -1119,7 +1141,92 @@
 
         const classNameEl = document.getElementById("currentClassName");
         if (classNameEl) classNameEl.textContent = currentClass.subject;
+
+        // 📚 Load lessons using both class ID and class Code
+        await loadClassLessons(currentClass.id, currentClass.code);
+      } else {
+        if (classErr) console.warn("Class fetch warning:", classErr.message);
+        if (currentClassId) {
+          await loadClassLessons(currentClassId, selectedCode);
+        }
       }
+    }
+  }
+
+  /* 📚 POPULATE CURRICULUM LESSONS DROPDOWN (FAULT-TOLERANT) */
+  async function loadClassLessons(classId, classCode = null) {
+    const client = getSupabaseClient();
+    const lessonSelect = document.getElementById("linkedLesson");
+    if (!client || !lessonSelect) return;
+
+    try {
+      const classSearchIds = getDualTypeIds([classId, currentClassId]);
+      const targetCode = classCode || selectedCode || localStorage.getItem("selectedClass");
+
+      // 1. Fetch using select('*') to prevent column naming exceptions
+      let { data: lessons, error } = await client
+        .from('lessons')
+        .select('*')
+        .in('class_id', classSearchIds);
+
+      // 2. Fallback: if no records match numeric/text ID, try class_code
+      if ((!lessons || lessons.length === 0) && targetCode) {
+        const { data: fallbackLessons, error: fallbackErr } = await client
+          .from('lessons')
+          .select('*')
+          .eq('class_code', targetCode);
+
+        if (!fallbackErr && fallbackLessons && fallbackLessons.length > 0) {
+          lessons = fallbackLessons;
+          error = null;
+        }
+      }
+
+      // 🔍 Output to browser console for verification
+      console.log("📚 Lessons query debug:", { classSearchIds, targetCode, count: lessons?.length, lessons, error });
+
+      lessonSelect.innerHTML = '<option value="">-- Select a lesson to link (or none) --</option>';
+
+      if (error) {
+        console.error("⚠️ Supabase error fetching lessons:", error.message);
+        const errOpt = document.createElement('option');
+        errOpt.value = "";
+        errOpt.textContent = `⚠️ Error: ${error.message}`;
+        errOpt.disabled = true;
+        lessonSelect.appendChild(errOpt);
+        return;
+      }
+
+      if (lessons && lessons.length > 0) {
+        // Safe in-memory sorting by week number or creation timestamp
+        lessons.sort((a, b) => {
+          const weekA = Number(a.week_number || a.week || 0);
+          const weekB = Number(b.week_number || b.week || 0);
+          if (weekA !== weekB) return weekA - weekB;
+          return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+        });
+
+        lessons.forEach(les => {
+          const opt = document.createElement('option');
+          opt.value = les.id;
+          
+          // Resilient title and week attribute extraction
+          const title = les.title || les.lesson_title || les.name || `Lesson #${les.id}`;
+          const weekNum = les.week_number || les.week;
+          const weekTag = weekNum ? `[Week ${weekNum}] ` : '';
+
+          opt.textContent = `${weekTag}${title}`;
+          lessonSelect.appendChild(opt);
+        });
+      } else {
+        const emptyOpt = document.createElement('option');
+        emptyOpt.value = "";
+        emptyOpt.textContent = "No lessons uploaded yet for this class";
+        emptyOpt.disabled = true;
+        lessonSelect.appendChild(emptyOpt);
+      }
+    } catch (err) {
+      console.error("Fatal error inside loadClassLessons:", err);
     }
   }
 
@@ -1550,8 +1657,8 @@ function createPicker(token) {
     }
   });
 
-  /* =====================================================
-      4. SUBMIT ACTIVITY (AUDITED MULTI-ATTACHMENT PROCESSOR)
+/* =====================================================
+      4. SUBMIT ACTIVITY (AI MODERATION, PERSIST & MANDATORY BROADCAST)
   ===================================================== */
   const activityForm = document.getElementById('activityForm');
   const submitBtn = document.getElementById('submitBtn');
@@ -1576,16 +1683,32 @@ function createPicker(token) {
       const dateEl = document.getElementById('date');
       const timeEl = document.getElementById('time');
       const scoreEl = document.getElementById('score');
+      const linkedLessonEl = document.getElementById('linkedLesson');
+      const groupSelectEl = document.getElementById('activityTargetGroup');
 
       const title = titleEl ? titleEl.value.trim() : "";
       const description = descEl ? descEl.value.trim() : "";
       const dateVal = dateEl ? dateEl.value : "";
       const timeVal = (timeEl && timeEl.value) ? timeEl.value : "23:59";
       const scoreVal = scoreEl ? (parseInt(scoreEl.value, 10) || 100) : 100;
+      const lessonIdVal = (linkedLessonEl && linkedLessonEl.value) ? parseDbId(linkedLessonEl.value) : null;
+      const selectedGroupId = groupSelectEl ? groupSelectEl.value.trim() : "";
 
       if (!title || !dateVal) {
         alert("Title and Due Date are required fields.");
         return;
+      }
+
+      // 🛑 MANDATORY CHECK: Prevent submit without selected group chat
+      if (!selectedGroupId) {
+        alert("⚠️ Group selection is required! You must select an active group to send this activity to.");
+        if (groupSelectEl) {
+          groupSelectEl.focus();
+          groupSelectEl.style.borderColor = "#dc2626";
+        }
+        return;
+      } else if (groupSelectEl) {
+        groupSelectEl.style.borderColor = "#cbd5e1";
       }
 
       // Collect all selected files and links without discarding items
@@ -1687,7 +1810,6 @@ function createPicker(token) {
         type: i.type
       }));
 
-      // Serialize into JSON if multiple items exist, or keep string if single
       const finalFileUrl = uploadedFiles.length > 1
         ? JSON.stringify(uploadedFiles)
         : (uploadedFiles[0]?.url || null);
@@ -1698,9 +1820,10 @@ function createPicker(token) {
 
       const parsedClassId = parseDbId(currentClassId);
 
-      // 5. Insert Activity into Supabase Database
+      // 5. Insert Activity into Database
       const insertPayload = {
         class_id: parsedClassId,
+        lesson_id: lessonIdVal,
         title: title,
         description: description,
         deadline: deadlineIso,
@@ -1730,7 +1853,47 @@ function createPicker(token) {
         return;
       }
 
-      // 6. Trigger Multi-Channel Notifications (Portal, Email, and Mobile Push)
+      // 6. 📢 MANDATORY BROADCAST DIRECTLY TO SELECTED GROUP CHAT
+      try {
+        const targetGroupId = parseDbId(selectedGroupId);
+        const targetUserId = parseDbId(currentUserId);
+
+        let announcement = `📝 **NEW ACTIVITY POSTED: ${title}**\n\n`;
+        if (description) {
+          announcement += `📋 **Instructions:** ${description}\n\n`;
+        }
+        announcement += `⏰ **Due Date:** ${dateVal} at ${timeVal}\n`;
+        announcement += `🎯 **Max Score:** ${scoreVal} pts (75% Passing Standard)\n\n`;
+        announcement += `👉 Please submit your work before the deadline! @all`;
+
+        const primaryFile = uploadedFiles.length > 0 ? uploadedFiles[0] : (linkItems.length > 0 ? linkItems[0] : null);
+
+        const broadcastPayload = {
+          group_id: targetGroupId,
+          user_id: targetUserId,
+          sender_name: userName || "Teacher",
+          is_creator: true, // Triggers 👑 Teacher badge in group.html
+          message: announcement,
+          media_url: primaryFile ? primaryFile.url : null,
+          media_type: primaryFile ? (uploadedFiles.length > 0 ? 'file' : null) : null,
+          file_name: primaryFile ? primaryFile.name : null,
+          created_at: new Date().toISOString()
+        };
+
+        const { error: broadcastErr } = await client
+          .from('group_messages')
+          .insert([broadcastPayload]);
+
+        if (broadcastErr) {
+          console.error("Failed to broadcast activity to group chat:", broadcastErr.message);
+        } else {
+          console.log("✅ Successfully broadcasted activity to group messenger feed!");
+        }
+      } catch (groupErr) {
+        console.warn("Activity group broadcast exception:", groupErr);
+      }
+
+      // 7. Multi-Channel Notifications (Portal, Email, and Push)
       const classSearchIds = getDualTypeIds([currentClassId]);
 
       const { data: enrolledStudents } = await client
@@ -1742,7 +1905,6 @@ function createPicker(token) {
         const formattedDeadline = `${dateVal} at ${timeVal}`;
         const studentUserIds = getDualTypeIds(enrolledStudents.map(s => s.user_id));
 
-        // Insert in-app notifications
         const notificationRecords = enrolledStudents.map(student => ({
           user_id: parseDbId(student.user_id),
           title: `📝 New Activity: ${title}`,
@@ -1754,7 +1916,6 @@ function createPicker(token) {
 
         await client.from('notifications').insert(notificationRecords);
 
-        // Multi-Channel Dispatch via Flask Endpoint
         if (studentUserIds.length > 0) {
           const { data: studentUsers } = await client
             .from('users')
@@ -1772,12 +1933,15 @@ function createPicker(token) {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
+                class_id: parsedClassId,
+                activity_id: newActivity?.id,
                 class_title: currentClassName || 'Regis Marie College Class',
                 title: title,
                 type: 'new_activity',
                 student_emails: studentEmails,
                 student_ids: studentIdStrings,
-                details: `Due Date: ${formattedDeadline} | Max Points: ${scoreVal}`
+                details: `Due Date: ${formattedDeadline} | Max Points: ${scoreVal}`,
+                url: '/landpage.html'
               })
             });
           } catch (notifErr) {
@@ -1786,13 +1950,13 @@ function createPicker(token) {
         }
       }
 
-      alert("🎉 Activity published successfully! Enrolled students have been notified via email, push alerts, and their portal dashboard.");
-      window.location.href = typeof classUrl !== 'undefined' ? classUrl : classPageUrl;
+      alert("🎉 Activity published successfully! It has been posted into your selected group chat with an @all notification.");
+      window.location.href = typeof classUrl !== 'undefined' ? classUrl : (typeof classPageUrl !== 'undefined' ? classPageUrl : '/class.html');
     });
   }
 
-  /* =====================================================
-      5. LOAD SIDEBAR CLASSES & GROUPS (NON-ARCHIVED)
+/* =====================================================
+      5. LOAD SIDEBAR CLASSES, GROUPS & BROADCAST DROPDOWN
   ===================================================== */
   async function loadSidebarClasses() {
     const client = getSupabaseClient();
@@ -1888,6 +2052,54 @@ function createPicker(token) {
       });
     } else {
       sidebarGroupList.innerHTML = `<p style="font-size:12px; opacity:0.7; padding-left:10px; color:white;">No active groups</p>`;
+    }
+  }
+
+  /* =====================================================
+      LOAD TEACHER'S ACTIVE GROUPS INTO ACTIVITY BROADCAST DROPDOWN
+  ===================================================== */
+  async function loadTeacherGroupsForActivity() {
+    const dropdown = document.getElementById("activityTargetGroup");
+    if (!dropdown) return;
+
+    const client = getSupabaseClient();
+    if (!client) {
+      setTimeout(loadTeacherGroupsForActivity, 200);
+      return;
+    }
+
+    const userSearchIds = getDualTypeIds([currentUserId]);
+
+    try {
+      let query = client
+        .from('groups')
+        .select('id, name, code, status, teacher_id')
+        .order('created_at', { ascending: false });
+
+      if (userRole === "TEACHER" && userSearchIds.length > 0) {
+        query = query.in('teacher_id', userSearchIds);
+      }
+
+      const { data: groups, error } = await query;
+      if (error) throw error;
+
+      // Filter out explicitly archived groups in memory to avoid PostgreSQL NULL status exclusion
+      const activeGroups = (groups || []).filter(g => (g.status || "").toLowerCase() !== "archived");
+
+      dropdown.innerHTML = `<option value="" disabled selected>-- Select target group chat (Required) --</option>`;
+
+      if (activeGroups.length > 0) {
+        activeGroups.forEach(g => {
+          const opt = document.createElement("option");
+          opt.value = String(g.id);
+          opt.textContent = `👥 ${g.name} (${g.code || 'No Code'})`;
+          dropdown.appendChild(opt);
+        });
+      } else {
+        dropdown.innerHTML = `<option value="" disabled selected>⚠️ No active groups found. Please create a group first.</option>`;
+      }
+    } catch (err) {
+      console.error("Error populating activity broadcast groups dropdown:", err);
     }
   }
 </script>

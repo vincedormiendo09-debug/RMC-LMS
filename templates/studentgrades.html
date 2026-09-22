@@ -812,7 +812,7 @@ body, button, input, select, textarea {
   </main>
 
 <script>
-  /* PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
+  /* 🔒 PREVENT BACK BUTTON BYPASS AFTER LOGOUT */
   window.addEventListener('pageshow', function (event) {
     if (event.persisted) {
       window.location.reload();
@@ -859,7 +859,7 @@ body, button, input, select, textarea {
   const rawRole = "{{ session.get('role', '') }}" || localStorage.getItem("role") || "STUDENT";
   const userRole = rawRole.toUpperCase();
   const userName = "{{ session.get('full_name', '') }}" || localStorage.getItem("full_name") || "User";
-  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id");
+  const currentUserId = "{{ session.get('user_id', '') }}" || localStorage.getItem("user_id") || localStorage.getItem("userId") || localStorage.getItem("id");
 
   const userBadgeEl = document.getElementById("userRoleBadge");
   const sidebarNameEl = document.getElementById("sidebarUserName");
@@ -886,6 +886,7 @@ body, button, input, select, textarea {
   const groupPageUrl = "{{ url_for('group_page') }}";
   const activitySubmitUrl = "{{ url_for('activitysubmit_page') }}";
   const privateMessageInboxUrl = "{{ url_for('private_message_page') }}";
+  const lessonsUrl = "{{ url_for('lessons_page') }}";
 
   const sidebarMenu = document.getElementById("sidebarMenu");
 
@@ -1049,7 +1050,7 @@ body, button, input, select, textarea {
     const client = getSupabaseClient();
     if (!client) return;
 
-    // 0. Hard State Reset: Immediately clear previous student data from DOM & memory
+    // Hard State Reset: Immediately clear previous student data
     allClassWorkRows = [];
     enrolledClassesList = [];
     const tbody = document.getElementById("studentGradesBody");
@@ -1063,7 +1064,7 @@ body, button, input, select, textarea {
       `;
     }
 
-    // 1. Read URL parameters first (Direct deep-linking from submissions.html / studentwork.html)
+    // 1. Read URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const paramStudentId = urlParams.get("student_id") || urlParams.get("studentId") || urlParams.get("id");
     const paramClassCode = urlParams.get("class") || urlParams.get("code") || urlParams.get("class_code");
@@ -1086,7 +1087,7 @@ body, button, input, select, textarea {
       selectedClassCode = (storedClass.toLowerCase() === "all" || storedClass === "ALL") ? "" : storedClass;
     }
 
-    // 2. Resolve Target Student ID based on viewing role
+    // 2. Resolve Target Student ID
     if (userRole === "ADMIN" || userRole === "TEACHER") {
       let resolvedId = paramStudentId || localStorage.getItem("selectedStudentId") || localStorage.getItem("gradingStudentId");
       if (!resolvedId || resolvedId === "undefined" || resolvedId === "null") {
@@ -1097,7 +1098,7 @@ body, button, input, select, textarea {
       currentTargetStudentId = currentUserId;
     }
 
-    // 3. Guarantee Clean Identity: Fetch Student's real name from DB in real time
+    // 3. Fetch Student's real name
     if (currentTargetStudentId) {
       const searchIds = getDualTypeIds([currentTargetStudentId]);
       try {
@@ -1122,10 +1123,10 @@ body, button, input, select, textarea {
     // 4. Update Header Labels
     updateHeaderLabels();
 
-    // 5. Fetch Active Enrolled Classes (strictly teacher-filtered if role is TEACHER)
+    // 5. Fetch Active Enrolled Classes
     await loadActiveClassesSelector();
 
-    // 6. Fetch deliverables & calculate marks
+    // 6. Fetch deliverables & calculate Base-50 marks
     await fetchStudentGradesFromSupabase();
   }
 
@@ -1163,49 +1164,63 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-      4. RENDER ACTIVE CLASS LIST SELECTOR BAR (PRIVACY SAFE)
+      4. RENDER ACTIVE CLASS LIST SELECTOR BAR (ROBUST)
   ===================================================== */
   async function loadActiveClassesSelector() {
     const client = getSupabaseClient();
-    const container = document.getElementById("classChipsContainer");
-    if (!client || !container) return;
+    if (!client) return;
 
+    const container = document.getElementById("classChipsContainer");
     const studentSearchIds = getDualTypeIds([currentTargetStudentId]);
 
     try {
-      // 1. Query class memberships across both user_id and student_id
-      const [memUser, memStudent] = await Promise.all([
-        client.from('class_memberships').select('class_id').in('user_id', studentSearchIds),
-        client.from('class_memberships').select('class_id').in('student_id', studentSearchIds)
-      ]);
+      let classIds = [];
 
-      const mems = [...(memUser.data || []), ...(memStudent.data || [])];
-      let classIds = mems.map(m => m.class_id).filter(Boolean);
-      const dualClassIds = getDualTypeIds(classIds);
+      // Primary check: class_memberships
+      if (studentSearchIds.length > 0) {
+        const { data: memUser } = await client
+          .from('class_memberships')
+          .select('class_id')
+          .in('user_id', studentSearchIds);
+        if (memUser && memUser.length > 0) {
+          classIds = memUser.map(m => m.class_id).filter(Boolean);
+        }
+      }
+
+      // Secondary check: joinedClasses in localStorage
+      const joinedCodes = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
+
+      let dualClassIds = getDualTypeIds(classIds);
+      let classesQuery = client.from('classes').select('id, subject, code, status, teacher_id');
 
       if (dualClassIds.length > 0) {
-        let classesQuery = client
-          .from('classes')
-          .select('id, subject, code, status, teacher_id')
-          .neq('status', 'archived')
-          .in('id', dualClassIds)
-          .order('created_at', { ascending: false });
-
-        // 🔒 STRICT TEACHER PRIVACY LOCK:
-        // A teacher can ONLY see classes that THEY own/teach.
-        if (userRole === "TEACHER") {
-          const teacherSearchIds = getDualTypeIds([currentUserId]);
-          classesQuery = classesQuery.in('teacher_id', teacherSearchIds);
-        }
-
-        const { data: classesData, error: clsErr } = await classesQuery;
-        if (clsErr) {
-          console.warn("Classes query notice:", clsErr.message);
-        }
-        enrolledClassesList = (classesData || []).filter(c => c && c.status !== 'archived');
+        classesQuery = classesQuery.in('id', dualClassIds);
+      } else if (joinedCodes.length > 0) {
+        classesQuery = classesQuery.in('code', joinedCodes);
+      } else if (userRole === "TEACHER") {
+        classesQuery = classesQuery.in('teacher_id', getDualTypeIds([currentUserId]));
       } else {
-        enrolledClassesList = [];
+        const stClassId = localStorage.getItem("selectedClassId");
+        const stClassCode = localStorage.getItem("selectedClass");
+        if (stClassId) {
+          classesQuery = classesQuery.in('id', getDualTypeIds([stClassId]));
+        } else if (stClassCode) {
+          classesQuery = classesQuery.eq('code', stClassCode);
+        } else {
+          classesQuery = classesQuery.limit(25);
+        }
       }
+
+      if (userRole === "TEACHER") {
+        const teacherSearchIds = getDualTypeIds([currentUserId]);
+        classesQuery = classesQuery.in('teacher_id', teacherSearchIds);
+      }
+
+      const { data: classesData, error: clsErr } = await classesQuery.order('created_at', { ascending: false });
+      if (clsErr) console.warn("Classes query notice:", clsErr.message);
+
+      // Defensively filter in JS so NULL status is not dropped
+      enrolledClassesList = (classesData || []).filter(c => c && String(c.status || '').toLowerCase() !== 'archived');
     } catch (err) {
       console.error("Error loading active classes selector:", err);
       enrolledClassesList = [];
@@ -1227,11 +1242,11 @@ body, button, input, select, textarea {
       }
     }
 
+    if (!container) return;
     container.innerHTML = "";
 
-    // If the student is enrolled in 0 classes taught by this teacher
     if (enrolledClassesList.length === 0) {
-      container.innerHTML = `<span style="font-size:12.5px; color:var(--muted); padding:4px 0;">This student is not enrolled in any of your active classes.</span>`;
+      container.innerHTML = `<span style="font-size:12.5px; color:var(--muted); padding:4px 0;">No enrolled subjects available for evaluation.</span>`;
       return;
     }
 
@@ -1260,7 +1275,6 @@ body, button, input, select, textarea {
     localStorage.setItem("selectedClass", classCode);
     updateHeaderLabels();
 
-    // Re-highlight active chip
     const chips = document.querySelectorAll(".class-chip");
     chips.forEach(chip => {
       if (!classCode && (chip.textContent.includes("All Active Classes") || chip.textContent.includes("All My Classes"))) {
@@ -1276,7 +1290,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-      5. FETCH WORK, EVALUATION STATUS & ZERO GRADES
+      5. FETCH DELIVERABLES & BASE-50 TRANSMUTATION
   ===================================================== */
   async function fetchStudentGradesFromSupabase() {
     const client = getSupabaseClient();
@@ -1293,51 +1307,55 @@ body, button, input, select, textarea {
 
     const userSearchIds = getDualTypeIds([currentTargetStudentId]);
 
-    // Determine target classes (strictly authorized)
+    // Resolve target class IDs
     let targetClassIds = [];
     if (selectedClassCode) {
       const match = enrolledClassesList.find(c => String(c.code).toLowerCase() === String(selectedClassCode).toLowerCase());
-      if (match) {
-        targetClassIds = getDualTypeIds([match.id]);
-      }
+      if (match) targetClassIds = getDualTypeIds([match.id]);
     } else {
       targetClassIds = getDualTypeIds(enrolledClassesList.map(c => c.id));
     }
 
-    // Safety guard: If student is not in any of this teacher's classes, display empty
+    // Direct fallback if empty
+    if (targetClassIds.length === 0) {
+      const storedCId = localStorage.getItem("selectedClassId");
+      const storedCCode = selectedClassCode || localStorage.getItem("selectedClass");
+      if (storedCId || storedCCode) {
+        let fbQuery = client.from('classes').select('id, subject, code, status');
+        if (storedCId) fbQuery = fbQuery.in('id', getDualTypeIds([storedCId]));
+        else fbQuery = fbQuery.eq('code', storedCCode);
+        const { data: fbData } = await fbQuery;
+        if (fbData && fbData.length > 0) {
+          enrolledClassesList = fbData;
+          targetClassIds = getDualTypeIds(fbData.map(c => c.id));
+        }
+      }
+    }
+
     if (targetClassIds.length === 0) {
       allClassWorkRows = [];
       renderClassWorkTable([]);
       return;
     }
 
-    // 1. Fetch activities belonging to these classes
+    // 1. Fetch activities belonging to target classes
     const { data: activitiesData, error: actErr } = await client
       .from('activities')
       .select('*')
       .in('class_id', targetClassIds)
       .order('created_at', { ascending: false });
 
-    if (actErr) {
-      console.error("Error fetching activities:", actErr);
-    }
-
+    if (actErr) console.error("Error fetching activities:", actErr);
     const activities = activitiesData || [];
 
-    // 2. Fetch Submissions (Deduplicated across user_id & student_id)
+    // 2. Fetch Submissions
     let submissions = [];
     try {
-      const [subUser, subStudent] = await Promise.all([
-        client.from('submissions').select('*').in('user_id', userSearchIds),
-        client.from('submissions').select('*').in('student_id', userSearchIds)
-      ]);
-
-      const combinedSubs = [...(subUser.data || []), ...(subStudent.data || [])];
-      const uniqueMap = new Map();
-      combinedSubs.forEach(s => {
-        if (s && s.id) uniqueMap.set(String(s.id), s);
-      });
-      submissions = Array.from(uniqueMap.values());
+      const { data: subUser } = await client
+        .from('submissions')
+        .select('*')
+        .in('user_id', userSearchIds);
+      submissions = subUser || [];
     } catch (err) {
       console.error("Error fetching student submissions:", err);
     }
@@ -1359,7 +1377,7 @@ body, button, input, select, textarea {
     const now = new Date().getTime();
     allClassWorkRows = [];
 
-    // 3. Synthesize deliverables
+    // 3. Synthesize deliverables with Base-50 Transmutation
     activities.forEach(act => {
       const sub = subMap[String(act.id)] || subMap[parseDbId(act.id)];
       const maxPts = Number(act.total_points) > 0 ? Number(act.total_points) : 100;
@@ -1373,6 +1391,8 @@ body, button, input, select, textarea {
 
       let rowData = {
         activityId: act.id,
+        lessonId: act.lesson_id || null,
+        classId: act.class_id || null,
         activityTitle: act.title || "Class Activity",
         subjectCode: classObj.code || selectedClassCode || "Class",
         maxPoints: maxPts,
@@ -1382,6 +1402,7 @@ body, button, input, select, textarea {
         statusType: 'pending',
         scoreAchieved: 0,
         percentage: 0,
+        isPassing: false,
         statusLabel: '',
         badgeClass: '',
         dateDisplay: 'No Submission'
@@ -1403,20 +1424,26 @@ body, button, input, select, textarea {
           const rawScore = sub.grade !== null && sub.grade !== undefined ? sub.grade : sub.score;
           const score = Math.round(Number(rawScore) * 100) / 100 || 0;
           rowData.scoreAchieved = score;
-          rowData.percentage = Math.round((score / maxPts) * 100);
 
-          if (isLate) {
-            rowData.statusType = 'late';
-            rowData.statusLabel = 'Graded (Late Submission)';
-            rowData.badgeClass = 'badge badge-late';
-          } else {
-            rowData.statusType = 'graded';
-            rowData.statusLabel = 'Graded (On Time)';
+          // 🎯 Base-50 Formula: ((raw / max) * 50) + 50
+          const transmuted = Math.round(((score / maxPts) * 50) + 50);
+          rowData.percentage = transmuted;
+          rowData.isPassing = transmuted >= 75;
+
+          // Retain evaluation status accurately
+          if (rowData.isPassing) {
+            rowData.statusType = isLate ? 'late' : 'graded';
+            rowData.statusLabel = isLate ? 'Passed (Late Turn-In)' : 'Passed (On Time)';
             rowData.badgeClass = 'badge badge-graded';
+          } else {
+            rowData.statusType = 'remedial'; // Graded failing work is remedial, NOT missing
+            rowData.statusLabel = 'Remedial Required (< 75%)';
+            rowData.badgeClass = 'badge badge-missing';
           }
         } else if (st === 'submitted' || sub.submitted_at) {
           rowData.scoreAchieved = 0;
           rowData.percentage = 0;
+          rowData.isPassing = false;
           if (isLate) {
             rowData.statusType = 'late';
             rowData.statusLabel = 'Submitted Late (Pending Evaluation)';
@@ -1431,12 +1458,14 @@ body, button, input, select, textarea {
             rowData.statusType = 'missing';
             rowData.scoreAchieved = 0;
             rowData.percentage = 0;
+            rowData.isPassing = false;
             rowData.statusLabel = 'Missing / Overdue (Failed: 0)';
             rowData.badgeClass = 'badge badge-missing';
           } else {
             rowData.statusType = 'pending';
             rowData.scoreAchieved = 0;
             rowData.percentage = 0;
+            rowData.isPassing = false;
             rowData.statusLabel = 'Assigned / In Progress';
             rowData.badgeClass = 'badge badge-pending';
           }
@@ -1446,6 +1475,7 @@ body, button, input, select, textarea {
           rowData.statusType = 'missing';
           rowData.scoreAchieved = 0;
           rowData.percentage = 0;
+          rowData.isPassing = false;
           rowData.statusLabel = 'Missing / Overdue (Failed: 0)';
           rowData.badgeClass = 'badge badge-missing';
 
@@ -1455,6 +1485,7 @@ body, button, input, select, textarea {
           rowData.statusType = 'pending';
           rowData.scoreAchieved = 0;
           rowData.percentage = 0;
+          rowData.isPassing = false;
           rowData.statusLabel = 'Assigned (Pending Work)';
           rowData.badgeClass = 'badge badge-pending';
 
@@ -1473,20 +1504,32 @@ body, button, input, select, textarea {
     renderClassWorkTable(allClassWorkRows);
   }
 
-/* =====================================================
-      6. RENDER WORK TABLE & UPDATE GPA SUMMARY METRICS
+  /* =====================================================
+      6. RENDER WORK TABLE & UPDATE 50% BASE SCORE METRICS
   ===================================================== */
   function renderClassWorkTable(rows) {
     const tbody = document.getElementById("studentGradesBody");
     if (!tbody) return;
     tbody.innerHTML = "";
 
+    // 🎯 Dynamically rename the "Percentage" table header to "50% Base Score"
+    const tableEl = tbody.closest("table");
+    if (tableEl) {
+      const headers = tableEl.querySelectorAll("th");
+      headers.forEach(th => {
+        const txt = th.textContent.trim().toLowerCase();
+        if (txt.includes("percentage") || txt === "grade" || txt === "%") {
+          th.innerHTML = "50% Base Score";
+        }
+      });
+    }
+
     if (rows.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="6" class="empty-state" style="text-align: center; padding: 35px; color: var(--muted);">
             <i class="fa-solid fa-folder-open" style="font-size: 30px; color: #94a3b8; margin-bottom: 10px;"></i><br>
-            No published deliverables found for ${selectedClassCode ? 'Class <strong>' + escapeHtml(selectedClassCode) + '</strong>' : 'enrolled subjects under this faculty'}.
+            No published deliverables found for ${selectedClassCode ? 'Class <strong>' + escapeHtml(selectedClassCode) + '</strong>' : 'enrolled subjects'}.
           </td>
         </tr>
       `;
@@ -1497,56 +1540,80 @@ body, button, input, select, textarea {
     let totalPointsPossible = 0;
     let totalPointsEarned = 0;
     let completedGradedCount = 0;
-    let totalWeightedPctSum = 0;
+    let totalTransmutedPctSum = 0;
     let countableActivitiesCount = 0;
 
     rows.forEach(item => {
       const tr = document.createElement("tr");
 
-      if (item.statusType === 'graded' || item.statusType === 'late') {
+      // Count evaluated work: passing, late, or remedial
+      if (item.statusType === 'graded' || item.statusType === 'late' || item.statusType === 'remedial') {
         completedGradedCount++;
         totalPointsEarned += item.scoreAchieved;
         totalPointsPossible += item.maxPoints;
-        totalWeightedPctSum += item.percentage;
+        totalTransmutedPctSum += item.percentage;
         countableActivitiesCount++;
       } else if (item.statusType === 'missing') {
-        // Missing activities count as ZERO in student's grade percentage
+        // Missing activities count as zero
         totalPointsEarned += 0;
         totalPointsPossible += item.maxPoints;
-        totalWeightedPctSum += 0;
+        totalTransmutedPctSum += 0;
         countableActivitiesCount++;
       }
 
       // Action routing
-      let actionBtn = "";
+      let actionButtons = [];
       if (item.submissionId) {
         if (userRole === "STUDENT") {
-          actionBtn = `<button class="btn-inspect" onclick="openReviewPage('${item.activityId}', '${item.submissionId}')"><i class="fa-solid fa-eye"></i> View Work</button>`;
+          actionButtons.push(`<button class="btn-inspect" onclick="openReviewPage('${item.activityId}', '${item.submissionId}')"><i class="fa-solid fa-eye"></i> View Work</button>`);
         } else {
-          actionBtn = `<button class="btn-inspect" onclick="inspectStudentSubmission('${item.submissionId}')"><i class="fa-solid fa-eye"></i> Audit Work</button>`;
+          actionButtons.push(`<button class="btn-inspect" onclick="inspectStudentSubmission('${item.submissionId}')"><i class="fa-solid fa-eye"></i> Audit Work</button>`);
         }
       } else {
         if (userRole === "STUDENT") {
-          actionBtn = `<button class="btn-submit-work" onclick="goToSubmitActivity('${item.activityId}', '${item.subjectCode}')"><i class="fa-solid fa-arrow-up-from-bracket"></i> Turn In Work</button>`;
+          if (item.statusType === 'missing') {
+            actionButtons.push(`<button class="btn-inspect" onclick="goToSubmitActivity('${item.activityId}', '${item.subjectCode}')"><i class="fa-solid fa-eye"></i> View Activity</button>`);
+          } else {
+            actionButtons.push(`<button class="btn-submit-work" onclick="goToSubmitActivity('${item.activityId}', '${item.subjectCode}')"><i class="fa-solid fa-arrow-up-from-bracket"></i> Turn In</button>`);
+          }
         } else {
-          actionBtn = `<span style="font-size:12px; color:var(--muted); font-style:italic;">No deliverable</span>`;
+          actionButtons.push(`<span style="font-size:12px; color:var(--muted); font-style:italic;">No deliverable</span>`);
         }
       }
+
+      // 🎯 Remedial Quick-Link: route to targeted study lesson if < 75%
+      if (!item.isPassing && item.lessonId && (item.percentage > 0 || item.statusType === 'missing')) {
+        actionButtons.push(`
+          <button class="btn-remedial" onclick="goToLesson('${item.lessonId}', '${item.classId || ''}')" style="background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px;" title="Review lesson material for remedial study">
+            <i class="fa-solid fa-book-open"></i> Study Lesson
+          </button>
+        `);
+      }
+
+      const scoreDisplay = (item.statusType === 'graded' || item.statusType === 'late' || item.statusType === 'remedial')
+        ? `${item.scoreAchieved} / ${item.maxPoints}`
+        : `- / ${item.maxPoints}`;
+
+      // Render the official 50% Base Score
+      const gradeDisplay = (item.percentage > 0)
+        ? `<span style="font-weight: 700; font-size: 13.5px; color: ${item.isPassing ? '#16a34a' : '#dc2626'};">${item.percentage}%</span>`
+        : `<span style="color: var(--muted);">${item.statusType === 'missing' ? '0%' : '-'}</span>`;
 
       tr.innerHTML = `
         <td><strong>📝 ${escapeHtml(item.activityTitle)}</strong></td>
         <td>${escapeHtml(item.dateDisplay)}</td>
-        <td><strong>${item.scoreAchieved} / ${item.maxPoints}</strong></td>
-        <td><strong>${item.percentage}%</strong></td>
+        <td><strong>${scoreDisplay}</strong></td>
+        <td>${gradeDisplay}</td>
         <td><span class="${item.badgeClass}">${escapeHtml(item.statusLabel)}</span></td>
-        <td>${actionBtn}</td>
+        <td><div style="display: flex; flex-direction: column; gap: 3px;">${actionButtons.join("")}</div></td>
       `;
 
       tbody.appendChild(tr);
     });
 
+    // 🎯 Cumulative Base-50 Average
     const averagePercentage = countableActivitiesCount > 0
-      ? Math.round(totalWeightedPctSum / countableActivitiesCount)
+      ? Math.round(totalTransmutedPctSum / countableActivitiesCount)
       : 0;
 
     updateSummaryMetrics(completedGradedCount, rows.length, Math.round(totalPointsEarned * 100) / 100, totalPointsPossible, averagePercentage);
@@ -1565,7 +1632,7 @@ body, button, input, select, textarea {
   }
 
   /* =====================================================
-      7. ROUTING ACTIONS & SHORTCUTS (URL PARAMETER RESILIENT)
+      7. ROUTING ACTIONS & SHORTCUTS
   ===================================================== */
   function goToSubmitActivity(activityId, classCode) {
     localStorage.setItem("selectedActivityId", String(activityId));
@@ -1588,8 +1655,18 @@ body, button, input, select, textarea {
     window.location.href = `${studentWorkUrl}${separator}submission_id=${encodeURIComponent(submissionId)}`;
   }
 
+  function goToLesson(lessonId, classId) {
+    if (!lessonId) return;
+    localStorage.setItem("selectedLessonId", String(lessonId));
+    if (classId) localStorage.setItem("selectedClassId", String(classId));
+    
+    const targetBase = (typeof lessonsUrl !== 'undefined' && lessonsUrl) ? lessonsUrl : "lessons.html";
+    const separator = targetBase.includes("?") ? "&" : "?";
+    window.location.href = `${targetBase}${separator}lesson_id=${encodeURIComponent(lessonId)}${classId ? `&class_id=${encodeURIComponent(classId)}` : ''}`;
+  }
+
   /* =====================================================
-      8. EXPORT AUDIT REPORT TO CSV
+      8. EXPORT AUDIT REPORT TO CSV (50% BASE SCORE)
   ===================================================== */
   function exportStudentGradeReportToExcel() {
     if (!allClassWorkRows || allClassWorkRows.length === 0) {
@@ -1602,17 +1679,24 @@ body, button, input, select, textarea {
     csvRows.push([`Student Name: ${currentTargetStudentName}`, `Class Filter: ${selectedClassCode || 'All Enrolled Classes'}`]);
     csvRows.push([`Generated On: ${new Date().toLocaleString()}`, userRole === 'ADMIN' ? 'Registrar Audit Transcript' : 'Official Faculty Record']);
     csvRows.push([]);
-    csvRows.push(["Activity Title", "Class Code", "Due / Submitted", "Score Given", "Max Points", "Percentage", "Performance Status"]);
+    csvRows.push(["Activity Title", "Class Code", "Due / Submitted", "Raw Score", "Max Points", "50% Base Score", "Remarks"]);
 
     allClassWorkRows.forEach(item => {
+      let remarks = item.statusLabel;
+      if (item.percentage > 0) {
+        remarks = item.percentage >= 75 ? "Passed" : "Failed (Remedial Required)";
+      } else if (item.statusType === 'missing') {
+        remarks = "Missing / Overdue (Failed: 0)";
+      }
+
       csvRows.push([
         item.activityTitle,
         item.subjectCode,
         item.dateDisplay,
         item.scoreAchieved,
         item.maxPoints,
-        `${item.percentage}%`,
-        item.statusLabel
+        item.percentage > 0 ? `${item.percentage}%` : (item.statusType === 'missing' ? '0%' : 'Pending'),
+        remarks
       ]);
     });
 
@@ -1650,7 +1734,6 @@ body, button, input, select, textarea {
         const { data } = await client
           .from('classes')
           .select('id, subject, code, status')
-          .neq('status', 'archived')
           .in('teacher_id', userSearchIds)
           .order('created_at', { ascending: false });
         myClasses = data || [];
@@ -1666,16 +1749,23 @@ body, button, input, select, textarea {
             const { data: fetchedClasses } = await client
               .from('classes')
               .select('id, subject, code, status')
-              .neq('status', 'archived')
               .in('id', classSearchIds);
             myClasses = fetchedClasses || [];
+          }
+        } else {
+          const joinedClasses = JSON.parse(localStorage.getItem("joinedClasses") || "[]");
+          if (joinedClasses.length > 0) {
+            const { data: fallbackData } = await client
+              .from('classes')
+              .select('id, subject, code, status')
+              .in('code', joinedClasses);
+            myClasses = fallbackData || [];
           }
         }
       } else {
         const { data } = await client
           .from('classes')
           .select('id, subject, code, status')
-          .neq('status', 'archived')
           .order('created_at', { ascending: false });
         myClasses = data || [];
       }
@@ -1683,7 +1773,7 @@ body, button, input, select, textarea {
       console.error("Sidebar classes error:", err);
     }
 
-    myClasses = myClasses.filter(c => c && c.status !== 'archived');
+    myClasses = myClasses.filter(c => c && String(c.status || '').toLowerCase() !== 'archived');
 
     if (myClasses.length > 0) {
       myClasses.forEach(c => {
@@ -1719,7 +1809,6 @@ body, button, input, select, textarea {
         const { data } = await client
           .from('groups')
           .select('id, name, code, status')
-          .neq('status', 'archived')
           .in('teacher_id', userSearchIds)
           .order('created_at', { ascending: false });
         myGroups = data || [];
@@ -1735,7 +1824,6 @@ body, button, input, select, textarea {
             const { data: fetchedGroups } = await client
               .from('groups')
               .select('id, name, code, status')
-              .neq('status', 'archived')
               .in('id', groupSearchIds);
             myGroups = fetchedGroups || [];
           }
@@ -1744,7 +1832,6 @@ body, button, input, select, textarea {
         const { data } = await client
           .from('groups')
           .select('id, name, code, status')
-          .neq('status', 'archived')
           .order('created_at', { ascending: false });
         myGroups = data || [];
       }
@@ -1752,7 +1839,7 @@ body, button, input, select, textarea {
       console.error("Sidebar groups error:", err);
     }
 
-    myGroups = myGroups.filter(g => g && g.status !== 'archived');
+    myGroups = myGroups.filter(g => g && String(g.status || '').toLowerCase() !== 'archived');
 
     if (myGroups.length > 0) {
       const currentSelectedGroup = localStorage.getItem("selectedGroup");
