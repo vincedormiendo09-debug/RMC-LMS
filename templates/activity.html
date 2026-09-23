@@ -1853,11 +1853,12 @@ function createPicker(token) {
         return;
       }
 
-      // 6. 📢 MANDATORY BROADCAST DIRECTLY TO SELECTED GROUP CHAT
+      // 6. 📢 FULL BROADCAST TO SELECTED GROUP CHAT (POSTS ALL FILES & LINKS)
       try {
         const targetGroupId = parseDbId(selectedGroupId);
         const targetUserId = parseDbId(currentUserId);
 
+        // A. Post Main Activity Announcement
         let announcement = `📝 **NEW ACTIVITY POSTED: ${title}**\n\n`;
         if (description) {
           announcement += `📋 **Instructions:** ${description}\n\n`;
@@ -1866,29 +1867,50 @@ function createPicker(token) {
         announcement += `🎯 **Max Score:** ${scoreVal} pts (75% Passing Standard)\n\n`;
         announcement += `👉 Please submit your work before the deadline! @all`;
 
-        const primaryFile = uploadedFiles.length > 0 ? uploadedFiles[0] : (linkItems.length > 0 ? linkItems[0] : null);
-
-        const broadcastPayload = {
+        await client.from('group_messages').insert([{
           group_id: targetGroupId,
           user_id: targetUserId,
           sender_name: userName || "Teacher",
-          is_creator: true, // Triggers 👑 Teacher badge in group.html
+          is_creator: true,
           message: announcement,
-          media_url: primaryFile ? primaryFile.url : null,
-          media_type: primaryFile ? (uploadedFiles.length > 0 ? 'file' : null) : null,
-          file_name: primaryFile ? primaryFile.name : null,
+          media_url: null,
+          media_type: null,
+          file_name: null,
           created_at: new Date().toISOString()
-        };
+        }]);
 
-        const { error: broadcastErr } = await client
-          .from('group_messages')
-          .insert([broadcastPayload]);
-
-        if (broadcastErr) {
-          console.error("Failed to broadcast activity to group chat:", broadcastErr.message);
-        } else {
-          console.log("✅ Successfully broadcasted activity to group messenger feed!");
+        // B. Post EVERY Attached Reference File (Creates Preview Cards in group.html)
+        for (const file of uploadedFiles) {
+          await client.from('group_messages').insert([{
+            group_id: targetGroupId,
+            user_id: targetUserId,
+            sender_name: userName || "Teacher",
+            is_creator: true,
+            message: file.name,
+            media_url: file.url,
+            media_type: 'file',
+            file_name: file.name,
+            created_at: new Date().toISOString()
+          }]);
         }
+
+        // C. Post Links & Google Drive Attachments (Creates Clickable / Video Cards)
+        for (const link of linkItems) {
+          const linkTitle = link.name && link.name !== link.url ? `**${link.name}**: ` : '';
+          await client.from('group_messages').insert([{
+            group_id: targetGroupId,
+            user_id: targetUserId,
+            sender_name: userName || "Teacher",
+            is_creator: true,
+            message: `🔗 ${linkTitle}${link.url}`,
+            media_url: null,
+            media_type: null,
+            file_name: null,
+            created_at: new Date().toISOString()
+          }]);
+        }
+
+        console.log("✅ Successfully broadcasted activity and all attached materials to group chat!");
       } catch (groupErr) {
         console.warn("Activity group broadcast exception:", groupErr);
       }
@@ -1950,7 +1972,7 @@ function createPicker(token) {
         }
       }
 
-      alert("🎉 Activity published successfully! It has been posted into your selected group chat with an @all notification.");
+      alert("🎉 Activity published successfully! All instructions and files have been synchronized into your selected group chat.");
       window.location.href = typeof classUrl !== 'undefined' ? classUrl : (typeof classPageUrl !== 'undefined' ? classPageUrl : '/class.html');
     });
   }
