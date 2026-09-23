@@ -1820,10 +1820,9 @@ function createPicker(token) {
 
       const parsedClassId = parseDbId(currentClassId);
 
-      // 5. Insert Activity into Database
+    // 5. Insert Activity into Database
       const insertPayload = {
         class_id: parsedClassId,
-        lesson_id: lessonIdVal,
         title: title,
         description: description,
         deadline: deadlineIso,
