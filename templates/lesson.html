@@ -1691,41 +1691,62 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // 4. 📢 MANDATORY BROADCAST DIRECTLY TO SELECTED GROUP CHAT
+      // 4. 📢 FULL BROADCAST TO SELECTED GROUP CHAT (POSTS ALL FILES & LINKS)
       try {
         const targetGroupId = parseDbId(selectedGroupId);
         const targetUserId = parseDbId(currentUserId);
 
+        // A. Post Main Lesson Announcement Header
         let announcement = `📚 **NEW LESSON POSTED: ${title}**\n\n`;
         if (description) {
           announcement += `${description}\n\n`;
         }
         announcement += `👉 Please review this material before our next session! @all`;
 
-        // Pick primary material for file pill preview
-        const primaryItem = finalizedMaterials.length > 0 ? finalizedMaterials[0] : null;
-
-        const broadcastPayload = {
+        await client.from('group_messages').insert([{
           group_id: targetGroupId,
           user_id: targetUserId,
           sender_name: userName || "Teacher",
-          is_creator: true, // Triggers 👑 Teacher badge in group.html
+          is_creator: true,
           message: announcement,
-          media_url: primaryItem ? primaryItem.url : null,
-          media_type: primaryItem ? (primaryItem.type === 'file' ? 'file' : null) : null,
-          file_name: primaryItem ? primaryItem.name : null,
+          media_url: null,
+          media_type: null,
+          file_name: null,
           created_at: new Date().toISOString()
-        };
+        }]);
 
-        const { error: broadcastErr } = await client
-          .from('group_messages')
-          .insert([broadcastPayload]);
-
-        if (broadcastErr) {
-          console.error("Failed to broadcast lesson to group chat:", broadcastErr.message);
-        } else {
-          console.log("✅ Successfully broadcasted lesson to group messenger feed!");
+        // B. Post EVERY Attached File Individually (Creates Preview Cards in group.html)
+        for (const item of finalizedMaterials) {
+          if (item.type === 'file') {
+            await client.from('group_messages').insert([{
+              group_id: targetGroupId,
+              user_id: targetUserId,
+              sender_name: userName || "Teacher",
+              is_creator: true,
+              message: item.name,
+              media_url: item.url,
+              media_type: 'file',
+              file_name: item.name,
+              created_at: new Date().toISOString()
+            }]);
+          } else {
+            // C. Post Links & Google Drive Attachments
+            const linkTitle = item.name && item.name !== item.url ? `**${item.name}**: ` : '';
+            await client.from('group_messages').insert([{
+              group_id: targetGroupId,
+              user_id: targetUserId,
+              sender_name: userName || "Teacher",
+              is_creator: true,
+              message: `🔗 ${linkTitle}${item.url}`,
+              media_url: null,
+              media_type: null,
+              file_name: null,
+              created_at: new Date().toISOString()
+            }]);
+          }
         }
+
+        console.log("✅ Successfully broadcasted announcement and all attached materials to group messenger!");
       } catch (groupErr) {
         console.warn("Group chat broadcast exception:", groupErr);
       }
@@ -1777,7 +1798,7 @@ document.addEventListener("DOMContentLoaded", () => {
         console.warn("Could not dispatch automated lesson notifications:", notifErr);
       }
 
-      alert("🎉 Lesson published successfully! It has been posted into your selected group chat with an @all notification.");
+      alert("🎉 Lesson published successfully! All materials and links have been synchronized into your selected group chat.");
       window.location.href = lessonsUrl;
     });
   }

@@ -746,8 +746,8 @@ body, button, input, select, textarea {
       }
     }
 
-    /* =====================================================
-        3. AUTO-LOGIN CHECK & REMEMBER ME PERSISTENCE
+   /* =====================================================
+        3. AUTO-LOGIN CHECK, REMEMBER ME & DEFAULT PASSWORD GUARD
     ===================================================== */
     document.addEventListener("DOMContentLoaded", async () => {
       const emailInput = document.getElementById('loginEmail');
@@ -779,14 +779,37 @@ body, button, input, select, textarea {
         passwordInput.value = savedPassword;
       }
 
-      // 3. Save credentials upon form submission
+      // 3. Form submission listener with "123456" default password intercept
       if (loginForm) {
-        loginForm.addEventListener("submit", () => {
-          if (emailInput && emailInput.value.trim()) {
-            localStorage.setItem("rmc_saved_email", emailInput.value.trim());
+        loginForm.addEventListener("submit", (e) => {
+          const enteredPassword = passwordInput ? passwordInput.value.trim() : "";
+          const enteredEmail = emailInput ? emailInput.value.trim() : "";
+
+          // 🔒 DEFAULT PASSWORD INTERCEPT: '123456' forces a password change
+          if (enteredPassword === "123456") {
+            e.preventDefault(); // Stop normal login submission
+
+            alert("⚠️ Security Requirement: You are using the default temporary password ('123456'). Please complete the verification code step to set a new password.");
+
+            // Open the existing multi-stage forgot password modal
+            openForgotPasswordModal();
+
+            // Display a helpful instruction banner inside the modal
+            const errBox = document.getElementById("resetEmailError");
+            if (errBox) {
+              errBox.textContent = "Default password detected. Click 'Send Code' below to create a new password.";
+              errBox.style.color = "#2563eb";
+              errBox.style.display = "block";
+            }
+            return;
           }
-          if (passwordInput && passwordInput.value.trim()) {
-            localStorage.setItem("rmc_saved_password", passwordInput.value.trim());
+
+          // Save credentials upon legitimate form submission
+          if (enteredEmail) {
+            localStorage.setItem("rmc_saved_email", enteredEmail);
+          }
+          if (enteredPassword) {
+            localStorage.setItem("rmc_saved_password", enteredPassword);
           }
         });
       }

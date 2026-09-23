@@ -2650,8 +2650,36 @@ if (groupInputEl) {
   }
 
 /* =====================================================
-      11. DISPATCH, PERSIST & BROADCAST
-  ===================================================== */
+      11. DISPATCH, PERSIST, BROADCAST & RICH PREVIEWS
+===================================================== */
+
+  /* 📥 FILE DOWNLOAD & STORAGE RESOLVER */
+  function downloadFileDirectly(fileUrl, fileName) {
+    if (!fileUrl) {
+      alert("File attachment URL is not available.");
+      return;
+    }
+
+    let resolvedUrl = fileUrl;
+    if (!fileUrl.startsWith("http://") && !fileUrl.startsWith("https://") && !fileUrl.startsWith("data:")) {
+      const client = getSupabaseClient();
+      if (client) {
+        const cleanPath = fileUrl.replace(/^\/+/, "");
+        const { data } = client.storage.from('group-files').getPublicUrl(cleanPath);
+        resolvedUrl = data?.publicUrl || fileUrl;
+      }
+    }
+
+    const link = document.createElement("a");
+    link.href = resolvedUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.setAttribute("download", fileName || "document");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   // 📢 @ALL AUTOCOMPLETE POPUP COMPONENT SETUP
   const mentionDropdown = document.createElement('div');
   mentionDropdown.id = 'mentionDropdown';
@@ -2772,7 +2800,6 @@ if (groupInputEl) {
     senderSpan.textContent = type === 'sent' ? `${sender} (You)` : sender;
 
     // 🎯 ROLE BADGE ALIGNMENT:
-    // Creator is always the Teacher; joined members are always Students
     if (isCreator) {
       senderSpan.innerHTML += ` <span class="creator-tag teacher-tag" style="background:#fef3c7; color:#92400e; font-weight:700; font-size:11px; padding:1px 6px; border-radius:4px; margin-left:4px;">👑 Teacher</span>`;
     } else {
@@ -2786,6 +2813,7 @@ if (groupInputEl) {
     const msgDiv = document.createElement('div');
     msgDiv.classList.add('message');
 
+    // 1. IMAGE RENDERING
     if (mediaType === 'image' && mediaUrl) {
       const imgEl = document.createElement('img');
       imgEl.src = mediaUrl;
@@ -2818,17 +2846,103 @@ if (groupInputEl) {
         imgThumbnail.onclick = () => openImageModal(mediaUrl);
         sharedImages.appendChild(imgThumbnail);
       }
+
+    // 2. DOCUMENT CARD WITH PREVIEW & DIRECT DOWNLOAD
     } else if (mediaType === 'file' && fileName) {
-      const filePill = document.createElement('div');
-      filePill.className = 'chat-file-pill';
-      filePill.title = 'Click to download file automatically';
-      filePill.innerHTML = `<i class="fa-solid fa-file-arrow-down"></i> <span>${escapeHtml(fileName)}</span>`;
-      filePill.onclick = () => downloadFileDirectly(mediaUrl, fileName);
+      const ext = (fileName || '').split('.').pop().toLowerCase();
+      const isWord = ['doc', 'docx'].includes(ext);
+      const isPdf = ext === 'pdf';
+      const isExcel = ['xls', 'xlsx', 'csv'].includes(ext);
+      const isPpt = ['ppt', 'pptx'].includes(ext);
 
-      msgDiv.appendChild(filePill);
+      // Icon & Color styling
+      let iconColor = "#2563eb";
+      let iconClass = "fa-solid fa-file-lines";
+      if (isWord) {
+        iconColor = "#2563eb";
+        iconClass = "fa-solid fa-file-word";
+      } else if (isPdf) {
+        iconColor = "#dc2626";
+        iconClass = "fa-solid fa-file-pdf";
+      } else if (isExcel) {
+        iconColor = "#16a34a";
+        iconClass = "fa-solid fa-file-excel";
+      } else if (isPpt) {
+        iconColor = "#ea580c";
+        iconClass = "fa-solid fa-file-powerpoint";
+      }
 
-      if (sharedFiles && !mediaFilesSet.has(mediaUrl || fileName)) {
-        mediaFilesSet.add(mediaUrl || fileName);
+      // Resolve full URL
+      let validUrl = mediaUrl;
+      if (validUrl && !validUrl.startsWith("http://") && !validUrl.startsWith("https://") && !validUrl.startsWith("data:")) {
+        const client = getSupabaseClient();
+        if (client) {
+          const cleanPath = validUrl.replace(/^\/+/, "");
+          const { data } = client.storage.from('group-files').getPublicUrl(cleanPath);
+          validUrl = data?.publicUrl || validUrl;
+        }
+      }
+
+      const docCard = document.createElement('div');
+      docCard.className = 'group-doc-preview-card';
+      docCard.style.cssText = "width: 100%; max-width: 290px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.08); margin-top: 4px; display: flex; flex-direction: column; cursor: pointer; text-align: left;";
+
+      // Google Docs Viewer preview thumbnail for docx and pdf
+      let previewFrameHtml = "";
+      if ((isWord || isPdf) && validUrl && validUrl.startsWith("http")) {
+        const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(validUrl)}&embedded=true`;
+        previewFrameHtml = `
+          <div style="position: relative; width: 100%; height: 165px; background: #f8fafc; overflow: hidden; border-bottom: 1px solid #e2e8f0;">
+            <iframe src="${viewerUrl}" 
+                    style="width: 100%; height: 100%; border: none; pointer-events: none; transform: scale(1.02); transform-origin: top left; background:#ffffff;" 
+                    loading="lazy"></iframe>
+            <div style="position: absolute; inset: 0; background: transparent;" title="Click to open ${escapeHtml(fileName)}"></div>
+          </div>
+        `;
+      } else {
+        previewFrameHtml = `
+          <div style="width: 100%; height: 110px; background: #f8fafc; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #e2e8f0;">
+            <i class="${iconClass}" style="font-size: 44px; color: ${iconColor};"></i>
+          </div>
+        `;
+      }
+
+      docCard.innerHTML = `
+        ${previewFrameHtml}
+        <div style="padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; background: #ffffff;">
+          <div style="display: flex; align-items: center; gap: 8px; min-width: 0; overflow: hidden;">
+            <i class="${iconClass}" style="font-size: 20px; color: ${iconColor}; flex-shrink: 0;"></i>
+            <span style="font-size: 13px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(fileName)}">
+              ${escapeHtml(fileName)}
+            </span>
+          </div>
+          <button type="button" 
+                  class="btn-card-download" 
+                  title="Download File"
+                  style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #475569; flex-shrink: 0; transition: background 0.15s;">
+            <i class="fa-solid fa-arrow-down" style="font-size: 12px;"></i>
+          </button>
+        </div>
+      `;
+
+      // Click card to open in new tab; click download arrow to download directly
+      docCard.onclick = () => {
+        if (validUrl) window.open(validUrl, '_blank');
+      };
+
+      const dlBtn = docCard.querySelector('.btn-card-download');
+      if (dlBtn) {
+        dlBtn.onclick = (e) => {
+          e.stopPropagation();
+          downloadFileDirectly(validUrl, fileName);
+        };
+      }
+
+      msgDiv.appendChild(docCard);
+
+      // Shared files sidebar list
+      if (sharedFiles && !mediaFilesSet.has(validUrl || fileName)) {
+        mediaFilesSet.add(validUrl || fileName);
         if (sharedFiles.querySelector('li') && sharedFiles.querySelector('li').style.fontStyle === 'italic') {
           sharedFiles.innerHTML = "";
         }
@@ -2837,18 +2951,19 @@ if (groupInputEl) {
         li.className = 'shared-file-row';
         li.dataset.msgId = id;
         li.title = 'Click to download';
-        li.onclick = () => downloadFileDirectly(mediaUrl, fileName);
+        li.onclick = () => downloadFileDirectly(validUrl, fileName);
         li.innerHTML = `
           <div class="shared-file-meta">
-            <i class="fa-solid fa-file-lines" style="color:var(--primary);"></i>
+            <i class="${iconClass}" style="color:${iconColor}; font-size:14px;"></i>
             <span>${escapeHtml(fileName)}</span>
           </div>
           <i class="fa-solid fa-download" style="color:var(--muted); font-size:12px;"></i>
         `;
         sharedFiles.appendChild(li);
       }
+
+    // 3. STANDARD TEXT MESSAGE
     } else {
-      // Highlights @all while sanitizing against XSS
       const escapedText = escapeHtml(text);
       msgDiv.innerHTML = escapedText.replace(
         /\b@all\b/gi,
