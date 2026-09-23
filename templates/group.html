@@ -2699,7 +2699,6 @@ if (groupInputEl) {
 
   const activeMsgInput = document.getElementById('messageInput');
   if (activeMsgInput) {
-    // Show suggestion badge when typing @, @a, or @al
     activeMsgInput.addEventListener('input', function () {
       const val = this.value;
       if (/(?:^|\s)@a?l?$/i.test(val)) {
@@ -2709,7 +2708,6 @@ if (groupInputEl) {
       }
     });
 
-    // Selecting suggestion injects '@all ' without losing input cursor focus
     mentionDropdown.addEventListener('mousedown', function (e) {
       e.preventDefault();
       activeMsgInput.value = activeMsgInput.value.replace(/(?:^|\s)@a?l?$/i, ' @all ').trimStart();
@@ -2717,7 +2715,6 @@ if (groupInputEl) {
       activeMsgInput.focus();
     });
 
-    // Dismiss when clicking anywhere outside
     document.addEventListener('click', function (e) {
       if (e.target !== mentionDropdown && e.target !== activeMsgInput) {
         mentionDropdown.style.display = 'none';
@@ -2759,14 +2756,12 @@ if (groupInputEl) {
         .maybeSingle();
 
       if (insertedRow) {
-        // Upgrade DOM element from tempId to permanent database ID
         const tempRow = document.querySelector(`.message-row[data-id="${tempId}"]`);
         if (tempRow) tempRow.dataset.id = String(insertedRow.id);
 
         const tempMedia = document.querySelectorAll(`[data-msg-id="${tempId}"]`);
         tempMedia.forEach(m => m.dataset.msgId = String(insertedRow.id));
 
-        // 📢 Dispatch @all notifications to group members via Section 14
         if (typeof handleAtAllMentionNotification === 'function') {
           handleAtAllMentionNotification(text);
         }
@@ -2799,7 +2794,6 @@ if (groupInputEl) {
     senderSpan.className = 'sender-name';
     senderSpan.textContent = type === 'sent' ? `${sender} (You)` : sender;
 
-    // 🎯 ROLE BADGE ALIGNMENT:
     if (isCreator) {
       senderSpan.innerHTML += ` <span class="creator-tag teacher-tag" style="background:#fef3c7; color:#92400e; font-weight:700; font-size:11px; padding:1px 6px; border-radius:4px; margin-left:4px;">👑 Teacher</span>`;
     } else {
@@ -2855,7 +2849,6 @@ if (groupInputEl) {
       const isExcel = ['xls', 'xlsx', 'csv'].includes(ext);
       const isPpt = ['ppt', 'pptx'].includes(ext);
 
-      // Icon & Color styling
       let iconColor = "#2563eb";
       let iconClass = "fa-solid fa-file-lines";
       if (isWord) {
@@ -2872,7 +2865,6 @@ if (groupInputEl) {
         iconClass = "fa-solid fa-file-powerpoint";
       }
 
-      // Resolve full URL
       let validUrl = mediaUrl;
       if (validUrl && !validUrl.startsWith("http://") && !validUrl.startsWith("https://") && !validUrl.startsWith("data:")) {
         const client = getSupabaseClient();
@@ -2887,7 +2879,6 @@ if (groupInputEl) {
       docCard.className = 'group-doc-preview-card';
       docCard.style.cssText = "width: 100%; max-width: 290px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.08); margin-top: 4px; display: flex; flex-direction: column; cursor: pointer; text-align: left;";
 
-      // Google Docs Viewer preview thumbnail for docx and pdf
       let previewFrameHtml = "";
       if ((isWord || isPdf) && validUrl && validUrl.startsWith("http")) {
         const viewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(validUrl)}&embedded=true`;
@@ -2925,7 +2916,6 @@ if (groupInputEl) {
         </div>
       `;
 
-      // Click card to open in new tab; click download arrow to download directly
       docCard.onclick = () => {
         if (validUrl) window.open(validUrl, '_blank');
       };
@@ -2940,7 +2930,6 @@ if (groupInputEl) {
 
       msgDiv.appendChild(docCard);
 
-      // Shared files sidebar list
       if (sharedFiles && !mediaFilesSet.has(validUrl || fileName)) {
         mediaFilesSet.add(validUrl || fileName);
         if (sharedFiles.querySelector('li') && sharedFiles.querySelector('li').style.fontStyle === 'italic') {
@@ -2962,13 +2951,60 @@ if (groupInputEl) {
         sharedFiles.appendChild(li);
       }
 
-    // 3. STANDARD TEXT MESSAGE
+    // 3. STANDARD TEXT & EMBEDDED MEDIA / YOUTUBE CARD
     } else {
-      const escapedText = escapeHtml(text);
-      msgDiv.innerHTML = escapedText.replace(
+      const rawText = String(text || "");
+      
+      // Match YouTube links (watch, youtu.be, embed, with query params like &t=24s)
+      const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s<]*)/i;
+      const ytMatch = rawText.match(ytRegex);
+
+      // Sanitize raw text to prevent XSS
+      let formattedText = escapeHtml(rawText);
+
+      // Choose link color so it stays visible inside blue (sent) or white (received) bubbles
+      const linkColor = type === 'sent' ? '#ffffff' : '#2563eb';
+
+      // Convert all web URLs into active clickable links
+      const urlRegex = /(https?:\/\/[^\s<]+)/gi;
+      formattedText = formattedText.replace(urlRegex, (url) => {
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: ${linkColor}; text-decoration: underline; font-weight: 600; word-break: break-all;">${url}</a>`;
+      });
+
+      // Highlight @all mentions
+      formattedText = formattedText.replace(
         /\b@all\b/gi,
         '<span style="background:#dbeafe; color:#1d4ed8; font-weight:700; padding:1px 5px; border-radius:4px;">@all</span>'
       );
+
+      msgDiv.innerHTML = formattedText;
+
+      // If YouTube link is present, render interactive embedded player card
+      if (ytMatch) {
+        const videoId = ytMatch[1];
+        const fullUrl = ytMatch[0].startsWith('http') ? ytMatch[0] : `https://${ytMatch[0]}`;
+        const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+
+        const ytCard = document.createElement('div');
+        ytCard.className = 'chat-yt-embed-card';
+        ytCard.style.cssText = "margin-top: 8px; width: 100%; max-width: 320px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; overflow: hidden; box-shadow: 0 3px 10px rgba(0,0,0,0.1); text-align: left;";
+        ytCard.innerHTML = `
+          <div style="position: relative; width: 100%; height: 180px; background: #000000;">
+            <iframe 
+              src="${embedUrl}" 
+              style="width: 100%; height: 100%; border: none;" 
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowfullscreen>
+            </iframe>
+          </div>
+          <div style="padding: 9px 12px; background: #ffffff; display: flex; align-items: center; justify-content: space-between;">
+            <a href="${fullUrl}" target="_blank" rel="noopener noreferrer" style="color: #dc2626; font-size: 12.5px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+              <i class="fa-brands fa-youtube" style="font-size: 16px;"></i> Watch on YouTube
+            </a>
+          </div>
+        `;
+        msgDiv.appendChild(ytCard);
+      }
     }
 
     wrapper.appendChild(msgDiv);
